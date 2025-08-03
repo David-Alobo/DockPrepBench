@@ -1,0 +1,7 @@
+python
+numpy
+seaborn
+matplotlib
+filelock
+textwrap3
+rdkit
