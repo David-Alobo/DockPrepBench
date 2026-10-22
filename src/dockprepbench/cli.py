@@ -62,9 +62,13 @@ def build_parser() -> argparse.ArgumentParser:
     summarize = commands.add_parser("summarize", help="Success rates of one run.")
     summarize.add_argument("run", type=Path, help="Run directory or results CSV.")
 
-    compare = commands.add_parser("compare", help="Paired comparison of two runs.")
-    compare.add_argument("run_a", type=Path, help="Run directory or results CSV.")
-    compare.add_argument("run_b", type=Path, help="Run directory or results CSV.")
+    compare = commands.add_parser(
+        "compare", help="Paired comparison of one or more runs against a reference run."
+    )
+    compare.add_argument("run_a", type=Path, help="Reference run directory or results CSV.")
+    compare.add_argument(
+        "run_b", type=Path, nargs="+", help="Run(s) to compare; p-values are Holm-adjusted."
+    )
     compare.add_argument(
         "--pb-valid", action="store_true", help="Require PB-valid poses for success."
     )
@@ -171,7 +175,10 @@ def summarize_command(args: argparse.Namespace) -> int:
 
 def compare_command(args: argparse.Namespace) -> int:
     """
-    Execute the `compare` subcommand.
+    Execute the `compare` subcommand: each run B against the reference run A.
+
+    With several B runs, p-values are also Holm-adjusted across the comparisons, since
+    testing many arms against one baseline would otherwise yield false positives.
 
     Args:
         args (argparse.Namespace): Parsed `compare` arguments.
@@ -179,28 +186,43 @@ def compare_command(args: argparse.Namespace) -> int:
     Returns:
         int: Process exit code.
     """
-    from dockprepbench.analysis.stats import compare, load_run, success_rate, successes
+    from dockprepbench.analysis.stats import (
+        compare,
+        holm_adjust,
+        load_run,
+        success_rate,
+        successes,
+    )
 
-    path_a, path_b = _results_path(args.run_a), _results_path(args.run_b)
+    path_a = _results_path(args.run_a)
     hits_a = successes(load_run(path_a), pb_valid=args.pb_valid)
-    hits_b = successes(load_run(path_b), pb_valid=args.pb_valid)
-    result = compare(hits_a, hits_b)
-    shared = hits_a.index.intersection(hits_b.index)
+    comparisons = []
+    for run_b in args.run_b:
+        path_b = _results_path(run_b)
+        hits_b = successes(load_run(path_b), pb_valid=args.pb_valid)
+        comparisons.append((path_b, hits_b, compare(hits_a, hits_b)))
+    adjusted = holm_adjust([result.p_value for _, _, result in comparisons])
 
     metric = "PB-valid success" if args.pb_valid else "Top-1 success"
-    lines = [
-        f"{metric} on {result.n} shared complexes",
-        f"  A {path_a}: {success_rate(hits_a[shared])}",
-        f"  B {path_b}: {success_rate(hits_b[shared])}",
-        f"  both {result.both}, neither {result.neither}, "
-        f"only A {len(result.only_a)}, only B {len(result.only_b)}",
-        f"  McNemar exact p = {result.p_value:.3g}",
-    ]
-    if result.only_a:
-        lines.append(f"  only A: {' '.join(result.only_a)}")
-    if result.only_b:
-        lines.append(f"  only B: {' '.join(result.only_b)}")
-    print("\n".join(lines))
+    blocks = []
+    for (path_b, hits_b, result), p_holm in zip(comparisons, adjusted, strict=True):
+        shared = hits_a.index.intersection(hits_b.index)
+        lines = [
+            f"{metric} on {result.n} shared complexes",
+            f"  A {path_a}: {success_rate(hits_a[shared])}",
+            f"  B {path_b}: {success_rate(hits_b[shared])}",
+            f"  both {result.both}, neither {result.neither}, "
+            f"only A {len(result.only_a)}, only B {len(result.only_b)}",
+            f"  McNemar exact p = {result.p_value:.3g}",
+        ]
+        if len(comparisons) > 1:
+            lines.append(f"  Holm-adjusted p = {p_holm:.3g} ({len(comparisons)} comparisons)")
+        if result.only_a:
+            lines.append(f"  only A: {' '.join(result.only_a)}")
+        if result.only_b:
+            lines.append(f"  only B: {' '.join(result.only_b)}")
+        blocks.append("\n".join(lines))
+    print("\n\n".join(blocks))
     return 0
 
 
