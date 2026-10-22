@@ -61,9 +61,12 @@ def run_command(args: argparse.Namespace) -> int:
     results.to_csv(args.out, index=False)
 
     failed = (results["error"] != "").sum()
+    # PB-valid success also requires the pose to pass every PoseBusters check.
+    valid_rmsds = results["top1_rmsd"].where(results["top1_pb_valid"])
     logger.info(
-        "Top-1 success: %.1f%% (%d complexes, %d failed). Results: %s",
+        "Top-1 success: %.1f%%, PB-valid: %.1f%% (%d complexes, %d failed). Results: %s",
         100 * top1_success_rate(results["top1_rmsd"]),
+        100 * top1_success_rate(valid_rmsds),
         len(results),
         failed,
         args.out,
