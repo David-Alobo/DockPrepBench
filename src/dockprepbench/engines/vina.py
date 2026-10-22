@@ -34,7 +34,7 @@ class VinaEngine(DockingEngine):
         vina = Vina(sf_name="vina", cpu=self.cpu, seed=self.seed, verbosity=0)
         with TemporaryDirectory() as tmp:
             receptor_pdbqt = Path(tmp) / "receptor.pdbqt"
-            receptor_pdbqt.write_text(receptor_to_pdbqt(Path(receptor).read_text()))
+            receptor_pdbqt.write_text(receptor_to_pdbqt(Path(receptor).read_text(), box))
             vina.set_receptor(rigid_pdbqt_filename=str(receptor_pdbqt))
 
         vina.set_ligand_from_string(ligand_to_pdbqt(ligand))
