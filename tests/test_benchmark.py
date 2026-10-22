@@ -48,6 +48,7 @@ def test_dock_complex_scores_top_pose(entry, tmp_path):
 
     assert result.top1_rmsd == pytest.approx(0.0, abs=1e-6)
     assert result.top1_score == -9.0
+    assert isinstance(result.top1_pb_valid, bool)
     assert result.n_poses == 2
     assert result.error == ""
     assert (tmp_path / "work" / "TEST_LIG_receptor.pdb").is_file()
@@ -66,4 +67,13 @@ def test_run_benchmark_returns_one_row_per_complex(entry, tmp_path):
     df = run_benchmark([entry, entry], engine, tmp_path / "work")
 
     assert list(df["id"]) == ["TEST_LIG", "TEST_LIG"]
-    assert list(df.columns) == ["id", "top1_rmsd", "top1_score", "n_poses", "seconds", "error"]
+    assert list(df.columns) == [
+        "id",
+        "top1_rmsd",
+        "top1_score",
+        "top1_pb_valid",
+        "top1_failed_checks",
+        "n_poses",
+        "seconds",
+        "error",
+    ]

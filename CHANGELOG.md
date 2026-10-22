@@ -21,6 +21,8 @@ All notable changes to this project are documented here. The format follows
   added atoms are relaxed with Amber14 while crystal atoms stay fixed.
 - `benchmark`: redock a set of complexes in parallel and record top-1 RMSD, score and failures per complex.
 - `dockprepbench run` command for a PoseBusters redocking run.
+- `evaluation.validity`: PoseBusters physical-validity checks on the top pose; runs report
+  PB-valid success (RMSD < 2 Å and every check passed) alongside plain top-1 success.
 
 ### Changed
 - Receptor PDBQT conversion drops residues that fail template matching when they lie more

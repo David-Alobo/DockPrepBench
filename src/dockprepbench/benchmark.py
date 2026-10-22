@@ -12,6 +12,7 @@ import pandas as pd
 from dockprepbench.datasets.posebusters import Complex
 from dockprepbench.engines.base import DockingEngine
 from dockprepbench.evaluation.rmsd import pose_rmsd
+from dockprepbench.evaluation.validity import is_pb_valid, validity_checks
 from dockprepbench.io import load_sdf_file
 from dockprepbench.preparation.box import box_from_ligand
 from dockprepbench.preparation.receptor import protonate_receptor
@@ -26,6 +27,8 @@ class ComplexResult:
     id: str
     top1_rmsd: float = math.nan
     top1_score: float = math.nan
+    top1_pb_valid: bool = False
+    top1_failed_checks: str = ""  # semicolon-separated PoseBusters check names
     n_poses: int = 0
     seconds: float = math.nan
     error: str = ""
@@ -55,6 +58,9 @@ def dock_complex(entry: Complex, engine: DockingEngine, work_dir: Path) -> Compl
     """
     Redock a complex's ligand from its generated start conformer and score the top pose.
 
+    The top pose gets an RMSD against the crystal ligand and the PoseBusters validity
+    checks, run against the original protein file (with cofactors), as in PoseBusters.
+
     Any error is caught and recorded so one bad complex does not stop a benchmark run.
 
     Args:
@@ -73,10 +79,13 @@ def dock_complex(entry: Complex, engine: DockingEngine, work_dir: Path) -> Compl
         result = engine.dock(receptor, ligand, box_from_ligand(crystal))
         if not result.poses:
             raise RuntimeError(f"{engine.name} returned no poses")
+        checks = validity_checks(result.poses[0], crystal, entry.protein)
         return ComplexResult(
             id=entry.id,
             top1_rmsd=pose_rmsd(result.poses[0], crystal),
             top1_score=result.scores[0],
+            top1_pb_valid=is_pb_valid(checks),
+            top1_failed_checks=";".join(name for name, ok in checks.items() if not ok),
             n_poses=len(result.poses),
             seconds=time.perf_counter() - start,
         )
