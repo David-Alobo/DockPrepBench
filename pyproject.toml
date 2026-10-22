@@ -9,7 +9,7 @@ description = "Benchmarking how protein and ligand preparation choices affect cl
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "David Alobo" }]
+authors = [{ name = "David Obeh Alobo" }]
 dependencies = [
     "numpy",
     "pandas",
