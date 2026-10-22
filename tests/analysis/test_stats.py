@@ -3,7 +3,14 @@ import math
 import pandas as pd
 import pytest
 
-from dockprepbench.analysis.stats import compare, load_run, success_rate, successes, wilson_interval
+from dockprepbench.analysis.stats import (
+    compare,
+    holm_adjust,
+    load_run,
+    success_rate,
+    successes,
+    wilson_interval,
+)
 
 
 def flags(**hits):
@@ -110,3 +117,15 @@ def test_compare_identical_runs_has_p_one():
 def test_compare_requires_overlap():
     with pytest.raises(ValueError):
         compare(flags(A=True), flags(B=True))
+
+
+def test_holm_adjust_matches_hand_calculation():
+    # Sorted: 0.005*4=0.02, 0.01*3=0.03, 0.03*2=0.06, 0.04*1=0.04 -> monotone max 0.06
+    adjusted = holm_adjust([0.01, 0.04, 0.03, 0.005])
+
+    assert adjusted == pytest.approx([0.03, 0.06, 0.06, 0.02])
+
+
+def test_holm_adjust_caps_at_one_and_keeps_single_p():
+    assert holm_adjust([0.6, 0.7]) == pytest.approx([1.0, 1.0])
+    assert holm_adjust([0.04]) == pytest.approx([0.04])

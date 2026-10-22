@@ -3,6 +3,7 @@
 import math
 from collections.abc import Iterable
 
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdMolAlign
 
@@ -32,6 +33,28 @@ def pose_rmsd(pose: Chem.Mol, reference: Chem.Mol) -> float:
         RuntimeError: If the two molecules do not share the same heavy-atom graph.
     """
     return rdMolAlign.CalcRMS(skeleton(pose), skeleton(reference))
+
+
+def centroid_shift(pose: Chem.Mol, reference: Chem.Mol) -> float:
+    """
+    Compute the distance between the heavy-atom centroids of a pose and a reference.
+
+    Unlike RMSD it ignores orientation, so it separates a pose in the wrong place
+    (large shift) from one in the right place with the wrong binding mode (small shift,
+    large RMSD).
+
+    Args:
+        pose (Chem.Mol): Docked ligand with 3D coordinates.
+        reference (Chem.Mol): Crystal ligand with 3D coordinates.
+
+    Returns:
+        float: Centroid distance in Å.
+    """
+    centroids = [
+        Chem.RemoveAllHs(mol).GetConformer().GetPositions().mean(axis=0)
+        for mol in (pose, reference)
+    ]
+    return float(np.linalg.norm(centroids[0] - centroids[1]))
 
 
 def is_success(rmsd: float, threshold: float = SUCCESS_THRESHOLD) -> bool:

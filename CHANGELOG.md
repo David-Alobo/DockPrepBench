@@ -36,6 +36,10 @@ All notable changes to this project are documented here. The format follows
   ones (`--force` reruns); `dockprepbench figures` writes a success-rate forest plot, RMSD curves
   and a summary table.
 - `docs/methods.md`: the benchmark protocol as implemented.
+- Results record `best_rmsd` and `best_rank` (best pose among all returned, to separate scoring
+  from sampling failures) and `top1_centroid_shift` (to separate wrong-site from wrong-mode poses).
+- `dockprepbench compare BASELINE ARM [ARM ...]` compares several arms at once and reports
+  Holm-adjusted p-values (`analysis.stats.holm_adjust`).
 
 ### Changed
 - Pose RMSD matches atoms on the charge-free heavy-atom skeleton, so poses docked in a different
