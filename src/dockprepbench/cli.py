@@ -1,13 +1,21 @@
 """Command-line interface: `dockprepbench`."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dockprepbench import __version__
 from dockprepbench.log import setup_logging
+
+if TYPE_CHECKING:  # heavy imports stay lazy so `--help` and `summarize` start fast
+    from dockprepbench.datasets.posebusters import Complex
+    from dockprepbench.engines.base import DockingEngine
+    from dockprepbench.preparation.config import PrepConfig
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +40,20 @@ def build_parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run", help="Redock the PoseBusters set with one engine.")
     run.add_argument("--engine", choices=["vina"], default="vina")
     run.add_argument(
-        "--config", type=Path, help="Preparation config (TOML). Defaults to the baseline."
+        "--config",
+        type=Path,
+        nargs="+",
+        help="Preparation config(s) (TOML), run one after another. Defaults to the baseline.",
+    )
+    run.add_argument(
+        "--force", action="store_true", help="Rerun configs whose results already exist."
     )
     run.add_argument("--data-dir", type=Path, default=Path("data/raw"))
     run.add_argument("--work-dir", type=Path, default=Path("data/prepared"))
     run.add_argument(
-        "--out", type=Path, help="Run directory. Defaults to results/<engine>/<config name>."
+        "--out",
+        type=Path,
+        help="Run directory, for a single config. Defaults to results/<engine>/<config name>.",
     )
     run.add_argument("--limit", type=int, help="Dock only the first N complexes.")
     run.add_argument("--workers", type=int, default=1, help="Complexes docked in parallel.")
@@ -57,10 +73,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_command(args: argparse.Namespace) -> int:
     """
-    Execute the `run` subcommand.
+    Execute the `run` subcommand for one or more preparation configs.
 
-    Writes `results.csv` and `run.json` (config, engine settings, version, time) to the
-    run directory.
+    Every config is loaded before any docking starts, so a bad file fails fast. Configs
+    whose results already exist are skipped unless `--force` is given, so an
+    interrupted batch can simply be restarted.
 
     Args:
         args (argparse.Namespace): Parsed `run` arguments.
@@ -68,22 +85,55 @@ def run_command(args: argparse.Namespace) -> int:
     Returns:
         int: Process exit code.
     """
-    from dockprepbench.benchmark import run_benchmark
     from dockprepbench.datasets.posebusters import download, load_complexes
     from dockprepbench.engines.vina import VinaEngine
     from dockprepbench.preparation.config import PrepConfig, load_config
 
-    config = load_config(args.config) if args.config else PrepConfig()
-    out = args.out or Path("results") / args.engine / config.name
+    configs = [load_config(path) for path in args.config] if args.config else [PrepConfig()]
+    if args.out and len(configs) > 1:
+        raise SystemExit("--out takes a single config; omit it to use results/<engine>/<name>")
+    names = [config.name for config in configs]
+    if len(set(names)) != len(names):
+        raise SystemExit(f"Config names must be unique, got {names}")
+
     complexes = load_complexes(download(args.data_dir))[: args.limit]
     # One Vina thread per complex when complexes already run in parallel.
     engine = VinaEngine(exhaustiveness=args.exhaustiveness, cpu=1 if args.workers > 1 else 0)
-    logger.info("Docking %d complexes with %s, config %s", len(complexes), engine.name, config)
+    for i, config in enumerate(configs, 1):
+        out = args.out or Path("results") / args.engine / config.name
+        if (out / RESULTS_FILE).is_file() and not args.force:
+            logger.info("[%d/%d] %s: results exist, skipping", i, len(configs), config.name)
+            continue
+        logger.info(
+            "[%d/%d] %s: docking %d complexes", i, len(configs), config.name, len(complexes)
+        )
+        _run_one(complexes, engine, config, out, args)
+        print(_format_summary(out / RESULTS_FILE))
+    return 0
+
+
+def _run_one(
+    complexes: list[Complex],
+    engine: DockingEngine,
+    config: PrepConfig,
+    out: Path,
+    args: argparse.Namespace,
+) -> None:
+    """
+    Dock all complexes under one config and write `run.json` and `results.csv`.
+
+    Args:
+        complexes (list[Complex]): Complexes to dock.
+        engine (DockingEngine): Engine to dock with.
+        config (PrepConfig): Preparation protocol.
+        out (Path): Run directory.
+        args (argparse.Namespace): Parsed `run` arguments (work dir, workers).
+    """
+    from dockprepbench.benchmark import run_benchmark
 
     started = datetime.now(UTC)
     results = run_benchmark(complexes, engine, config, args.work_dir, workers=args.workers)
     out.mkdir(parents=True, exist_ok=True)
-    results.to_csv(out / RESULTS_FILE, index=False)
     metadata = {
         "dockprepbench_version": __version__,
         "engine": engine.name,
@@ -94,10 +144,9 @@ def run_command(args: argparse.Namespace) -> int:
         "finished": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     (out / "run.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-
+    # Written last: its presence marks the run as complete for the skip check.
+    results.to_csv(out / RESULTS_FILE, index=False)
     logger.info("Results written to %s", out)
-    print(_format_summary(out / RESULTS_FILE))
-    return 0
 
 
 def summarize_command(args: argparse.Namespace) -> int:
