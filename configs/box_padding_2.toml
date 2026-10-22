@@ -1,0 +1,2 @@
+# Box-size experiment: padding around the crystal ligand, in Å.
+box_padding = 2.0
