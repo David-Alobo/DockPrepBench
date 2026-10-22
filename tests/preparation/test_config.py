@@ -45,3 +45,17 @@ def test_shipped_configs_load():
     assert configs
     for path in configs:
         load_config(path)
+
+
+def test_ligand_settings_default_to_supplied():
+    config = PrepConfig()
+
+    assert (config.ligand_protonation, config.ligand_conformer) == ("supplied", "supplied")
+
+
+def test_invalid_ligand_setting_is_rejected(tmp_path):
+    path = tmp_path / "bad.toml"
+    path.write_text('ligand_conformer = "omega"\n', encoding="utf-8")
+
+    with pytest.raises(ValueError, match="ligand_conformer"):
+        load_config(path)

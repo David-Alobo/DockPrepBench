@@ -6,6 +6,8 @@ from collections.abc import Iterable
 from rdkit import Chem
 from rdkit.Chem import rdMolAlign
 
+from dockprepbench.chem import skeleton
+
 SUCCESS_THRESHOLD = 2.0  # Å, the conventional cutoff for a correct pose
 
 
@@ -20,13 +22,16 @@ def pose_rmsd(pose: Chem.Mol, reference: Chem.Mol) -> float:
         pose (Chem.Mol): Docked ligand with 3D coordinates.
         reference (Chem.Mol): Crystal ligand with 3D coordinates.
 
+    Atoms are matched on the heavy-atom skeleton, ignoring hydrogens and formal charges,
+    so a pose docked in a different protonation state still matches the crystal ligand.
+
     Returns:
         float: RMSD in Å, minimised over symmetry-equivalent atom mappings.
 
     Raises:
         RuntimeError: If the two molecules do not share the same heavy-atom graph.
     """
-    return rdMolAlign.CalcRMS(Chem.RemoveAllHs(pose), Chem.RemoveAllHs(reference))
+    return rdMolAlign.CalcRMS(skeleton(pose), skeleton(reference))
 
 
 def is_success(rmsd: float, threshold: float = SUCCESS_THRESHOLD) -> bool:
