@@ -68,7 +68,7 @@ def fake_pipeline(monkeypatch):
 
     docked = []
 
-    def fake_run_benchmark(complexes, engine, config, work_dir, workers=1):
+    def fake_run_benchmark(complexes, engine, config, work_dir, workers=1, pose_dir=None):
         docked.append(config.name)
         return pd.DataFrame(
             {

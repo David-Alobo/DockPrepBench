@@ -59,3 +59,27 @@ def load_sdf_file(file_path: str | Path) -> list[Chem.Mol]:
     if any(mol is None for mol in mols):
         raise ValueError(f"Failed to parse a record in SDF file: {path}")
     return mols
+
+
+def write_sdf_file(mols: list[Chem.Mol], file_path: str | Path) -> Path:
+    """
+    Write molecules to an SDF file atomically, keeping their properties and hydrogens.
+
+    The file is written under a temporary name and renamed, so an interrupted write
+    never leaves a partial file behind.
+
+    Args:
+        mols (list[Chem.Mol]): Molecules to write, in order.
+        file_path (str | Path): Destination .sdf file; parent directories are created.
+
+    Returns:
+        Path: The written file.
+    """
+    path = Path(file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".sdf.tmp")
+    with Chem.SDWriter(str(tmp)) as writer:
+        for mol in mols:
+            writer.write(mol)
+    tmp.replace(path)
+    return path

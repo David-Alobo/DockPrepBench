@@ -8,12 +8,13 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import pandas as pd
+from rdkit import Chem
 
 from dockprepbench.datasets.posebusters import Complex
 from dockprepbench.engines.base import DockingEngine
 from dockprepbench.evaluation.rmsd import centroid_shift, pose_rmsd
 from dockprepbench.evaluation.validity import is_pb_valid, validity_checks
-from dockprepbench.io import load_sdf_file
+from dockprepbench.io import load_sdf_file, write_sdf_file
 from dockprepbench.preparation.box import box_from_ligand
 from dockprepbench.preparation.config import PrepConfig
 from dockprepbench.preparation.ligand import prepare_ligand
@@ -65,7 +66,11 @@ def prepared_receptor(entry: Complex, config: PrepConfig, work_dir: Path) -> Pat
 
 
 def dock_complex(
-    entry: Complex, engine: DockingEngine, config: PrepConfig, work_dir: Path
+    entry: Complex,
+    engine: DockingEngine,
+    config: PrepConfig,
+    work_dir: Path,
+    pose_dir: Path | None = None,
 ) -> ComplexResult:
     """
     Prepare and redock a complex's ligand, starting from its supplied start conformer,
@@ -81,6 +86,9 @@ def dock_complex(
         engine (DockingEngine): Engine to dock with.
         config (PrepConfig): Preparation protocol.
         work_dir (Path): Root directory for cached prepared receptors.
+        pose_dir (Path | None): If given, all returned poses are written to
+            `<pose_dir>/<id>.sdf` in rank order, each with `rank`, `score` and `rmsd`
+            properties, for inspection and visualisation.
 
     Returns:
         ComplexResult: Top-1 RMSD against the crystal ligand, score and timing.
@@ -102,6 +110,8 @@ def dock_complex(
         checks = validity_checks(result.poses[0], crystal, entry.protein)
         rmsds = [pose_rmsd(pose, crystal) for pose in result.poses]
         best = min(range(len(rmsds)), key=rmsds.__getitem__)
+        if pose_dir is not None:
+            _save_poses(result.poses, result.scores, rmsds, pose_dir / f"{entry.id}.sdf")
         return ComplexResult(
             id=entry.id,
             top1_rmsd=rmsds[0],
@@ -127,6 +137,7 @@ def run_benchmark(
     config: PrepConfig,
     work_dir: Path,
     workers: int = 1,
+    pose_dir: Path | None = None,
 ) -> pd.DataFrame:
     """
     Dock every complex and collect the results.
@@ -137,15 +148,38 @@ def run_benchmark(
         config (PrepConfig): Preparation protocol.
         work_dir (Path): Root directory for cached prepared receptors.
         workers (int): Number of complexes docked in parallel.
+        pose_dir (Path | None): If given, every complex's poses are written there as
+            `<id>.sdf` (see `dock_complex`).
 
     Returns:
         pd.DataFrame: One row per complex, in input order, with the ComplexResult fields.
     """
     n = len(complexes)
-    args = (complexes, [engine] * n, [config] * n, [work_dir] * n)
+    args = (complexes, [engine] * n, [config] * n, [work_dir] * n, [pose_dir] * n)
     if workers == 1:
         results = list(map(dock_complex, *args))
     else:
         with ProcessPoolExecutor(workers) as pool:
             results = list(pool.map(dock_complex, *args))
     return pd.DataFrame([asdict(r) for r in results])
+
+
+def _save_poses(poses: list[Chem.Mol], scores: list[float], rmsds: list[float], path: Path) -> None:
+    """
+    Write ranked poses to an SDF file, tagging each with its rank, score and RMSD.
+
+    Args:
+        poses (list[Chem.Mol]): Poses in rank order.
+        scores (list[float]): Engine score per pose.
+        rmsds (list[float]): RMSD to the crystal ligand per pose, in Å.
+        path (Path): Destination SDF file.
+    """
+    tagged = []
+    for rank, (pose, score, rmsd) in enumerate(zip(poses, scores, rmsds, strict=True), 1):
+        mol = Chem.Mol(pose)
+        mol.SetProp("_Name", f"{path.stem} rank {rank}")
+        mol.SetIntProp("rank", rank)
+        mol.SetDoubleProp("score", score)
+        mol.SetDoubleProp("rmsd", rmsd)
+        tagged.append(mol)
+    write_sdf_file(tagged, path)

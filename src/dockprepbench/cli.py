@@ -130,7 +130,7 @@ def _run_one(
     args: argparse.Namespace,
 ) -> None:
     """
-    Dock all complexes under one config and write `run.json` and `results.csv`.
+    Dock all complexes under one config; write `poses/`, `run.json` and `results.csv`.
 
     Args:
         complexes (list[Complex]): Complexes to dock.
@@ -142,7 +142,9 @@ def _run_one(
     from dockprepbench.benchmark import run_benchmark
 
     started = datetime.now(UTC)
-    results = run_benchmark(complexes, engine, config, args.work_dir, workers=args.workers)
+    results = run_benchmark(
+        complexes, engine, config, args.work_dir, workers=args.workers, pose_dir=out / "poses"
+    )
     out.mkdir(parents=True, exist_ok=True)
     metadata = {
         "dockprepbench_version": __version__,

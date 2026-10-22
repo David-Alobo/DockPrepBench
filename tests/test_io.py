@@ -2,7 +2,7 @@ import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from dockprepbench.io import load_pdb_file, load_sdf_file
+from dockprepbench.io import load_pdb_file, load_sdf_file, write_sdf_file
 
 
 def test_load_pdb_file_uses_stem_as_id(pdb_file):
@@ -51,3 +51,19 @@ def test_load_sdf_file_empty_raises(tmp_path):
 
     with pytest.raises(ValueError):
         load_sdf_file(sdf)
+
+
+def test_write_sdf_file_round_trips_properties(tmp_path):
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol, randomSeed=0)
+    mol.SetDoubleProp("score", -7.5)
+    path = tmp_path / "nested" / "out.sdf"
+
+    written = write_sdf_file([mol, mol], path)
+
+    assert written == path
+    assert not list(path.parent.glob("*.tmp"))
+    mols = load_sdf_file(path)
+    assert len(mols) == 2
+    assert mols[0].GetDoubleProp("score") == -7.5
+    assert mols[0].GetNumAtoms() == mol.GetNumAtoms()

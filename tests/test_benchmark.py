@@ -103,3 +103,24 @@ def test_dock_complex_records_best_pose_below_top(entry, tmp_path):
     assert result.top1_rmsd > 0.1
     assert result.best_rmsd == pytest.approx(0.0, abs=1e-6)
     assert result.best_rank == 2
+
+
+def test_dock_complex_saves_ranked_poses(entry, tmp_path):
+    pose_dir = tmp_path / "poses"
+
+    dock_complex(
+        entry, ReversedEngine(entry.crystal_ligand), PrepConfig(), tmp_path / "work", pose_dir
+    )
+
+    poses = list(Chem.SDMolSupplier(str(pose_dir / "TEST_LIG.sdf")))
+    assert [p.GetIntProp("rank") for p in poses] == [1, 2]
+    assert [p.GetDoubleProp("score") for p in poses] == [-5.0, -9.0]
+    assert poses[1].GetDoubleProp("rmsd") == pytest.approx(0.0, abs=1e-6)
+
+
+def test_failed_complex_writes_no_poses(entry, tmp_path):
+    pose_dir = tmp_path / "poses"
+
+    dock_complex(entry, EmptyEngine(), PrepConfig(), tmp_path / "work", pose_dir)
+
+    assert not pose_dir.exists()

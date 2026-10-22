@@ -40,6 +40,8 @@ All notable changes to this project are documented here. The format follows
   from sampling failures) and `top1_centroid_shift` (to separate wrong-site from wrong-mode poses).
 - `dockprepbench compare BASELINE ARM [ARM ...]` compares several arms at once and reports
   Holm-adjusted p-values (`analysis.stats.holm_adjust`).
+- Runs save every returned pose to `results/<engine>/<arm>/poses/<id>.sdf`, in rank order with
+  `rank`, `score` and `rmsd` properties, for inspection and the planned results explorer.
 
 ### Changed
 - Pose RMSD matches atoms on the charge-free heavy-atom skeleton, so poses docked in a different
