@@ -1,0 +1,22 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\todo{Main finding in one paragraph: the size of preparation effects relative to seed noise
+  and (later) to the choice of engine.}
+
+\todo{Mechanisms, from the failure-mode analysis: which choices act through scoring and
+  which through sampling or the search space.}
+
+\todo{Practical recommendations: what to report, and which choices matter for which kinds of
+  ligand or pocket.}
+
+\subsection{Limitations}
+
+Several choices are fixed in all arms. Cofactors are removed in the baseline because most
+lack Meeko templates; trial runs already show top poses placed in a cofactor's site, which
+the PoseBusters checks then reject. Waters cannot be studied because the dataset's protein
+files contain none. A small number of complexes fail receptor conversion because atoms in
+the deposited structure lie close enough for a spurious bond to be perceived; they are not
+repaired, since that would move experimental atoms, and as they fail in every arm they do
+not bias the paired comparisons. \result{Number of such complexes.} Results so far cover one
+engine and one dataset. \todo{Update as engines and datasets are added.}

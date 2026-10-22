@@ -1,0 +1,22 @@
+\section{Introduction}
+\label{sec:introduction}
+
+% Outline. Every literature claim needs a verified source in references.bib before it
+% becomes prose (see paper/README.md, "References").
+
+\todo{Paragraph 1: why docking still matters (structure-based design, virtual screening);
+  classical engines remain the workhorse; cite Vina \citep{trott2010vina,eberhardt2021vina}.}
+
+\todo{Paragraph 2: how docking methods are benchmarked. Pose prediction on curated sets such
+  as the Astex Diverse set \citep{hartshorn2007astex} and PoseBusters
+  \citep{buttenschoen2024posebusters}; RMSD below \SI{2}{\angstrom} as the success criterion;
+  PoseBusters adds physical-validity checks.}
+
+\todo{Paragraph 3: the gap. Benchmarks fix one preparation protocol and vary the engine, but
+  preparation (protonation, tautomers, cofactors, waters, start conformer, search space) is
+  rarely varied systematically or reported in full. Needs sources: prior studies of
+  protonation or water effects on docking, and reporting-practice surveys.}
+
+\todo{Paragraph 4: this work. A reproducible, paired benchmark that varies one preparation
+  choice at a time on the same complexes, with failure-mode analysis, set against the effect
+  of changing engines. State the contributions as a short list.}

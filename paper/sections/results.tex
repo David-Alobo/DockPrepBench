@@ -1,0 +1,60 @@
+\section{Results}
+\label{sec:results}
+
+% Shell: structure and reporting format are fixed; numbers in \result{} come from
+% `dockprepbench summarize/compare/figures`. Follow the benchmark-reporting conventions:
+% denominators, both metrics, Wilson intervals, effect size before p-value, Holm-adjusted p.
+
+\subsection{Baseline performance}
+
+Of the 428 complexes, \result{N} were prepared and docked; \result{M} failed preparation,
+\result{breakdown by cause}. With the baseline protocol, Vina placed the top-ranked pose
+within \SI{2}{\angstrom} of the crystal ligand for \result{x\% [lo, hi]} of complexes, and
+\result{y\% [lo, hi]} were also \pbvalid{}. \result{Comparison with the Vina results reported
+by PoseBusters, listing protocol differences.}
+
+\subsection{Run-to-run variation}
+
+\todo{Baseline repeated with different seeds: spread of success across seeds. This sets the
+  smallest effect we interpret.}
+
+\subsection{Effect of each preparation choice}
+
+\begin{figure}[t]
+  \centering
+  % \includegraphics[width=\textwidth]{success_rates.pdf}
+  \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering\result{Figure: success by arm with 95\%
+    intervals (dockprepbench figures)}}}
+  \caption{Top-1 and \pbvalid{} success for each experiment arm, with 95\% Wilson
+    intervals. The dashed line marks the baseline top-1 success.}
+  \label{fig:success}
+\end{figure}
+
+\result{One paragraph per arm, in the format: "Box padding of \SI{2}{\angstrom} changed top-1 success
+from x\% [lo, hi] to y\% [lo, hi] ($\pm$d points; b vs c discordant complexes; Holm
+$p = \dots$)."}
+
+\begin{table}[h]
+  \centering
+  \caption{Paired comparison of each arm with the baseline. \result{Fill from
+    \texttt{dockprepbench compare}.}}
+  \label{tab:comparisons}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Arm & Top-1 (\%) & $\Delta$ (pts) & Gained & Lost & Holm $p$ \\
+    \midrule
+    Baseline & \result{} & -- & -- & -- & -- \\
+    \result{arms} & & & & & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{How outcomes change: failure modes}
+
+\result{Transition analysis: for each arm, the movements between failure classes behind the
+net effect (e.g.\ scoring failures that became successes), with representative complexes.}
+
+\subsection{Which complexes are sensitive to preparation}
+
+\result{Relation between outcome changes and ligand properties (charge, flexibility, size)
+and the presence of cofactors.}

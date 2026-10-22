@@ -37,3 +37,6 @@ explorer/data.js
 
 # Node (explorer tests)
 node_modules/
+
+# LaTeX build output
+paper/build/
