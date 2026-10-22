@@ -15,6 +15,7 @@ from dockprepbench.evaluation.rmsd import pose_rmsd
 from dockprepbench.evaluation.validity import is_pb_valid, validity_checks
 from dockprepbench.io import load_sdf_file
 from dockprepbench.preparation.box import box_from_ligand
+from dockprepbench.preparation.config import PrepConfig
 from dockprepbench.preparation.receptor import protonate_receptor
 
 logger = logging.getLogger(__name__)
@@ -34,27 +35,34 @@ class ComplexResult:
     error: str = ""
 
 
-def prepared_receptor(entry: Complex, work_dir: Path) -> Path:
+def prepared_receptor(entry: Complex, config: PrepConfig, work_dir: Path) -> Path:
     """
     Return the protonated receptor for a complex, preparing and caching it on first use.
 
+    Receptors are cached per `config.receptor_key()`, so configs that differ only in
+    settings that do not touch the receptor share them.
+
     Args:
         entry (Complex): Complex whose protein to prepare.
-        work_dir (Path): Directory for cached prepared receptors.
+        config (PrepConfig): Preparation protocol.
+        work_dir (Path): Root directory for cached prepared receptors.
 
     Returns:
         Path: Prepared receptor PDB file.
     """
-    path = work_dir / f"{entry.id}_receptor.pdb"
+    cache_dir = work_dir / config.receptor_key()
+    path = cache_dir / f"{entry.id}_receptor.pdb"
     if not path.is_file():
-        work_dir.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".tmp")
-        tmp.write_text(protonate_receptor(entry.protein))
+        tmp.write_text(protonate_receptor(entry.protein, ph=config.ph))
         tmp.replace(path)  # atomic, so an interrupted run never leaves a partial file
     return path
 
 
-def dock_complex(entry: Complex, engine: DockingEngine, work_dir: Path) -> ComplexResult:
+def dock_complex(
+    entry: Complex, engine: DockingEngine, config: PrepConfig, work_dir: Path
+) -> ComplexResult:
     """
     Redock a complex's ligand from its generated start conformer and score the top pose.
 
@@ -66,7 +74,8 @@ def dock_complex(entry: Complex, engine: DockingEngine, work_dir: Path) -> Compl
     Args:
         entry (Complex): Complex to dock.
         engine (DockingEngine): Engine to dock with.
-        work_dir (Path): Directory for cached prepared receptors.
+        config (PrepConfig): Preparation protocol.
+        work_dir (Path): Root directory for cached prepared receptors.
 
     Returns:
         ComplexResult: Top-1 RMSD against the crystal ligand, score and timing.
@@ -75,8 +84,9 @@ def dock_complex(entry: Complex, engine: DockingEngine, work_dir: Path) -> Compl
     try:
         crystal = load_sdf_file(entry.crystal_ligand)[0]
         ligand = load_sdf_file(entry.start_ligand)[0]
-        receptor = prepared_receptor(entry, work_dir)
-        result = engine.dock(receptor, ligand, box_from_ligand(crystal))
+        receptor = prepared_receptor(entry, config, work_dir)
+        box = box_from_ligand(crystal, padding=config.box_padding)
+        result = engine.dock(receptor, ligand, box)
         if not result.poses:
             raise RuntimeError(f"{engine.name} returned no poses")
         checks = validity_checks(result.poses[0], crystal, entry.protein)
@@ -97,7 +107,11 @@ def dock_complex(entry: Complex, engine: DockingEngine, work_dir: Path) -> Compl
 
 
 def run_benchmark(
-    complexes: list[Complex], engine: DockingEngine, work_dir: Path, workers: int = 1
+    complexes: list[Complex],
+    engine: DockingEngine,
+    config: PrepConfig,
+    work_dir: Path,
+    workers: int = 1,
 ) -> pd.DataFrame:
     """
     Dock every complex and collect the results.
@@ -105,13 +119,15 @@ def run_benchmark(
     Args:
         complexes (list[Complex]): Complexes to dock.
         engine (DockingEngine): Engine to dock with. Must be picklable when workers > 1.
-        work_dir (Path): Directory for cached prepared receptors.
+        config (PrepConfig): Preparation protocol.
+        work_dir (Path): Root directory for cached prepared receptors.
         workers (int): Number of complexes docked in parallel.
 
     Returns:
         pd.DataFrame: One row per complex, in input order, with the ComplexResult fields.
     """
-    args = (complexes, [engine] * len(complexes), [work_dir] * len(complexes))
+    n = len(complexes)
+    args = (complexes, [engine] * n, [config] * n, [work_dir] * n)
     if workers == 1:
         results = list(map(dock_complex, *args))
     else:

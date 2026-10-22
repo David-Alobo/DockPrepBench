@@ -1,0 +1,3 @@
+# Baseline preparation protocol. Variant files override only the fields they change.
+ph = 7.4
+box_padding = 4.0

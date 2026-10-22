@@ -39,14 +39,28 @@ engine tests are skipped; use WSL, a Linux machine or CI to dock.
 
 ## Usage
 
-Redock the PoseBusters benchmark set with Vina (downloads the data to `data/raw` on first run):
+Docking runs on Linux (see Installation). Redock the PoseBusters benchmark set with Vina
+(downloads the data to `data/raw` on first run):
 
 ```bash
-uv run dockprepbench run --out results/vina_baseline.csv --workers 8
+uv run dockprepbench run --workers 8                                   # baseline protocol
+uv run dockprepbench run --config configs/box_padding_2.toml --workers 8
 ```
 
-Each row of the CSV is one complex with its top-1 pose RMSD, score, runtime and any error.
-Use `--limit N` for a quick run on the first N complexes.
+Each preparation protocol is a TOML file in [`configs/`](configs/) that states only what it
+changes from the baseline. A run writes `results.csv` (one row per complex: top-1 RMSD,
+PoseBusters validity, score, runtime, any error) and `run.json` (config, engine settings,
+version) to `results/<engine>/<config name>/`. Prepared receptors are cached in
+`data/prepared/`, shared between configs that prepare the receptor identically.
+
+```bash
+uv run dockprepbench summarize results/vina/baseline
+uv run dockprepbench compare results/vina/baseline results/vina/box_padding_2
+```
+
+`summarize` reports top-1 and PB-valid success rates with 95% Wilson intervals. `compare`
+pairs two runs on their shared complexes, reports an exact McNemar test and lists the
+complexes whose outcome changed. Use `--limit N` on `run` for a quick check.
 
 ## Project layout
 
@@ -61,6 +75,7 @@ src/dockprepbench/
 ├── io.py          structure file I/O
 ├── log.py         logging setup
 └── cli.py         `dockprepbench` command
+configs/           preparation protocols (TOML), one per experiment arm
 tests/             pytest suite mirroring the package
 docs/              documentation
 scripts/           one-off utilities
