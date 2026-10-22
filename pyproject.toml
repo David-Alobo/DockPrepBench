@@ -17,6 +17,10 @@ dependencies = [
     "rdkit",
     "matplotlib",
     "seaborn",
+    "meeko>=0.8.0",
+    "vina>=1.2.7 ; python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "scipy>=1.17.1",
+    "gemmi>=0.7.5",
 ]
 
 [project.scripts]

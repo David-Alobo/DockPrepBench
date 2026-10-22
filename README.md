@@ -33,6 +33,10 @@ uv run pytest
 
 The pipeline runs on CPU. A GPU is optional and only speeds up Gnina.
 
+Docking engines run on **Linux x86_64** only (the `vina` Python bindings ship Linux wheels only, and
+Gnina and rDock are Linux-only). On Windows or macOS the library installs and the unit tests run, while
+engine tests are skipped; use WSL, a Linux machine or CI to dock.
+
 ## Project layout
 
 ```
