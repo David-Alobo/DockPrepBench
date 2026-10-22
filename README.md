@@ -81,7 +81,8 @@ docs/              documentation
 scripts/           one-off utilities
 ```
 
-See [docs/architecture.md](docs/architecture.md) for how the stages fit together and
+See [docs/methods.md](docs/methods.md) for the benchmark protocol, [docs/architecture.md](docs/architecture.md)
+for how the stages fit together, and
 [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
 ## Roadmap

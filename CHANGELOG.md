@@ -32,6 +32,10 @@ All notable changes to this project are documented here. The format follows
   coordinates) and RDKit conformer regeneration (ETKDGv3 + MMFF, seeded); config fields
   `ligand_protonation` and `ligand_conformer`, with `ligand_dimorphite` and
   `ligand_rdkit_conformer` configs.
+- `dockprepbench run --config a.toml b.toml ...` runs several configs in turn, skipping finished
+  ones (`--force` reruns); `dockprepbench figures` writes a success-rate forest plot, RMSD curves
+  and a summary table.
+- `docs/methods.md`: the benchmark protocol as implemented.
 
 ### Changed
 - Pose RMSD matches atoms on the charge-free heavy-atom skeleton, so poses docked in a different
