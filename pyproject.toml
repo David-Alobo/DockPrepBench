@@ -17,6 +17,12 @@ dependencies = [
     "rdkit",
     "matplotlib",
     "seaborn",
+    "meeko>=0.8.0",
+    "vina>=1.2.7 ; python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "scipy>=1.17.1",
+    "gemmi>=0.7.5",
+    "pdbfixer>=1.12.0",
+    "openmm>=8.6.1",
 ]
 
 [project.scripts]
@@ -27,7 +33,13 @@ Repository = "https://github.com/David-Alobo/DockPrepBench"
 Issues = "https://github.com/David-Alobo/DockPrepBench/issues"
 
 [dependency-groups]
-dev = ["pytest", "pytest-cov", "ruff", "pre-commit"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "pre-commit",
+    "pytest-github-actions-annotate-failures>=0.4.2",
+]
 
 [tool.hatch.version]
 path = "src/dockprepbench/__init__.py"

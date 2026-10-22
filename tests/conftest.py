@@ -15,3 +15,29 @@ def pdb_file(tmp_path):
     path = tmp_path / "1abc.pdb"
     path.write_text(PDB_TEXT)
     return path
+
+
+@pytest.fixture
+def peptide_pdb(tmp_path):
+    """A protonated, zwitterionic AGSA tetrapeptide that meeko can template-match."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    pep = Chem.MolFromSequence("AGSA")
+    for atom in pep.GetAtoms():
+        info = atom.GetPDBResidueInfo()
+        if info.GetName().strip() == "OXT":
+            atom.SetFormalCharge(-1)
+        elif info.GetName().strip() == "N" and info.GetResidueNumber() == 1:
+            atom.SetFormalCharge(1)
+    Chem.SanitizeMol(pep)
+    pep = Chem.AddHs(pep, addResidueInfo=True)
+    AllChem.EmbedMolecule(pep, randomSeed=1)
+    # meeko needs each residue's atoms to be contiguous; AddHs appends hydrogens at the end.
+    order = sorted(
+        range(pep.GetNumAtoms()),
+        key=lambda i: (pep.GetAtomWithIdx(i).GetPDBResidueInfo().GetResidueNumber(), i),
+    )
+    path = tmp_path / "peptide.pdb"
+    path.write_text(Chem.MolToPDBBlock(Chem.RenumberAtoms(pep, order)))
+    return path
