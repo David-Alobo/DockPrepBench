@@ -8,6 +8,7 @@ from rdkit.Chem import AllChem
 from dockprepbench.benchmark import dock_complex, run_benchmark
 from dockprepbench.datasets.posebusters import Complex
 from dockprepbench.engines.base import DockingEngine, DockingResult
+from dockprepbench.preparation.config import PrepConfig
 
 
 class CrystalEngine(DockingEngine):
@@ -44,18 +45,20 @@ def entry(tmp_path, peptide_pdb):
 
 
 def test_dock_complex_scores_top_pose(entry, tmp_path):
-    result = dock_complex(entry, CrystalEngine(entry.crystal_ligand), tmp_path / "work")
+    result = dock_complex(
+        entry, CrystalEngine(entry.crystal_ligand), PrepConfig(), tmp_path / "work"
+    )
 
     assert result.top1_rmsd == pytest.approx(0.0, abs=1e-6)
     assert result.top1_score == -9.0
     assert isinstance(result.top1_pb_valid, bool)
     assert result.n_poses == 2
     assert result.error == ""
-    assert (tmp_path / "work" / "TEST_LIG_receptor.pdb").is_file()
+    assert (tmp_path / "work" / "ph7.4" / "TEST_LIG_receptor.pdb").is_file()
 
 
 def test_dock_complex_records_failure(entry, tmp_path):
-    result = dock_complex(entry, EmptyEngine(), tmp_path / "work")
+    result = dock_complex(entry, EmptyEngine(), PrepConfig(), tmp_path / "work")
 
     assert math.isnan(result.top1_rmsd)
     assert "no poses" in result.error
@@ -64,7 +67,7 @@ def test_dock_complex_records_failure(entry, tmp_path):
 def test_run_benchmark_returns_one_row_per_complex(entry, tmp_path):
     engine = CrystalEngine(entry.crystal_ligand)
 
-    df = run_benchmark([entry, entry], engine, tmp_path / "work")
+    df = run_benchmark([entry, entry], engine, PrepConfig(), tmp_path / "work")
 
     assert list(df["id"]) == ["TEST_LIG", "TEST_LIG"]
     assert list(df.columns) == [
