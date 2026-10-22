@@ -23,6 +23,7 @@ dependencies = [
     "gemmi>=0.7.5",
     "pdbfixer>=1.12.0",
     "openmm>=8.6.1",
+    "posebusters>=0.6.5",
 ]
 
 [project.scripts]
