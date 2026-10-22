@@ -5,7 +5,12 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Geometry import Point3D
 
-from dockprepbench.evaluation.rmsd import is_success, pose_rmsd, top1_success_rate
+from dockprepbench.evaluation.rmsd import (
+    centroid_shift,
+    is_success,
+    pose_rmsd,
+    top1_success_rate,
+)
 
 
 def embedded(smiles: str) -> Chem.Mol:
@@ -109,3 +114,10 @@ def test_charge_separated_groups_still_match():
     pose = embedded("C[N+](=O)[O-]")
 
     assert pose_rmsd(pose, pose) == pytest.approx(0.0, abs=1e-6)
+
+
+def test_centroid_shift_measures_translation_only():
+    mol = embedded("c1ccccc1C(=O)N")
+
+    assert centroid_shift(translated(mol, 3.0), mol) == pytest.approx(3.0)
+    assert centroid_shift(mol, mol) == pytest.approx(0.0)
