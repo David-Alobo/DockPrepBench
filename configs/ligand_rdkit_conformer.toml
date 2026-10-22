@@ -1,0 +1,2 @@
+# Starting-conformer experiment: regenerate the ligand conformer with RDKit (ETKDGv3 + MMFF).
+ligand_conformer = "rdkit"
