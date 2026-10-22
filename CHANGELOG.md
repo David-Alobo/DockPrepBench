@@ -28,7 +28,13 @@ All notable changes to this project are documented here. The format follows
   `run.json` to `results/<engine>/<config>/`, caching receptors per receptor-relevant setting.
 - `analysis.stats`: success rates with Wilson intervals and paired McNemar comparison of runs;
   `dockprepbench summarize` and `dockprepbench compare` commands.
+- `preparation.ligand`: ligand protonation at the config pH (Dimorphite-DL, keeping heavy-atom
+  coordinates) and RDKit conformer regeneration (ETKDGv3 + MMFF, seeded); config fields
+  `ligand_protonation` and `ligand_conformer`, with `ligand_dimorphite` and
+  `ligand_rdkit_conformer` configs.
 
 ### Changed
+- Pose RMSD matches atoms on the charge-free heavy-atom skeleton, so poses docked in a different
+  protonation state from the crystal ligand still score.
 - Receptor PDBQT conversion drops residues that fail template matching when they lie more
   than 8 Å outside the search box, and still fails for residues near the box.

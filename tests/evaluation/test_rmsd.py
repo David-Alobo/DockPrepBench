@@ -85,3 +85,27 @@ def test_stereo_defining_hydrogens_are_ignored():
     assert Chem.RemoveHs(pose).GetNumAtoms() > reference.GetNumAtoms()
 
     assert pose_rmsd(pose, reference) == pytest.approx(0.0)
+
+
+def neutralised(mol):
+    """Heavy-atom copy of mol with charges removed and valences refilled, same coordinates."""
+    neutral = Chem.RWMol(Chem.RemoveAllHs(mol))
+    for atom in neutral.GetAtoms():
+        atom.SetFormalCharge(0)
+        atom.SetNumExplicitHs(0)
+        atom.SetNoImplicit(False)
+    Chem.SanitizeMol(neutral)
+    return neutral.GetMol()
+
+
+def test_zwitterion_matches_neutral_reference():
+    pose = embedded("[NH3+]CCC(=O)[O-]")
+
+    assert pose_rmsd(pose, neutralised(pose)) == pytest.approx(0.0, abs=1e-6)
+
+
+def test_charge_separated_groups_still_match():
+    # Nitro N has no valid neutral valence, so matching must not re-sanitise.
+    pose = embedded("C[N+](=O)[O-]")
+
+    assert pose_rmsd(pose, pose) == pytest.approx(0.0, abs=1e-6)
