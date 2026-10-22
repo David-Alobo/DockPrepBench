@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dockprepbench"
+dynamic = ["version"]
+description = "Benchmarking how protein and ligand preparation choices affect classical molecular docking"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "David Alobo" }]
+dependencies = [
+    "numpy",
+    "pandas",
+    "biopython",
+    "rdkit",
+    "matplotlib",
+    "seaborn",
+]
+
+[project.scripts]
+dockprepbench = "dockprepbench.cli:main"
+
+[project.urls]
+Repository = "https://github.com/David-Alobo/DockPrepBench"
+Issues = "https://github.com/David-Alobo/DockPrepBench/issues"
+
+[dependency-groups]
+dev = ["pytest", "pytest-cov", "ruff", "pre-commit"]
+
+[tool.hatch.version]
+path = "src/dockprepbench/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dockprepbench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
