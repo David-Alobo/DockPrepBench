@@ -15,7 +15,9 @@ datasets ──► preparation ──► engines ──► evaluation ──► 
 | `analysis` | Aggregate results, run statistics and make figures. |
 
 Shared helpers live at the package root: `io` (structure files), `log` (logging) and `cli`
-(the `dockprepbench` command).
+(the `dockprepbench` command). `benchmark` ties the stages together for one run: it prepares
+each receptor (cached under `data/prepared`), docks the ligand from its generated start
+conformer into a box around the crystal ligand, and scores the top-ranked pose.
 
 ## Repository layout
 
