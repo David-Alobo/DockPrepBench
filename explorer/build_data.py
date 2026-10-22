@@ -121,7 +121,9 @@ for c in complexes:
         for line in c.protein.read_text().splitlines()
         if line.startswith("HETATM")
     }
-    cofactors = sorted(hets - ADDITIVES)
+    # Other copies of the ligand of interest (its CCD code ends the ID) are not cofactors.
+    ligand_code = c.id.split("_")[-1]
+    cofactors = sorted(hets - ADDITIVES - {ligand_code})
     rows.append(
         {
             "id": c.id,

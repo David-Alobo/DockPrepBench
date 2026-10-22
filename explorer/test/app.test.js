@@ -1,0 +1,170 @@
+// @vitest-environment jsdom
+/**
+ * Integration tests: load the real index.html and app.js into jsdom with fixture data and
+ * drive the page as a user would. The 3D viewer library is absent here, which exercises the
+ * page's fallback.
+ */
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { beforeEach, describe, expect, it } from "vitest";
+
+import { makeData } from "./fixture.js";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const html = readFileSync(join(here, "..", "index.html"), "utf8");
+const appSource = readFileSync(join(here, "..", "app.js"), "utf8");
+const body = html.match(/<body>([\s\S]*)<\/body>/)[1].replace(/<script[\s\S]*?<\/script>/g, "");
+
+const $ = (id) => document.getElementById(id);
+const text = (id) => $(id).textContent.trim();
+const visibleRows = () => [...document.querySelectorAll("#rows tr[data-id]")].map((tr) => tr.dataset.id);
+const click = (el) => el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+/** Start the page fresh, optionally opening a link such as "#C23_LIG". */
+function boot(hash = "") {
+  document.body.innerHTML = body;
+  window.history.replaceState(null, "", `/${hash}`);
+  window.EXPLORER_DATA = makeData();
+  window.ExplorerLib = require("../lib.js");
+  delete window.$3Dmol;
+  window.matchMedia = () => ({ matches: false, addEventListener() {} });
+  new Function(appSource)();
+}
+
+describe("overview", () => {
+  beforeEach(() => boot());
+
+  it("opens on the overview tab", () => {
+    expect($("panel-overview").hidden).toBe(false);
+    expect($("panel-complexes").hidden).toBe(true);
+    expect($("tab-overview").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("shows the comparison tiles for the default arm", () => {
+    expect(text("t-base")).toBe("40.0%");
+    expect(text("t-arm")).toBe("56.0%");
+    expect(text("t-arm-ci")).toMatch(/^\+16\.0 pts vs baseline/);
+    expect(text("t-changed")).toBe("6");
+    expect(text("t-changed-s")).toBe("↑ 5 gained · ↓ 1 lost");
+  });
+
+  it("updates every tile when the success metric changes", () => {
+    $("metric-select").value = "valid";
+    $("metric-select").dispatchEvent(new Event("change"));
+    expect(text("t-base")).toBe("36.0%");
+    expect(text("t-arm")).toBe("52.0%");
+  });
+
+  it("switches arms from the dropdown", () => {
+    $("arm-select").value = "ligand_dimorphite";
+    $("arm-select").dispatchEvent(new Event("change"));
+    expect(text("t-arm")).toBe("40.0%");
+    expect(text("t-changed")).toBe("0");
+    expect(text("t-p")).toBe("p = 1.0");
+  });
+
+  it("draws one chart row per arm, baseline first", () => {
+    const labels = [...document.querySelectorAll("#chart .arm-label")].map((t) => t.textContent);
+    expect(labels).toEqual(["Baseline (ref.)", "Box 2 Å", "Protonated ligand"]);
+  });
+
+  it("fills the transition matrix with counts that sum to the dataset", () => {
+    const cells = [...document.querySelectorAll("#matrix td")];
+    expect(cells).toHaveLength(25);
+    expect(cells.reduce((s, td) => s + Number(td.textContent), 0)).toBe(25);
+    expect(document.querySelector('#matrix td[data-cell="scoring|valid"]').textContent).toBe("5");
+  });
+});
+
+describe("complexes tab", () => {
+  beforeEach(() => {
+    boot();
+    click($("tab-complexes"));
+  });
+
+  it("shows ten complexes per page with page controls", () => {
+    expect(visibleRows()).toHaveLength(10);
+    expect(text("count")).toBe("1–10 of 25");
+    expect(text("page-label")).toBe("1 / 3");
+    expect($("page-prev").disabled).toBe(true);
+
+    click($("page-next"));
+    expect(visibleRows()[0]).toBe("C10_LIG");
+    expect(text("count")).toBe("11–20 of 25");
+
+    click($("page-last"));
+    expect(visibleRows()).toEqual(["C20_LIG", "C21_LIG", "C22_LIG", "C23_LIG", "C24_LIG"]);
+    expect(document.querySelectorAll("#rows tr")).toHaveLength(10); // filler keeps the height
+    expect($("page-next").disabled).toBe(true);
+  });
+
+  it("returns to page 1 when a search changes, even if later pages still exist", () => {
+    click($("page-last"));
+    $("search").value = "_lig"; // still matches all 25, so page 3 would remain valid
+    $("search").dispatchEvent(new Event("input"));
+    expect(text("page-label")).toBe("1 / 3");
+    expect(visibleRows()[0]).toBe("C00_LIG");
+  });
+
+  it("returns to page 1 when the sort changes", () => {
+    click($("page-next"));
+    click(document.querySelector('th button[data-sort="rotb"]'));
+    expect(text("page-label")).toBe("1 / 3");
+  });
+
+  it("reports filtered counts", () => {
+    $("search").value = "c1";
+    $("search").dispatchEvent(new Event("input"));
+    expect(visibleRows()).toHaveLength(10);
+    expect(text("count")).toBe("1–10 of 10 (filtered from 25)");
+  });
+
+  it("says so when nothing matches", () => {
+    $("search").value = "nothing";
+    $("search").dispatchEvent(new Event("input"));
+    expect(visibleRows()).toHaveLength(0);
+    expect(document.querySelector(".empty-row").textContent).toMatch(/No complexes match/);
+  });
+
+  it("sorts by a column and toggles direction", () => {
+    const heavy = document.querySelector('th button[data-sort="heavy"]');
+    click(heavy);
+    expect(visibleRows()[0]).toBe("C00_LIG");
+    click(heavy);
+    expect(visibleRows()[0]).toBe("C24_LIG");
+    expect(heavy.dataset.active).toBe("-1");
+  });
+
+  it("shows the selected complex and falls back when the 3D library is missing", () => {
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    expect(text("d-id")).toBe("C03_LIG");
+    expect(document.querySelector('#rows tr[aria-selected="true"]').dataset.id).toBe("C03_LIG");
+    expect($("d-arms").querySelectorAll(".arm-cell")).toHaveLength(3);
+    expect($("viewer").textContent).toMatch(/will appear here/);
+  });
+});
+
+describe("links between views", () => {
+  it("opens the complexes behind a matrix cell, and clears that filter", () => {
+    boot();
+    click(document.querySelector('#matrix td[data-cell="scoring|valid"]'));
+    expect($("panel-complexes").hidden).toBe(false);
+    expect(visibleRows()).toEqual(["C10_LIG", "C11_LIG", "C12_LIG", "C13_LIG", "C14_LIG"]);
+    expect($("active-filter").hidden).toBe(false);
+    expect(text("d-id")).toBe("C10_LIG");
+
+    click($("clear-cell"));
+    expect($("active-filter").hidden).toBe(true);
+    expect(text("count")).toBe("1–10 of 25");
+  });
+
+  it("opens a linked complex on its own page", () => {
+    boot("#c23_lig");
+    expect($("panel-complexes").hidden).toBe(false);
+    expect(text("d-id")).toBe("C23_LIG");
+    expect(text("page-label")).toBe("3 / 3");
+  });
+});
