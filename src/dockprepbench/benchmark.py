@@ -16,6 +16,7 @@ from dockprepbench.evaluation.validity import is_pb_valid, validity_checks
 from dockprepbench.io import load_sdf_file
 from dockprepbench.preparation.box import box_from_ligand
 from dockprepbench.preparation.config import PrepConfig
+from dockprepbench.preparation.ligand import prepare_ligand
 from dockprepbench.preparation.receptor import protonate_receptor
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,8 @@ def dock_complex(
     entry: Complex, engine: DockingEngine, config: PrepConfig, work_dir: Path
 ) -> ComplexResult:
     """
-    Redock a complex's ligand from its generated start conformer and score the top pose.
+    Prepare and redock a complex's ligand, starting from its supplied start conformer,
+    and score the top pose.
 
     The top pose gets an RMSD against the crystal ligand and the PoseBusters validity
     checks, run against the original protein file (with cofactors), as in PoseBusters.
@@ -83,7 +85,12 @@ def dock_complex(
     start = time.perf_counter()
     try:
         crystal = load_sdf_file(entry.crystal_ligand)[0]
-        ligand = load_sdf_file(entry.start_ligand)[0]
+        ligand = prepare_ligand(
+            load_sdf_file(entry.start_ligand)[0],
+            protonation=config.ligand_protonation,
+            conformer=config.ligand_conformer,
+            ph=config.ph,
+        )
         receptor = prepared_receptor(entry, config, work_dir)
         box = box_from_ligand(crystal, padding=config.box_padding)
         result = engine.dock(receptor, ligand, box)
