@@ -1,23 +1,15 @@
 "use strict";
 
+// Page wiring for the results explorer. All logic that can be tested without a page lives
+// in lib.js (window.ExplorerLib).
+const L = window.ExplorerLib;
 const DATA = window.EXPLORER_DATA;
 const ARMS = DATA.arms;
-const BASE = "baseline";
-const CLASSES = ["valid", "invalid", "scoring", "site", "mode"];
-const CLASS_LABEL = {
-  valid: "Valid success",
-  invalid: "Correct, not PB-valid",
-  scoring: "Scoring miss",
-  site: "Wrong site",
-  mode: "Wrong binding mode",
-};
-const CLASS_SHORT = { valid: "Valid", invalid: "Not valid", scoring: "Scoring", site: "Site", mode: "Mode" };
-const SITE_SHIFT = 4; // Å, heuristic split between wrong site and wrong binding mode
-const PAGE_SIZE = 10;
+const { BASE, CLASSES, CLASS_LABEL, CLASS_SHORT, SITE_SHIFT, PAGE_SIZE } = L;
 
 const state = {
   tab: "overview",
-  arm: "box_padding_2",
+  arm: ARMS.some((a) => a.key === "box_padding_2") ? "box_padding_2" : ARMS.find((a) => a.key !== BASE).key,
   metric: "top1",
   search: "",
   klass: "",
@@ -26,7 +18,7 @@ const state = {
   cofactorOnly: false,
   sort: { key: "id", dir: 1 },
   page: 1,
-  selected: "5S8I_2LY",
+  selected: DATA.complexes.some((c) => c.id === "5S8I_2LY") ? "5S8I_2LY" : DATA.complexes[0].id,
   pose: 1,
   showCrystal: true,
   showPocket: true,
@@ -36,63 +28,8 @@ const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const armLabel = (key) => ARMS.find((a) => a.key === key).label;
 const byId = new Map(DATA.complexes.map((c) => [c.id, c]));
-
-// ---------------------------------------------------------------- statistics
-
-function classify(o) {
-  if (o.rmsd < 2) return o.valid ? "valid" : "invalid";
-  if (o.best < 2) return "scoring";
-  return o.shift > SITE_SHIFT ? "site" : "mode";
-}
-
-function succeeds(o, metric) {
-  return o.rmsd < 2 && (metric === "top1" || o.valid);
-}
-
-function wilson(k, n, z = 1.959963984540054) {
-  const p = k / n;
-  const centre = (p + (z * z) / (2 * n)) / (1 + (z * z) / n);
-  const half = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / (1 + (z * z) / n);
-  return [Math.max(0, centre - half), Math.min(1, centre + half)];
-}
-
-function logChoose(n, k) {
-  let s = 0;
-  for (let i = 1; i <= k; i++) s += Math.log(n - k + i) - Math.log(i);
-  return s;
-}
-
-/** Exact two-sided McNemar p-value: binomial test on the discordant pairs. */
-function mcnemar(gain, loss) {
-  const n = gain + loss;
-  if (n === 0) return 1;
-  const k = Math.min(gain, loss);
-  let tail = 0;
-  for (let i = 0; i <= k; i++) tail += Math.exp(logChoose(n, i) - n * Math.LN2);
-  return Math.min(1, 2 * tail);
-}
-
-function rate(arm, metric) {
-  const n = DATA.complexes.length;
-  const k = DATA.complexes.filter((c) => succeeds(c.arms[arm], metric)).length;
-  const [lo, hi] = wilson(k, n);
-  return { k, n, value: k / n, lo, hi };
-}
-
-function discordance() {
-  let gain = 0, loss = 0;
-  for (const c of DATA.complexes) {
-    const a = succeeds(c.arms[BASE], state.metric);
-    const b = succeeds(c.arms[state.arm], state.metric);
-    if (b && !a) gain++;
-    if (a && !b) loss++;
-  }
-  return { gain, loss };
-}
-
-const pct = (x) => `${(100 * x).toFixed(1)}%`;
-const signed = (x, digits = 1) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(digits)}`;
-const fmtP = (p) => (p < 0.001 ? "< 0.001" : p.toPrecision(2));
+const rate = (arm, metric) => L.rate(DATA.complexes, arm, metric);
+const filters = () => ({ ...state });
 
 // ---------------------------------------------------------------- glyphs
 
@@ -102,43 +39,37 @@ const chip = (k) => `<span class="chip">${glyph(k)}${CLASS_LABEL[k]}</span>`;
 function strip(c) {
   const cells = ARMS.map((arm) => {
     const o = c.arms[arm.key];
-    const k = classify(o);
+    const k = L.classify(o);
     return `<span class="g ${k}${arm.key === state.arm ? " sel" : ""}" title="${arm.label}: ${CLASS_LABEL[k]}, top-1 ${o.rmsd.toFixed(2)} Å"></span>`;
   });
-  const summary = ARMS.map((a) => `${a.label} ${CLASS_LABEL[classify(c.arms[a.key])]}`).join("; ");
+  const summary = ARMS.map((a) => `${a.label} ${CLASS_LABEL[L.classify(c.arms[a.key])]}`).join("; ");
   return `<span class="strip" role="img" aria-label="${summary}">${cells.join("")}</span>`;
 }
 
 // ---------------------------------------------------------------- overview: tiles
 
 function drawTiles() {
-  const base = rate(BASE, state.metric), arm = rate(state.arm, state.metric);
-  const { gain, loss } = discordance();
-  $("t-base").textContent = pct(base.value);
-  $("t-base-ci").textContent = `95% CI ${pct(base.lo)}–${pct(base.hi)} · ${base.k}/${base.n}`;
+  const base = rate(BASE, state.metric);
+  const arm = rate(state.arm, state.metric);
+  const { gain, loss } = L.discordance(DATA.complexes, state.arm, state.metric);
+  const p = L.fmtP(L.mcnemar(gain, loss));
+  $("t-base").textContent = L.pct(base.value);
+  $("t-base-ci").textContent = `95% CI ${L.pct(base.lo)}–${L.pct(base.hi)} · ${base.k}/${base.n}`;
   $("t-arm-k").textContent = `${armLabel(state.arm)} success`;
-  $("t-arm").textContent = `${pct(arm.value)}`;
-  $("t-arm-ci").textContent = `${signed(100 * (arm.value - base.value))} pts vs baseline · CI ${pct(arm.lo)}–${pct(arm.hi)}`;
+  $("t-arm").textContent = L.pct(arm.value);
+  $("t-arm-ci").textContent = `${L.signed(100 * (arm.value - base.value))} pts vs baseline · CI ${L.pct(arm.lo)}–${L.pct(arm.hi)}`;
   $("t-changed").textContent = `${gain + loss}`;
   $("t-changed-s").innerHTML = `<span class="delta up">↑ ${gain} gained</span> · <span class="delta down">↓ ${loss} lost</span>`;
-  $("t-p").textContent = `p ${fmtP(mcnemar(gain, loss)).replace(/^(?!<)/, "= ")}`;
+  $("t-p").textContent = p.startsWith("<") ? `p ${p}` : `p = ${p}`;
   $("t-p-s").textContent = `uncorrected; ${ARMS.length - 1} arms are compared with the baseline`;
 }
 
 // ---------------------------------------------------------------- overview: chart
 
-function chartOrder() {
-  const base = rate(BASE, "top1").value;
-  const others = ARMS.filter((a) => a.key !== BASE)
-    .map((a) => ({ arm: a, delta: rate(a.key, "top1").value - base }))
-    .sort((a, b) => b.delta - a.delta);
-  return [{ arm: ARMS.find((a) => a.key === BASE), delta: null }, ...others];
-}
-
 function drawChart() {
   const svg = $("chart");
   const W = 620, left = 126, right = 76, top = 22, rowH = 36, gap = 10;
-  const order = chartOrder();
+  const order = L.chartOrder(DATA.complexes, ARMS);
   const H = top + order.length * rowH + gap + 6;
   const x = (v) => left + v * (W - left - right);
   const rowY = (i) => top + i * rowH + (i > 0 ? gap : 0);
@@ -166,7 +97,7 @@ function drawChart() {
     parts.push(`<text class="arm-label" x="6" y="${cy + 4}" font-weight="${isBase || isSel ? 600 : 400}" pointer-events="none">${name}</text>`);
     for (const [metric, colour, dy, label] of metrics) {
       const r = rate(arm.key, metric);
-      const tip = `${name}<br>${label}: ${pct(r.value)} [${pct(r.lo)}, ${pct(r.hi)}]<br>${r.k} of ${r.n} complexes`;
+      const tip = `${name}<br>${label}: ${L.pct(r.value)} [${L.pct(r.lo)}, ${L.pct(r.hi)}]<br>${r.k} of ${r.n} complexes`;
       parts.push(
         `<g data-tip="${tip}" data-arm="${arm.key}">` +
           `<rect x="${x(r.lo) - 4}" y="${cy + dy - 6}" width="${x(r.hi) - x(r.lo) + 8}" height="12" fill="transparent" />` +
@@ -174,7 +105,7 @@ function drawChart() {
           `<circle cx="${x(r.value)}" cy="${cy + dy}" r="4.5" fill="${colour}" stroke="${css("--surface")}" stroke-width="2" pointer-events="none" /></g>`,
       );
     }
-    const dText = delta === null ? "ref" : `${signed(100 * delta)} pts`;
+    const dText = delta === null ? "ref" : `${L.signed(100 * delta)} pts`;
     parts.push(`<text class="delta-label" x="${W - 4}" y="${cy + 4}" text-anchor="end" pointer-events="none">${dText}</text>`);
   });
   svg.innerHTML = parts.join("");
@@ -204,9 +135,8 @@ function hideTip() {
 // ---------------------------------------------------------------- overview: transition matrix
 
 function drawMatrix() {
-  const counts = Object.fromEntries(CLASSES.map((a) => [a, Object.fromEntries(CLASSES.map((b) => [b, 0]))]));
-  for (const c of DATA.complexes) counts[classify(c.arms[BASE])][classify(c.arms[state.arm])]++;
-  const max = Math.max(...CLASSES.flatMap((a) => CLASSES.map((b) => counts[a][b])));
+  const counts = L.transitionCounts(DATA.complexes, state.arm);
+  const max = Math.max(1, ...CLASSES.flatMap((a) => CLASSES.map((b) => counts[a][b])));
   const head = `<tr><th class="row">Baseline ↓ · ${armLabel(state.arm)} →</th>${CLASSES.map(
     (b) => `<th title="${CLASS_LABEL[b]}">${glyph(b)} ${CLASS_SHORT[b]}</th>`,
   ).join("")}</tr>`;
@@ -230,73 +160,52 @@ function drawMatrix() {
 
 function openCell(cell) {
   const [a, b] = cell.split("|");
-  state.baseClass = a;
-  state.klass = b;
-  state.changedOnly = false;
-  state.search = "";
+  Object.assign(state, { baseClass: a, klass: b, changedOnly: false, search: "", page: 1 });
   $("class-filter").value = b;
   $("changed-only").checked = false;
   $("search").value = "";
-  state.page = 1;
-  const first = filteredRows()[0];
+  const first = L.filterComplexes(DATA.complexes, filters())[0];
   if (first) state.selected = first.id;
   showTab("complexes");
 }
 
 // ---------------------------------------------------------------- complexes: table
 
-function filteredRows() {
-  const q = state.search.trim().toUpperCase();
-  const rows = DATA.complexes.filter((c) => {
-    if (q && !c.id.includes(q)) return false;
-    if (state.cofactorOnly && !c.cofactors.length) return false;
-    if (state.klass && classify(c.arms[state.arm]) !== state.klass) return false;
-    if (state.baseClass && classify(c.arms[BASE]) !== state.baseClass) return false;
-    if (state.changedOnly) {
-      return succeeds(c.arms[BASE], state.metric) !== succeeds(c.arms[state.arm], state.metric);
-    }
-    return true;
-  });
-  const { key, dir } = state.sort;
-  return rows.sort((a, b) => (a[key] < b[key] ? -dir : a[key] > b[key] ? dir : 0));
-}
-
 function drawTable() {
-  const rows = filteredRows();
-  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  state.page = Math.min(Math.max(1, state.page), pages);
-  const start = (state.page - 1) * PAGE_SIZE;
-  const shown = rows.slice(start, start + PAGE_SIZE);
+  const rows = L.filterComplexes(DATA.complexes, filters());
+  const { page, pages, start, end } = L.paginate(rows.length, state.page);
+  state.page = page;
+  const shown = rows.slice(start, end);
   const filler = Array.from({ length: PAGE_SIZE - shown.length }, () => `<tr aria-hidden="true"><td colspan="6"></td></tr>`);
   $("rows").innerHTML = shown.length
     ? shown
         .map((c) => {
-          const a = succeeds(c.arms[BASE], state.metric);
-          const b = succeeds(c.arms[state.arm], state.metric);
+          const a = L.succeeds(c.arms[BASE], state.metric);
+          const b = L.succeeds(c.arms[state.arm], state.metric);
           const change = a === b ? `<span class="delta same">same</span>`
             : b ? `<span class="delta up">↑ gained</span>` : `<span class="delta down">↓ lost</span>`;
           return (
             `<tr tabindex="0" data-id="${c.id}" aria-selected="${c.id === state.selected}">` +
             `<td class="mono">${c.id}${DATA.real[c.id] ? " ◆" : ""}</td><td class="num">${c.heavy}</td><td class="num">${c.rotb}</td>` +
-            `<td>${strip(c)}</td><td>${chip(classify(c.arms[state.arm]))}</td><td>${change}</td></tr>`
+            `<td>${strip(c)}</td><td>${chip(L.classify(c.arms[state.arm]))}</td><td>${change}</td></tr>`
           );
         })
         .concat(filler)
         .join("")
     : `<tr><td colspan="6" class="empty-row">No complexes match these filters.</td></tr>` + filler.slice(1).join("");
 
-  const end = Math.min(start + PAGE_SIZE, rows.length);
+  const total = DATA.complexes.length;
   $("count").textContent = rows.length
-    ? `${start + 1}–${end} of ${rows.length}${rows.length < DATA.complexes.length ? ` (filtered from ${DATA.complexes.length})` : ""}`
+    ? `${start + 1}–${end} of ${rows.length}${rows.length < total ? ` (filtered from ${total})` : ""}`
     : "none match";
-  $("page-label").textContent = `${state.page} / ${pages}`;
-  $("page-first").disabled = $("page-prev").disabled = state.page === 1;
-  $("page-next").disabled = $("page-last").disabled = state.page === pages;
+  $("page-label").textContent = `${page} / ${pages}`;
+  $("page-first").disabled = $("page-prev").disabled = page === 1;
+  $("page-next").disabled = $("page-last").disabled = page === pages;
   document.querySelectorAll(".list th button[data-sort]").forEach((b) => {
     b.dataset.active = b.dataset.sort === state.sort.key ? String(state.sort.dir) : "";
   });
   $("arm-col").textContent = armLabel(state.arm);
-  $("strip-head").title = `Baseline, then arms: ${ARMS.slice(1).map((a) => a.label).join(", ")}`;
+  $("strip-head").title = `Baseline, then arms: ${ARMS.filter((a) => a.key !== BASE).map((a) => a.label).join(", ")}`;
 
   const af = $("active-filter");
   af.hidden = !state.baseClass;
@@ -306,8 +215,7 @@ function drawTable() {
       (state.klass ? ` → ${glyph(state.klass)} ${CLASS_LABEL[state.klass]} with ${armLabel(state.arm)}` : "") +
       ` <button type="button" id="clear-cell">Clear</button>`;
     $("clear-cell").addEventListener("click", () => {
-      state.baseClass = "";
-      state.klass = "";
+      Object.assign(state, { baseClass: "", klass: "" });
       $("class-filter").value = "";
       refilter();
     });
@@ -321,8 +229,8 @@ function refilter() {
 }
 
 function revealSelected() {
-  const i = filteredRows().findIndex((c) => c.id === state.selected);
-  if (i >= 0) state.page = Math.floor(i / PAGE_SIZE) + 1;
+  const i = L.filterComplexes(DATA.complexes, filters()).findIndex((c) => c.id === state.selected);
+  if (i >= 0) state.page = L.pageOf(i);
 }
 
 // ---------------------------------------------------------------- complexes: detail and 3D viewer
@@ -333,7 +241,7 @@ function drawDetail() {
   const c = byId.get(state.selected);
   if (!c) return;
   $("d-id").textContent = c.id;
-  $("d-depict").innerHTML = c.svg;
+  $("d-depict").innerHTML = c.svg || "";
   $("d-props").innerHTML =
     `<span>Heavy atoms <b>${c.heavy}</b></span><span>Rot. bonds <b>${c.rotb}</b></span>` +
     `<span>MW <b>${c.mw}</b></span><span>Cofactors <b>${c.cofactors.length ? c.cofactors.join(", ") : "none"}</b></span>`;
@@ -341,7 +249,7 @@ function drawDetail() {
     const o = c.arms[arm.key];
     return (
       `<div class="arm-cell${arm.key === state.arm ? " sel" : ""}"><div class="name">${arm.label}${o.real ? " ◆" : ""}</div>` +
-      `<div class="val">${glyph(classify(o))}<span>${o.rmsd.toFixed(2)} Å</span>` +
+      `<div class="val">${glyph(L.classify(o))}<span>${o.rmsd.toFixed(2)} Å</span>` +
       `<span class="best" title="Best RMSD among all returned poses">best ${o.best.toFixed(2)}</span></div></div>`
     );
   }).join("");
@@ -369,13 +277,13 @@ function drawDetail() {
 
 function drawViewer(real) {
   const el = $("viewer");
-  if (typeof $3Dmol === "undefined") {
+  if (typeof window.$3Dmol === "undefined") {
     el.innerHTML = `<div class="viewer-empty">The 3D viewer library did not load. Check your connection and reload.</div>`;
     return;
   }
   if (!viewer) {
     el.innerHTML = "";
-    viewer = $3Dmol.createViewer(el, { backgroundColor: css("--viewer-bg"), antialias: true });
+    viewer = window.$3Dmol.createViewer(el, { backgroundColor: css("--viewer-bg"), antialias: true });
   }
   viewer.setBackgroundColor(css("--viewer-bg"));
   viewer.clear();

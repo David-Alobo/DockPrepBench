@@ -29,11 +29,26 @@ server. An internet connection is needed for the 3D viewer library and the fonts
 Links to a complex are the page address followed by `#<complex id>`, e.g.
 `index.html#5S8I_2LY`. They open that complex on the Complexes tab.
 
+## Tests
+
+Unit tests cover the logic in `lib.js` (outcome classes, statistics checked against the
+Python implementation, filtering, paging). Integration tests load `index.html` and `app.js`
+into jsdom with a fixture dataset and drive the page: tabs, tiles, pagination, sorting,
+the matrix-to-table link and complex links. They run in CI.
+
+```bash
+cd explorer
+npm ci
+npm test            # or: npm run test:watch
+```
+
 ## Files
 
 | File | Role |
 |---|---|
 | `index.html` | Page structure and styles (light and dark themes) |
-| `app.js` | Statistics (Wilson intervals, exact McNemar), chart, transition matrix, table, detail panel, 3D viewer |
+| `lib.js` | Pure logic: outcome classes, statistics (Wilson intervals, exact McNemar), filtering, paging |
+| `app.js` | Page wiring: chart, transition matrix, table, detail panel, 3D viewer |
+| `test/` | Vitest unit and jsdom integration tests |
 | `build_data.py` | Writes `data.js` from the dataset, results and saved poses |
 | `data.js` | Generated data (`window.EXPLORER_DATA`), not committed |
