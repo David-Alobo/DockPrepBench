@@ -18,7 +18,7 @@ def box_from_ligand(ligand: Chem.Mol, padding: float = DEFAULT_PADDING) -> Box:
     Returns:
         Box: Box centred on the ligand's extent.
     """
-    coords = Chem.RemoveHs(ligand).GetConformer().GetPositions()
+    coords = Chem.RemoveAllHs(ligand).GetConformer().GetPositions()
     low, high = coords.min(axis=0), coords.max(axis=0)
     center = (low + high) / 2
     size = high - low + 2 * padding

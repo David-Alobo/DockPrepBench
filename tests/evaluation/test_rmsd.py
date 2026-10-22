@@ -76,3 +76,12 @@ def test_top1_success_rate_custom_threshold():
 def test_top1_success_rate_empty_raises():
     with pytest.raises(ValueError):
         top1_success_rate([])
+
+
+def test_stereo_defining_hydrogens_are_ignored():
+    # RemoveHs keeps an imine H that defines C=N geometry; it must not break the match.
+    pose = embedded("[H]/N=C1/NC(=O)c2ccccc21")
+    reference = Chem.RemoveAllHs(pose)
+    assert Chem.RemoveHs(pose).GetNumAtoms() > reference.GetNumAtoms()
+
+    assert pose_rmsd(pose, reference) == pytest.approx(0.0)

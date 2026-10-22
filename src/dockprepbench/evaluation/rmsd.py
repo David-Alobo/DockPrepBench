@@ -26,7 +26,7 @@ def pose_rmsd(pose: Chem.Mol, reference: Chem.Mol) -> float:
     Raises:
         RuntimeError: If the two molecules do not share the same heavy-atom graph.
     """
-    return rdMolAlign.CalcRMS(Chem.RemoveHs(pose), Chem.RemoveHs(reference))
+    return rdMolAlign.CalcRMS(Chem.RemoveAllHs(pose), Chem.RemoveAllHs(reference))
 
 
 def is_success(rmsd: float, threshold: float = SUCCESS_THRESHOLD) -> bool:
