@@ -15,6 +15,8 @@ cd paper && latexmk main.tex        # → paper/build/main.pdf
 latexmk -c                          # remove intermediate files
 ```
 
+CI builds the PDF whenever `paper/` or `docs/figures/` changes (workflow `Paper`) and fails on LaTeX errors or undefined citations or references. Download the current PDF from the workflow run's `manuscript` artifact on GitHub (Actions → Paper → latest run).
+
 On Overleaf, upload `paper/` plus the figures it uses from `docs/figures/` (adjust
 `\graphicspath` in `main.tex` if the folder layout changes).
 
