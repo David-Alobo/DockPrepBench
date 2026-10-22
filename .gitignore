@@ -28,3 +28,6 @@ results/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Claude Code: local skills and settings
+.claude/
