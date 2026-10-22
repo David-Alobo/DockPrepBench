@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DockPrepBench Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+[hidden] { display: none !important; }
+/* Layout: header, then one sticky control bar (arm, metric, tabs) that drives the page.
+   Overview tab: 4 equal tiles, then chart | transition matrix as two equal-height panels.
+   Complexes tab: table | detail as two equal-width, equal-height panels. */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --fg: #14171c;
+  --muted: #5b6270;
+  --faint: #8a909c;
+  --line: #e0e3e9;
+  --hover: #eef2f8;
+  --metric-1: #2a78d6;
+  --metric-2: #eb6834;
+  --good: #0a8a0a;
+  --warn: #a86b00;
+  --warn-bg: #fff6e5;
+  --bad: #c03a3a;
+  --chip: #eceef2;
+  --viewer-bg: #ffffff;
+  --heat-0: #f2f6fc;
+  --heat-1: #2a78d6;
+  --gap: 16px;
+  --radius: 10px;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --surface: #191c21; --fg: #eceef2; --muted: #a4abb7; --faint: #7b8290;
+    --line: #2a2f37; --hover: #222833; --metric-1: #3987e5; --metric-2: #d95926;
+    --good: #3cbf3c; --warn: #e3a32a; --warn-bg: #2a2214; --bad: #e66767; --chip: #262a31;
+    --viewer-bg: #191c21; --heat-0: #1e232b; --heat-1: #3987e5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --surface: #191c21; --fg: #eceef2; --muted: #a4abb7; --faint: #7b8290;
+  --line: #2a2f37; --hover: #222833; --metric-1: #3987e5; --metric-2: #d95926;
+  --good: #3cbf3c; --warn: #e3a32a; --warn-bg: #2a2214; --bad: #e66767; --chip: #262a31;
+  --viewer-bg: #191c21; --heat-0: #1e232b; --heat-1: #3987e5;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: var(--gap); }
+h1, h2 { margin: 0; text-wrap: balance; font-weight: 600; }
+h1 { font-size: 22px; letter-spacing: -0.01em; }
+h2 { font-size: 15px; }
+.eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+:is(select, input, button, tr, [role="tab"], td[data-cell]):focus-visible { outline: 2px solid var(--metric-1); outline-offset: 1px; }
+
+/* Header */
+header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: end; }
+header .meta { color: var(--muted); margin-top: 2px; }
+.badge { justify-self: end; display: inline-flex; gap: 8px; align-items: baseline; background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 999px; padding: 4px 12px; font-size: 12.5px; }
+.badge b { color: var(--warn); }
+
+/* Sticky control bar */
+.controls {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: end; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px;
+}
+.control-fields { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+label.field { display: grid; gap: 3px; font-size: 12px; color: var(--muted); min-width: 0; }
+select, input[type="search"] {
+  font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0;
+}
+.controls select { min-width: 220px; }
+.tabs { display: inline-flex; background: var(--chip); border-radius: 8px; padding: 3px; gap: 2px; }
+.tabs [role="tab"] { font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+.tabs [role="tab"][aria-selected="true"] { background: var(--surface); color: var(--fg); font-weight: 500; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+/* Shared panel */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); align-items: stretch; }
+.tab-body { display: grid; gap: var(--gap); }
+
+/* Overview: equal tiles */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font-family: var(--font-data); font-size: 22px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 12.5px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+#chart { width: 100%; height: auto; display: block; }
+#chart text { fill: var(--muted); font-family: var(--font-body); font-size: 12px; }
+#chart .arm-label { fill: var(--fg); }
+#chart .delta-label { font-family: var(--font-data); }
+#chart .grid { stroke: var(--line); }
+#chart .ref { stroke: var(--faint); stroke-dasharray: 4 3; }
+#chart .sep { stroke: var(--line); }
+#chart .row-hit:hover { fill: var(--hover); }
+.note { font-size: 12px; color: var(--muted); margin-top: auto; }
+
+/* Transition matrix */
+.matrix-wrap { overflow-x: auto; }
+.matrix { border-collapse: separate; border-spacing: 3px; width: 100%; font-size: 12.5px; }
+.matrix th { font-weight: 500; color: var(--muted); font-size: 11.5px; padding: 2px 4px; text-align: center; white-space: nowrap; }
+.matrix th.row { text-align: left; }
+.matrix td { text-align: center; font-family: var(--font-data); font-variant-numeric: tabular-nums; border-radius: 6px; height: 34px; min-width: 44px; cursor: pointer; }
+.matrix td.zero { color: var(--faint); cursor: default; }
+.matrix td.diag { box-shadow: inset 0 0 0 1px var(--line); }
+.matrix td:not(.zero):hover { outline: 2px solid var(--fg); outline-offset: -2px; }
+.axis-note { font-size: 12px; color: var(--muted); }
+
+/* Complexes */
+.filters { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 10px; align-items: end; }
+.checks { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--muted); }
+.checks label { display: flex; align-items: center; gap: 6px; }
+.active-filter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+.active-filter button { font: inherit; font-size: 12px; border: 1px solid var(--metric-1); color: var(--fg); background: var(--hover); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; flex: 1 1 auto; }
+table.list { border-collapse: collapse; width: 100%; font-size: 13px; }
+.list th, .list td { padding: 0 10px; height: 40px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.list tbody tr:last-child td { border-bottom: none; }
+.list th { height: 36px; font-weight: 500; color: var(--muted); font-size: 12px; }
+.list th button { all: unset; cursor: pointer; }
+.list th button::after { content: " ↕"; color: var(--faint); }
+.list th button[data-active="1"]::after { content: " ↑"; color: var(--fg); }
+.list th button[data-active="-1"]::after { content: " ↓"; color: var(--fg); }
+.num { text-align: right !important; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.list tbody tr { cursor: pointer; }
+.list tbody tr:hover { background: var(--hover); }
+.list tbody tr[aria-selected="true"] { background: var(--hover); box-shadow: inset 3px 0 0 var(--metric-1); }
+.empty-row { color: var(--muted); text-align: center !important; cursor: default; }
+.g { display: inline-block; width: 1.1em; text-align: center; font-size: 12px; line-height: 1; }
+.g.valid { color: var(--good); } .g.valid::before { content: "●"; }
+.g.invalid { color: var(--warn); } .g.invalid::before { content: "◐"; }
+.g.scoring { color: var(--bad); } .g.scoring::before { content: "▲"; }
+.g.site { color: var(--bad); } .g.site::before { content: "✕"; }
+.g.mode { color: var(--bad); } .g.mode::before { content: "↻"; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px 1px 5px; font-size: 12px; background: var(--chip); }
+.strip { display: inline-flex; gap: 2px; }
+.strip .g { width: 18px; height: 18px; line-height: 18px; border-radius: 4px; background: var(--chip); }
+.strip .g.sel { box-shadow: inset 0 0 0 1.5px var(--metric-1); }
+.strip .g:first-child { margin-right: 5px; }
+.delta { font-size: 12px; font-weight: 500; }
+.delta.up { color: var(--good); } .delta.down { color: var(--bad); } .delta.same { color: var(--faint); }
+.key { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.count { color: var(--muted); font-size: 12.5px; }
+.btn, .pager button, .pose-list button {
+  font: inherit; font-size: 12.5px; color: var(--fg); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 10px; cursor: pointer; min-height: 30px;
+}
+:is(.btn, .pager button, .pose-list button):hover:not(:disabled) { background: var(--hover); }
+.pager button:disabled { color: var(--faint); cursor: default; }
+.pager-buttons { display: flex; align-items: center; gap: 6px; }
+.page-label { font-size: 12.5px; color: var(--muted); padding: 0 4px; white-space: nowrap; }
+
+/* Detail */
+.detail-head { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 12px; align-items: start; }
+.props { display: flex; flex-wrap: wrap; gap: 2px 14px; color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+.props b { color: var(--fg); font-weight: 500; font-family: var(--font-data); }
+.id-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.depict { color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.depict svg { display: block; width: 100%; height: auto; }
+#viewer { position: relative; flex: 1 1 260px; min-height: 240px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--viewer-bg); }
+.viewer-empty { display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); position: absolute; inset: 0; }
+.viewer-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.swatches { display: flex; gap: 12px; flex-wrap: wrap; }
+.swatches span::before { content: ""; display: inline-block; width: 12px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: 2px; background: var(--c); }
+.viewer-bar label { display: inline-flex; gap: 5px; align-items: center; margin-left: 10px; }
+.pose-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.pose-list button { font-family: var(--font-data); font-size: 12px; padding: 3px 8px; white-space: nowrap; display: flex; justify-content: space-between; gap: 6px; min-height: 28px; }
+.pose-list button[aria-pressed="true"] { border-color: var(--metric-1); box-shadow: inset 0 0 0 1px var(--metric-1); }
+.pose-list .rank { color: var(--muted); }
+.pose-list .ok { color: var(--good); }
+.arm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.arm-cell { border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 0; }
+.arm-cell.sel { border-color: var(--metric-1); }
+.arm-cell .name { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arm-cell .val { font-family: var(--font-data); font-size: 12.5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.arm-cell .best { color: var(--faint); font-size: 11px; }
+
+#tip { position: fixed; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12px; padding: 6px 8px; border-radius: 6px; z-index: 20; max-width: 280px; }
+footer { color: var(--faint); font-size: 12px; max-width: 920px; }
+
+@media (max-width: 1000px) {
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  header { grid-template-columns: minmax(0, 1fr); }
+  .badge { justify-self: start; }
+  .controls select { min-width: 0; width: 100%; }
+  .control-fields, .control-fields label { width: 100%; }
+  .filters, .detail-head { grid-template-columns: minmax(0, 1fr); }
+  .depict { max-width: 200px; }
+  .pose-list, .arm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">DockPrepBench · results explorer</div>
+      <h1>How much does preparation change docking?</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="badge" id="badge" title="Arm outcomes are simulated until the benchmark runs finish. Complex IDs, ligand properties and cofactors are real, as are the baseline poses and outcomes of complexes marked ◆."><b>Prototype</b><span>arm outcomes simulated · ◆ real</span></div>
+  </header>
+
+  <nav class="controls" aria-label="Comparison settings">
+    <div class="control-fields">
+      <label class="field" for="arm-select">Compare baseline with <select id="arm-select"></select></label>
+      <label class="field" for="metric-select">Success means
+        <select id="metric-select">
+          <option value="top1">Top-1 RMSD &lt; 2 Å</option>
+          <option value="valid">Top-1 RMSD &lt; 2 Å and PB-valid</option>
+        </select>
+      </label>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Views">
+      <button type="button" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true">Overview</button>
+      <button type="button" role="tab" id="tab-complexes" aria-controls="panel-complexes" aria-selected="false">Complexes</button>
+    </div>
+  </nav>
+
+  <section class="tab-body" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+    <div class="tiles">
+      <div class="tile"><div class="k">Baseline success</div><div class="v" id="t-base"></div><div class="s" id="t-base-ci"></div></div>
+      <div class="tile"><div class="k" id="t-arm-k">Arm success</div><div class="v" id="t-arm"></div><div class="s" id="t-arm-ci"></div></div>
+      <div class="tile"><div class="k">Complexes that changed</div><div class="v" id="t-changed"></div><div class="s" id="t-changed-s"></div></div>
+      <div class="tile"><div class="k">Exact McNemar test</div><div class="v" id="t-p"></div><div class="s" id="t-p-s"></div></div>
+    </div>
+    <div class="pair">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Success by experiment arm</h2>
+          <div class="legend">
+            <span><i style="background: var(--metric-1)"></i>Top-1 RMSD &lt; 2 Å</span>
+            <span><i style="background: var(--metric-2)"></i>PB-valid</span>
+          </div>
+        </div>
+        <svg id="chart" role="img" aria-label="Success rate per experiment arm with 95% intervals"></svg>
+        <div class="note">95% Wilson intervals. Dashed line: baseline top-1. Sorted by change in top-1 success; click an arm to compare it.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>How outcomes moved</h2>
+          <span class="axis-note" id="matrix-axes"></span>
+        </div>
+        <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+        <div class="note">Rows: outcome at baseline. Columns: outcome in the selected arm. Off-diagonal cells are complexes whose outcome changed; click a cell to list them.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-body" id="panel-complexes" role="tabpanel" aria-labelledby="tab-complexes" hidden>
+    <div class="pair">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Complexes</h2>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="filters">
+          <label class="field" for="search">Search <input id="search" type="search" placeholder="PDB or ligand code, e.g. 7KLX" autocomplete="off"></label>
+          <label class="field" for="class-filter">Outcome in selected arm
+            <select id="class-filter">
+              <option value="">Any outcome</option>
+              <option value="valid">Valid success</option>
+              <option value="invalid">Correct, not PB-valid</option>
+              <option value="scoring">Scoring miss</option>
+              <option value="site">Wrong site</option>
+              <option value="mode">Wrong binding mode</option>
+            </select>
+          </label>
+        </div>
+        <div class="checks">
+          <label for="changed-only"><input id="changed-only" type="checkbox"> Success changed vs baseline</label>
+          <label for="cofactor-only"><input id="cofactor-only" type="checkbox"> Has cofactor</label>
+        </div>
+        <div class="active-filter" id="active-filter" hidden></div>
+        <div class="table-wrap">
+          <table class="list">
+            <thead>
+              <tr>
+                <th><button data-sort="id">Complex</button></th>
+                <th class="num"><button data-sort="heavy">Atoms</button></th>
+                <th class="num"><button data-sort="rotb">Rot.</button></th>
+                <th id="strip-head">All arms</th>
+                <th id="arm-col">Arm</th>
+                <th>Success</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div class="key" id="key"></div>
+        <nav class="pager" aria-label="Table pages">
+          <span class="count">◆ real baseline poses</span>
+          <span class="pager-buttons">
+            <button type="button" id="page-first" aria-label="First page">«</button>
+            <button type="button" id="page-prev">‹ Prev</button>
+            <span class="page-label mono" id="page-label" aria-live="polite"></span>
+            <button type="button" id="page-next">Next ›</button>
+            <button type="button" id="page-last" aria-label="Last page">»</button>
+          </span>
+        </nav>
+      </div>
+
+      <div class="panel" id="detail" aria-live="polite">
+        <div class="detail-head">
+          <div>
+            <div class="id-row">
+              <h2 class="mono" id="d-id"></h2>
+              <button type="button" class="btn" id="copy-link">Copy link</button>
+            </div>
+            <div class="props" id="d-props"></div>
+          </div>
+          <div class="depict" id="d-depict" aria-label="2D structure of the ligand"></div>
+        </div>
+        <div id="viewer"></div>
+        <div class="viewer-bar" id="viewer-bar">
+          <span class="swatches">
+            <span style="--c: var(--faint)">crystal</span>
+            <span style="--c: var(--metric-1)">docked pose</span>
+            <span style="--c: #9aa3b2">pocket (8 Å)</span>
+          </span>
+          <span>
+            <label for="t-crystal"><input id="t-crystal" type="checkbox" checked> Crystal</label>
+            <label for="t-pocket"><input id="t-pocket" type="checkbox" checked> Pocket</label>
+          </span>
+        </div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Baseline poses · score · RMSD (Å)</div>
+          <div class="pose-list" id="d-poses"></div>
+        </div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Top-1 outcome in every arm</div>
+          <div class="arm-grid" id="d-arms"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
+<script src="data.js"></script>
+<script src="lib.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

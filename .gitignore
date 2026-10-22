@@ -31,3 +31,9 @@ Thumbs.db
 
 # Claude Code: local skills and settings
 .claude/
+
+# Generated explorer data
+explorer/data.js
+
+# Node (explorer tests)
+node_modules/

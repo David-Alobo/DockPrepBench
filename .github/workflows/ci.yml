@@ -25,3 +25,20 @@ jobs:
           uv run ruff format --check .
       - name: Test
         run: uv run pytest --cov=dockprepbench
+
+  explorer:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: explorer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: explorer/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Test
+        run: npm test
