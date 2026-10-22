@@ -68,6 +68,12 @@ def build_parser() -> argparse.ArgumentParser:
     compare.add_argument(
         "--pb-valid", action="store_true", help="Require PB-valid poses for success."
     )
+
+    figures = commands.add_parser("figures", help="Figures and summary table for runs.")
+    figures.add_argument(
+        "runs", type=Path, nargs="+", help="Run directories or CSVs; the first is the reference."
+    )
+    figures.add_argument("--out", type=Path, default=Path("figures"), help="Output directory.")
     return parser
 
 
@@ -198,6 +204,47 @@ def compare_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def figures_command(args: argparse.Namespace) -> int:
+    """
+    Execute the `figures` subcommand: success-rate forest plot, RMSD curves and table.
+
+    Args:
+        args (argparse.Namespace): Parsed `figures` arguments.
+
+    Returns:
+        int: Process exit code.
+    """
+    from dockprepbench.analysis.figures import plot_rmsd_cdf, plot_success_rates, summary_table
+    from dockprepbench.analysis.stats import load_run
+
+    runs = {_run_name(path): load_run(_results_path(path)) for path in args.runs}
+    if len(runs) != len(args.runs):
+        raise SystemExit("Run names must be unique; each run directory needs its own name")
+    table = summary_table(runs)
+    args.out.mkdir(parents=True, exist_ok=True)
+    table.to_csv(args.out / "summary.csv", float_format="%.4f")
+    written = [args.out / "summary.csv"]
+    written += plot_success_rates(table, args.out / "success_rates")
+    written += plot_rmsd_cdf(runs, args.out / "rmsd_cdf")
+    print("\n".join(str(path) for path in written))
+    return 0
+
+
+def _run_name(path: Path) -> str:
+    """
+    Name a run after its directory (the config name), or the CSV's stem otherwise.
+
+    Args:
+        path (Path): Run directory or results CSV.
+
+    Returns:
+        str: Display name.
+    """
+    if path.is_dir():
+        return path.name
+    return path.parent.name if path.name == RESULTS_FILE else path.stem
+
+
 def _results_path(path: Path) -> Path:
     """
     Resolve a run directory or results CSV to the CSV path.
@@ -248,7 +295,12 @@ def main(argv: list[str] | None = None) -> int:
     """
     args = build_parser().parse_args(argv)
     setup_logging(logging.DEBUG if args.verbose else logging.INFO)
-    commands = {"run": run_command, "summarize": summarize_command, "compare": compare_command}
+    commands = {
+        "run": run_command,
+        "summarize": summarize_command,
+        "compare": compare_command,
+        "figures": figures_command,
+    }
     if args.command in commands:
         return commands[args.command](args)
     return 0

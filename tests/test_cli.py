@@ -130,3 +130,21 @@ def test_run_rejects_out_with_several_configs(tmp_path, fake_pipeline):
         )
 
     assert fake_pipeline == []
+
+
+def test_figures_writes_table_and_plots(tmp_path, capsys):
+    a = write_run(tmp_path / "baseline", [0.5, 3.0, 0.5], [True, True, True])
+    b = write_run(tmp_path / "box_padding_2", [0.5, 0.5, 3.0], [True, False, True])
+
+    assert main(["figures", str(a), str(b), "--out", str(tmp_path / "figs")]) == 0
+
+    names = sorted(p.name for p in (tmp_path / "figs").iterdir())
+    assert names == [
+        "rmsd_cdf.pdf",
+        "rmsd_cdf.png",
+        "success_rates.pdf",
+        "success_rates.png",
+        "summary.csv",
+    ]
+    summary = (tmp_path / "figs" / "summary.csv").read_text(encoding="utf-8")
+    assert "baseline" in summary and "box_padding_2" in summary
