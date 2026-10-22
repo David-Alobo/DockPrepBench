@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use DockPrepBench, please cite it as below."
+title: "DockPrepBench: How much does preparation matter in classical docking?"
+authors:
+  - family-names: Alobo
+    given-names: David
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/David-Alobo/DockPrepBench"
