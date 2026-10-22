@@ -4,7 +4,7 @@ import io
 from pathlib import Path
 
 from openmm import Context, LocalEnergyMinimizer, Platform, VerletIntegrator, unit
-from openmm.app import CutoffNonPeriodic, ForceField, PDBFile
+from openmm.app import CutoffNonPeriodic, ForceField, Modeller, PDBFile, element
 from openmm.app.topology import Atom
 from pdbfixer import PDBFixer
 
@@ -33,6 +33,7 @@ def protonate_receptor(pdb_path: str | Path, ph: float = DEFAULT_PH) -> str:
     fixer.findNonstandardResidues()
     fixer.replaceNonstandardResidues()
     fixer.removeHeterogens(keepWater=False)
+    _remove_hydrogens(fixer)
     crystal_atoms = {_atom_key(atom) for atom in fixer.topology.atoms()}
     fixer.findMissingAtoms()
     fixer.addMissingAtoms()
@@ -42,6 +43,20 @@ def protonate_receptor(pdb_path: str | Path, ph: float = DEFAULT_PH) -> str:
     out = io.StringIO()
     PDBFile.writeFile(fixer.topology, positions, out, keepIds=True)
     return out.getvalue()
+
+
+def _remove_hydrogens(fixer: PDBFixer) -> None:
+    """
+    Delete any hydrogens already in the input, so protonation follows this protocol only.
+
+    Input hydrogens may also carry naming conventions the force field templates reject.
+
+    Args:
+        fixer (PDBFixer): Fixer to modify in place.
+    """
+    modeller = Modeller(fixer.topology, fixer.positions)
+    modeller.delete([a for a in modeller.topology.atoms() if a.element == element.hydrogen])
+    fixer.topology, fixer.positions = modeller.topology, modeller.positions
 
 
 def _relax_added_atoms(fixer: PDBFixer, fixed: set[tuple]) -> unit.Quantity:
