@@ -33,7 +33,13 @@ Repository = "https://github.com/David-Alobo/DockPrepBench"
 Issues = "https://github.com/David-Alobo/DockPrepBench/issues"
 
 [dependency-groups]
-dev = ["pytest", "pytest-cov", "ruff", "pre-commit"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "pre-commit",
+    "pytest-github-actions-annotate-failures>=0.4.2",
+]
 
 [tool.hatch.version]
 path = "src/dockprepbench/__init__.py"

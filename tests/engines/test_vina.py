@@ -23,7 +23,9 @@ def test_vina_docks_into_box(peptide_pdb):
     assert result.scores == sorted(result.scores)
     for pose in result.poses:
         assert Chem.MolToSmiles(Chem.RemoveHs(pose)) == "NC(=O)c1ccccc1"
-        for x, c, s in zip(pose.GetConformer().GetPositions().T, box.center, box.size, strict=True):
+        # Vina confines heavy atoms; meeko re-adds nonpolar hydrogens that may poke out.
+        heavy = Chem.RemoveHs(pose).GetConformer().GetPositions()
+        for x, c, s in zip(heavy.T, box.center, box.size, strict=True):
             assert (abs(x - c) <= s / 2).all()
 
 
