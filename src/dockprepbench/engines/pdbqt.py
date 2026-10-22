@@ -10,23 +10,39 @@ from meeko import (
 )
 from rdkit import Chem
 
+from dockprepbench.engines.base import Box
 
-def receptor_to_pdbqt(pdb_text: str) -> str:
+# Residues that fail template matching are dropped only if they lie this far outside the
+# box: Vina's interaction cutoff, so they could not have touched a pose inside it.
+BAD_RESIDUE_CLEARANCE = 8.0  # Å
+
+
+def receptor_to_pdbqt(pdb_text: str, box: Box | None = None) -> str:
     """
     Convert a protonated receptor PDB to rigid-receptor PDBQT.
 
     Args:
-        pdb_text (str): PDB contents. Every residue must match a meeko template,
-            so hydrogens must already be present.
+        pdb_text (str): PDB contents. Hydrogens must already be present.
+        box (Box | None): Search box. If given, residues that fail template matching are
+            dropped (with a logged warning) when they lie more than
+            BAD_RESIDUE_CLEARANCE outside it. Without a box, every residue must match.
 
     Returns:
         str: Rigid receptor PDBQT.
 
     Raises:
-        meeko.PolymerCreationError: If a residue cannot be matched to a template.
+        meeko.PolymerCreationError: If a residue near the box, or any residue when no
+            box is given, cannot be matched to a template.
     """
+    box_options = {}
+    if box is not None:
+        box_options = {
+            "box_center": list(box.center),
+            "box_size": list(box.size),
+            "delete_bad_res_from_box_radius": BAD_RESIDUE_CLEARANCE,
+        }
     polymer = Polymer.from_pdb_string(
-        pdb_text, ResidueChemTemplates.create_from_defaults(), MoleculePreparation()
+        pdb_text, ResidueChemTemplates.create_from_defaults(), MoleculePreparation(), **box_options
     )
     rigid, _flexible = PDBQTWriterLegacy.write_from_polymer(polymer)
     return rigid

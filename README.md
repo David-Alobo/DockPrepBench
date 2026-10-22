@@ -37,6 +37,17 @@ Docking engines run on **Linux x86_64** only (the `vina` Python bindings ship Li
 Gnina and rDock are Linux-only). On Windows or macOS the library installs and the unit tests run, while
 engine tests are skipped; use WSL, a Linux machine or CI to dock.
 
+## Usage
+
+Redock the PoseBusters benchmark set with Vina (downloads the data to `data/raw` on first run):
+
+```bash
+uv run dockprepbench run --out results/vina_baseline.csv --workers 8
+```
+
+Each row of the CSV is one complex with its top-1 pose RMSD, score, runtime and any error.
+Use `--limit N` for a quick run on the first N complexes.
+
 ## Project layout
 
 ```
@@ -46,6 +57,7 @@ src/dockprepbench/
 ├── engines/       docking engine wrappers
 ├── evaluation/    RMSD, PoseBusters validity, enrichment
 ├── analysis/      aggregation, statistics, figures
+├── benchmark.py   run an engine over a dataset and score poses
 ├── io.py          structure file I/O
 ├── log.py         logging setup
 └── cli.py         `dockprepbench` command

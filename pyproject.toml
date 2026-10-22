@@ -21,6 +21,8 @@ dependencies = [
     "vina>=1.2.7 ; python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux'",
     "scipy>=1.17.1",
     "gemmi>=0.7.5",
+    "pdbfixer>=1.12.0",
+    "openmm>=8.6.1",
 ]
 
 [project.scripts]
