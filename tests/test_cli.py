@@ -148,3 +148,15 @@ def test_figures_writes_table_and_plots(tmp_path, capsys):
     ]
     summary = (tmp_path / "figs" / "summary.csv").read_text(encoding="utf-8")
     assert "baseline" in summary and "box_padding_2" in summary
+
+
+def test_compare_several_arms_reports_holm(tmp_path, capsys):
+    base = write_run(tmp_path / "base", [0.5, 3.0, 0.5], [True, True, True])
+    arm1 = write_run(tmp_path / "arm1", [0.5, 0.5, 3.0], [True, True, True])
+    arm2 = write_run(tmp_path / "arm2", [0.5, 3.0, 0.5], [True, True, True])
+
+    assert main(["compare", str(base), str(arm1), str(arm2)]) == 0
+
+    out = capsys.readouterr().out
+    assert out.count("Holm-adjusted p") == 2
+    assert "(2 comparisons)" in out

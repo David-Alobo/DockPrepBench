@@ -52,6 +52,8 @@ def test_dock_complex_scores_top_pose(entry, tmp_path):
     assert result.top1_rmsd == pytest.approx(0.0, abs=1e-6)
     assert result.top1_score == -9.0
     assert isinstance(result.top1_pb_valid, bool)
+    assert result.top1_centroid_shift == pytest.approx(0.0, abs=1e-6)
+    assert (result.best_rmsd, result.best_rank) == (pytest.approx(0.0, abs=1e-6), 1)
     assert result.n_poses == 2
     assert result.error == ""
     assert (tmp_path / "work" / "ph7.4" / "TEST_LIG_receptor.pdb").is_file()
@@ -76,7 +78,28 @@ def test_run_benchmark_returns_one_row_per_complex(entry, tmp_path):
         "top1_score",
         "top1_pb_valid",
         "top1_failed_checks",
+        "top1_centroid_shift",
+        "best_rmsd",
+        "best_rank",
         "n_poses",
         "seconds",
         "error",
     ]
+
+
+class ReversedEngine(CrystalEngine):
+    """Ranks the start conformer first and the crystal pose second: a scoring miss."""
+
+    def dock(self, receptor, ligand, box):
+        result = super().dock(receptor, ligand, box)
+        return DockingResult(poses=result.poses[::-1], scores=result.scores[::-1])
+
+
+def test_dock_complex_records_best_pose_below_top(entry, tmp_path):
+    result = dock_complex(
+        entry, ReversedEngine(entry.crystal_ligand), PrepConfig(), tmp_path / "work"
+    )
+
+    assert result.top1_rmsd > 0.1
+    assert result.best_rmsd == pytest.approx(0.0, abs=1e-6)
+    assert result.best_rank == 2

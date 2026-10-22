@@ -125,6 +125,30 @@ def success_rate(hits: pd.Series) -> Rate:
     return Rate(successes=k, total=n, low=low, high=high)
 
 
+def holm_adjust(p_values: list[float]) -> list[float]:
+    """
+    Adjust p-values for multiple comparisons with Holm's step-down method.
+
+    Controls the family-wise error rate (the chance of any false positive across all
+    comparisons) without assuming independence, and is uniformly more powerful than
+    Bonferroni.
+
+    Args:
+        p_values (list[float]): Raw p-values, one per comparison.
+
+    Returns:
+        list[float]: Adjusted p-values, in the input order.
+    """
+    m = len(p_values)
+    order = sorted(range(m), key=p_values.__getitem__)
+    adjusted = [0.0] * m
+    running_max = 0.0
+    for rank, i in enumerate(order):
+        running_max = max(running_max, min(1.0, (m - rank) * p_values[i]))
+        adjusted[i] = running_max
+    return adjusted
+
+
 def compare(hits_a: pd.Series, hits_b: pd.Series) -> Comparison:
     """
     Compare two runs on the complexes they share, with an exact McNemar test.

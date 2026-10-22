@@ -11,7 +11,7 @@ import pandas as pd
 
 from dockprepbench.datasets.posebusters import Complex
 from dockprepbench.engines.base import DockingEngine
-from dockprepbench.evaluation.rmsd import pose_rmsd
+from dockprepbench.evaluation.rmsd import centroid_shift, pose_rmsd
 from dockprepbench.evaluation.validity import is_pb_valid, validity_checks
 from dockprepbench.io import load_sdf_file
 from dockprepbench.preparation.box import box_from_ligand
@@ -31,6 +31,9 @@ class ComplexResult:
     top1_score: float = math.nan
     top1_pb_valid: bool = False
     top1_failed_checks: str = ""  # semicolon-separated PoseBusters check names
+    top1_centroid_shift: float = math.nan  # Å; large values mean a different site
+    best_rmsd: float = math.nan  # lowest RMSD among all returned poses
+    best_rank: int = 0  # 1-based rank of that pose; > 1 with best_rmsd < 2 Å = scoring miss
     n_poses: int = 0
     seconds: float = math.nan
     error: str = ""
@@ -97,12 +100,17 @@ def dock_complex(
         if not result.poses:
             raise RuntimeError(f"{engine.name} returned no poses")
         checks = validity_checks(result.poses[0], crystal, entry.protein)
+        rmsds = [pose_rmsd(pose, crystal) for pose in result.poses]
+        best = min(range(len(rmsds)), key=rmsds.__getitem__)
         return ComplexResult(
             id=entry.id,
-            top1_rmsd=pose_rmsd(result.poses[0], crystal),
+            top1_rmsd=rmsds[0],
             top1_score=result.scores[0],
             top1_pb_valid=is_pb_valid(checks),
             top1_failed_checks=";".join(name for name, ok in checks.items() if not ok),
+            top1_centroid_shift=centroid_shift(result.poses[0], crystal),
+            best_rmsd=rmsds[best],
+            best_rank=best + 1,
             n_poses=len(result.poses),
             seconds=time.perf_counter() - start,
         )
