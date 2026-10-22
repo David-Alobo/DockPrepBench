@@ -15,6 +15,11 @@ class Box:
     center: tuple[float, float, float]
     size: tuple[float, float, float]
 
+    def __post_init__(self) -> None:
+        # Coerce numpy scalars to float: engine bindings (e.g. Vina's SWIG layer) reject them.
+        object.__setattr__(self, "center", tuple(float(c) for c in self.center))
+        object.__setattr__(self, "size", tuple(float(s) for s in self.size))
+
 
 @dataclass(frozen=True)
 class DockingResult:
