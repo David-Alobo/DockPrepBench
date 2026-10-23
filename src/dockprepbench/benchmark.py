@@ -1,9 +1,11 @@
 """Run a docking engine over a set of complexes and score the top-ranked poses."""
 
+import json
 import logging
 import math
+import os
 import time
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -138,9 +140,14 @@ def run_benchmark(
     work_dir: Path,
     workers: int = 1,
     pose_dir: Path | None = None,
+    checkpoint: Path | None = None,
 ) -> pd.DataFrame:
     """
     Dock every complex and collect the results.
+
+    With a checkpoint, each result is appended to it as soon as its complex finishes, and
+    complexes already recorded there are not docked again. A run that is interrupted (or
+    killed, e.g. by a memory limit) therefore resumes where it stopped when restarted.
 
     Args:
         complexes (list[Complex]): Complexes to dock.
@@ -150,18 +157,75 @@ def run_benchmark(
         workers (int): Number of complexes docked in parallel.
         pose_dir (Path | None): If given, every complex's poses are written there as
             `<id>.sdf` (see `dock_complex`).
+        checkpoint (Path | None): JSON Lines file of finished results, one per line.
 
     Returns:
         pd.DataFrame: One row per complex, in input order, with the ComplexResult fields.
     """
-    n = len(complexes)
-    args = (complexes, [engine] * n, [config] * n, [work_dir] * n, [pose_dir] * n)
+    wanted = {c.id for c in complexes}
+    done = {
+        k: v for k, v in (_load_checkpoint(checkpoint) if checkpoint else {}).items() if k in wanted
+    }
+    todo = [c for c in complexes if c.id not in done]
+    total = len(complexes)
+    if done:
+        logger.info("Resuming: %d of %d complexes already done", len(done), total)
+
+    def record(result: ComplexResult) -> None:
+        done[result.id] = asdict(result)
+        if checkpoint:
+            _append_checkpoint(checkpoint, result)
+        if len(done) % 10 == 0 or len(done) == total:
+            logger.info("Progress: %d of %d complexes done", len(done), total)
+
+    args = (engine, config, work_dir, pose_dir)
     if workers == 1:
-        results = list(map(dock_complex, *args))
+        for entry in todo:
+            record(dock_complex(entry, *args))
     else:
         with ProcessPoolExecutor(workers) as pool:
-            results = list(pool.map(dock_complex, *args))
-    return pd.DataFrame([asdict(r) for r in results])
+            futures = [pool.submit(dock_complex, entry, *args) for entry in todo]
+            for future in as_completed(futures):
+                record(future.result())
+    return pd.DataFrame([done[c.id] for c in complexes])
+
+
+def _load_checkpoint(path: Path) -> dict[str, dict]:
+    """
+    Read finished results from a checkpoint, skipping a final line cut off by a crash.
+
+    Args:
+        path (Path): JSON Lines checkpoint; may not exist yet.
+
+    Returns:
+        dict[str, dict]: ComplexResult fields keyed by complex id.
+    """
+    if not path.is_file():
+        return {}
+    done = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            logger.warning("Ignoring an incomplete line in %s", path)
+            continue
+        done[row["id"]] = row
+    return done
+
+
+def _append_checkpoint(path: Path, result: ComplexResult) -> None:
+    """
+    Append one result to the checkpoint and flush it to disk immediately.
+
+    Args:
+        path (Path): JSON Lines checkpoint.
+        result (ComplexResult): Finished result.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(asdict(result)) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def _save_poses(poses: list[Chem.Mol], scores: list[float], rmsds: list[float], path: Path) -> None:

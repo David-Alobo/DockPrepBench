@@ -20,6 +20,7 @@ if TYPE_CHECKING:  # heavy imports stay lazy so `--help` and `summarize` start f
 logger = logging.getLogger(__name__)
 
 RESULTS_FILE = "results.csv"
+CHECKPOINT_FILE = "results.partial.jsonl"  # per-complex results of an unfinished run
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -142,10 +143,17 @@ def _run_one(
     from dockprepbench.benchmark import run_benchmark
 
     started = datetime.now(UTC)
-    results = run_benchmark(
-        complexes, engine, config, args.work_dir, workers=args.workers, pose_dir=out / "poses"
-    )
     out.mkdir(parents=True, exist_ok=True)
+    checkpoint = out / CHECKPOINT_FILE
+    results = run_benchmark(
+        complexes,
+        engine,
+        config,
+        args.work_dir,
+        workers=args.workers,
+        pose_dir=out / "poses",
+        checkpoint=checkpoint,
+    )
     metadata = {
         "dockprepbench_version": __version__,
         "engine": engine.name,
@@ -158,6 +166,7 @@ def _run_one(
     (out / "run.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     # Written last: its presence marks the run as complete for the skip check.
     results.to_csv(out / RESULTS_FILE, index=False)
+    checkpoint.unlink(missing_ok=True)
     logger.info("Results written to %s", out)
 
 

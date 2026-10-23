@@ -1,11 +1,13 @@
+import json
 import math
 import shutil
+from dataclasses import asdict
 
 import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from dockprepbench.benchmark import dock_complex, run_benchmark
+from dockprepbench.benchmark import ComplexResult, dock_complex, run_benchmark
 from dockprepbench.datasets.posebusters import Complex
 from dockprepbench.engines.base import DockingEngine, DockingResult
 from dockprepbench.preparation.config import PrepConfig
@@ -124,3 +126,69 @@ def test_failed_complex_writes_no_poses(entry, tmp_path):
     dock_complex(entry, EmptyEngine(), PrepConfig(), tmp_path / "work", pose_dir)
 
     assert not pose_dir.exists()
+
+
+def test_run_benchmark_checkpoints_every_result(entry, tmp_path):
+    checkpoint = tmp_path / "out" / "results.partial.jsonl"
+    other = Complex(
+        id="OTHER_LIG",
+        protein=entry.protein,
+        crystal_ligand=entry.crystal_ligand,
+        start_ligand=entry.start_ligand,
+    )
+
+    df = run_benchmark(
+        [entry, other],
+        CrystalEngine(entry.crystal_ligand),
+        PrepConfig(),
+        tmp_path / "work",
+        checkpoint=checkpoint,
+    )
+
+    lines = checkpoint.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2
+    assert list(df["id"]) == ["TEST_LIG", "OTHER_LIG"]
+
+
+def test_run_benchmark_resumes_without_redocking(entry, tmp_path):
+    checkpoint = tmp_path / "results.partial.jsonl"
+    finished = ComplexResult(id="TEST_LIG", top1_rmsd=0.5, top1_score=-9.0, n_poses=9)
+    checkpoint.write_text(json.dumps(asdict(finished)) + "\n", encoding="utf-8")
+
+    # EmptyEngine would record an error if TEST_LIG were docked again.
+    df = run_benchmark(
+        [entry], EmptyEngine(), PrepConfig(), tmp_path / "work", checkpoint=checkpoint
+    )
+
+    assert df.loc[0, "top1_rmsd"] == 0.5
+    assert df.loc[0, "error"] == ""
+
+
+def test_run_benchmark_ignores_a_line_cut_off_by_a_crash(entry, tmp_path):
+    checkpoint = tmp_path / "results.partial.jsonl"
+    finished = ComplexResult(id="TEST_LIG", top1_rmsd=0.5, n_poses=9)
+    checkpoint.write_text(
+        json.dumps(asdict(finished)) + "\n" + '{"id": "OTHER_LIG", "top1_rm', encoding="utf-8"
+    )
+
+    df = run_benchmark(
+        [entry], EmptyEngine(), PrepConfig(), tmp_path / "work", checkpoint=checkpoint
+    )
+
+    assert df.loc[0, "top1_rmsd"] == 0.5
+
+
+def test_run_benchmark_ignores_checkpointed_complexes_not_requested(entry, tmp_path):
+    checkpoint = tmp_path / "results.partial.jsonl"
+    stray = ComplexResult(id="NOT_IN_RUN", top1_rmsd=0.5)
+    checkpoint.write_text(json.dumps(asdict(stray)) + "\n", encoding="utf-8")
+
+    df = run_benchmark(
+        [entry],
+        CrystalEngine(entry.crystal_ligand),
+        PrepConfig(),
+        tmp_path / "work",
+        checkpoint=checkpoint,
+    )
+
+    assert list(df["id"]) == ["TEST_LIG"]
