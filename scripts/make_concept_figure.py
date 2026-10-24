@@ -365,6 +365,11 @@ if ARGS.v4:
                                "PoseBusters validity"], INK_2)  # fmt: skip
     # The first line is left for the charge label, drawn in the ligand colour below.
     cards[2] = ("Ligand", ["", "Protonation", "(supplied or pH 7.4)", "Start conformer"], LIGAND)
+    cards[3] = (
+        "Search space",
+        ["Box padding", "2 / 4 / 6 / 8 Å", "Baseline 4 Å", "Around crystal ligand"],
+        BOX,
+    )
 for i, (x, (title, bullets, accent)) in enumerate(zip(xs, cards, strict=True), 1):
     card(x, Y, W, H, title, bullets, accent)
     if ARGS.v4:

@@ -34,6 +34,8 @@
 <text x="937.8" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Search space</text>
 <text x="937.8" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Box padding</text>
 <text x="937.8" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">2 / 4 / 6 / 8 Å</text>
+<text x="937.8" y="326.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Baseline 4 Å</text>
+<text x="937.8" y="356.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Around crystal ligand</text>
 <circle cx="852.8000000000001" cy="74" r="15" fill="#1baf7a" stroke="#ffffff" stroke-width="3"/>
 <text x="852.8" y="81.0" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold" font-style="normal" fill="#ffffff" text-anchor="middle">4</text>
 <rect x="1092.4" y="70" width="222" height="310" rx="14" fill="#efedfb" stroke="#6250d6" stroke-width="2"/>
