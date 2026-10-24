@@ -76,7 +76,6 @@ if [ "$WITH_GNINA" = 1 ]; then
         done
         mv "$part" "$TOOLS/gnina/gnina" && chmod +x "$TOOLS/gnina/gnina"
     fi
-    ln -sf "$TOOLS/gnina/gnina" "$TOOLS/bin/gnina"
 fi
 
 step "rDock 24.03 (the 2013.1 conda build segfaults on current systems)"
@@ -95,6 +94,25 @@ if [ ! -x "$MAMBA_ROOT_PREFIX/envs/openbabel/bin/obabel" ]; then
     nice -n 19 micromamba create -y -q -n openbabel --override-channels -c conda-forge openbabel >/dev/null
 fi
 ln -sf "$MAMBA_ROOT_PREFIX/envs/openbabel/bin/obabel" "$TOOLS/bin/obabel"
+
+if [ "$WITH_GNINA" = 1 ]; then
+    step "cuDNN 9 for Gnina (user space; the binary links libcudnn.so.9 dynamically)"
+    cudnn=$MAMBA_ROOT_PREFIX/envs/cudnn9/lib
+    if [ ! -e "$cudnn/libcudnn.so.9" ]; then
+        nice -n 19 micromamba create -y -q -n cudnn9 --override-channels -c conda-forge \
+            "cudnn>=9,<10" "cuda-version=12.*" >/dev/null
+    fi
+    # A wrapper adds cuDNN 9 for Gnina only, leaving other programs' libraries alone.
+    rm -f "$TOOLS/bin/gnina"
+    cat > "$TOOLS/bin/gnina" <<EOF
+#!/usr/bin/env bash
+export LD_LIBRARY_PATH="$cudnn\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+exec "$TOOLS/gnina/gnina" "\$@"
+EOF
+    chmod +x "$TOOLS/bin/gnina"
+    missing=$(LD_LIBRARY_PATH=$cudnn ldd "$TOOLS/gnina/gnina" | grep "not found" || true)
+    [ -z "$missing" ] || fail "Gnina still lacks libraries (needs a CUDA 12 runtime): $missing"
+fi
 
 # Environment file ------------------------------------------------------------------------
 step "Writing $TOOLS/env.sh"
