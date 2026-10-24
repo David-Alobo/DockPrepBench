@@ -102,11 +102,9 @@ def arrow(x1, y1, x2, y2, color=MUTED, width=2.5):
     )
 
 
-PIC_W, PIC_H, PIC_TOP = (
-    196,
-    108,
-    60,
-)  # picture window in a card (version 3): below the title, above the text
+# Picture window in a card (versions 3 and 4): below the title, above the text.
+PIC_W, PIC_H, PIC_TOP = 196, 108, 60
+LIGAND_H = PIC_H - 24  # version 4 ligand drawing, leaving a line for its label
 
 
 def png_data(path: Path) -> str:
@@ -168,13 +166,13 @@ def white_to_alpha(image):
 
 def ligand_svg_data(complex_id: str) -> str:
     """
-    Draw a complex's crystal ligand in 2D with RDKit and return it as an SVG data URI.
+    Draw a complex's crystal ligand in 2D with RDKit, as an SVG document.
 
     Args:
         complex_id (str): PoseBusters complex id, e.g. 5SAK_ZRY.
 
     Returns:
-        str: data:image/svg+xml;base64,... URI, heteroatoms in RDKit's colours.
+        str: SVG document, heteroatoms in RDKit's colours.
     """
     from rdkit import Chem
     from rdkit.Chem import rdDepictor
@@ -190,9 +188,7 @@ def ligand_svg_data(complex_id: str) -> str:
     opts.clearBackground = False  # transparent, so the card's tint shows through
     drawer.DrawMolecule(mol)
     drawer.FinishDrawing()
-    return (
-        "data:image/svg+xml;base64," + base64.b64encode(drawer.GetDrawingText().encode()).decode()
-    )
+    return drawer.GetDrawingText()
 
 
 def ligand_states_svg_data(complex_id: str) -> str:
@@ -207,7 +203,7 @@ def ligand_states_svg_data(complex_id: str) -> str:
         complex_id (str): PoseBusters complex id.
 
     Returns:
-        str: data:image/svg+xml;base64,... URI.
+        tuple[str, int]: SVG document, and the change in formal charge.
     """
     from rdkit import Chem
     from rdkit.Chem import rdDepictor
@@ -229,24 +225,22 @@ def ligand_states_svg_data(complex_id: str) -> str:
     protonated = states[1]
     rdDepictor.Compute2DCoords(protonated)
     charge = Chem.GetFormalCharge(protonated) - Chem.GetFormalCharge(states[0])
-    drawer = rdMolDraw2D.MolDraw2DSVG(PIC_W * 2, PIC_H * 2)
+    # Drawn at the size it is shown (1 unit = 1 figure px), so label sizes are print sizes:
+    # 18 px is 5.8 pt at 180 mm. The legend is set in the figure's own font, outside.
+    drawer = rdMolDraw2D.MolDraw2DSVG(PIC_W, LIGAND_H)
     opts = drawer.drawOptions()
-    opts.bondLineWidth = 2.5
-    opts.padding = 0.06
-    opts.legendFontSize = 28
-    opts.legendFraction = 0.2
+    opts.bondLineWidth = 1.6
+    opts.padding = 0.03
+    opts.minFontSize = 18
     opts.clearBackground = False
     drawer.DrawMolecule(
         protonated,
         highlightAtoms=changed,
         highlightAtomColors={i: (0.98, 0.72, 0.58) for i in changed},  # light ligand orange
         highlightBonds=[],
-        legend=f"pH 7.4: charge {charge:+d}",
     )
     drawer.FinishDrawing()
-    return (
-        "data:image/svg+xml;base64," + base64.b64encode(drawer.GetDrawingText().encode()).decode()
-    )
+    return drawer.GetDrawingText(), charge
 
 
 def top_pose_rmsd(complex_id: str) -> float:
@@ -264,6 +258,33 @@ def top_pose_rmsd(complex_id: str) -> float:
     text = Path(f"explorer/poses/{complex_id}.js").read_text(encoding="utf-8")
     payload = json.loads(text[text.index(",") + 1 : text.rindex(")")])
     return next(p["rmsd"] for p in payload["poses"]["vina"]["baseline"] if p["rank"] == 1)
+
+
+def inline_svg(svg: str, x: float, y: float, w: float, h: float) -> None:
+    """
+    Place an SVG drawing (e.g. from RDKit) in the figure as vector graphics.
+
+    Embedding it as an <image> would make PDF converters rasterise it at low resolution.
+
+    Args:
+        svg (str): Complete SVG document.
+        x (float): Left edge in figure units.
+        y (float): Top edge in figure units.
+        w (float): Width in figure units.
+        h (float): Height in figure units.
+    """
+    import re
+
+    body = re.sub(r"<\?xml[^>]*\?>", "", svg)
+    view_box = re.search(r"viewBox=['\"]([^'\"]+)['\"]", body).group(1)
+    body = re.sub(
+        r"<svg[^>]*>",
+        f'<svg x="{x}" y="{y}" width="{w}" height="{h}" viewBox="{view_box}" '
+        f'preserveAspectRatio="xMidYMid meet">',
+        body,
+        count=1,
+    )
+    add(" ".join(body.split()))
 
 
 def window(x: float, href: str) -> None:
@@ -342,9 +363,15 @@ if ARGS.renders:
             window(x, png_data(ARGS.renders / f"{scene}.png"))
     if ARGS.v4:
         # Version 4: the ligand card shows the change the protonation arm makes.
-        window(xs[2], ligand_states_svg_data(ARGS.complex))
+        drawing, charge = ligand_states_svg_data(ARGS.complex)
+        left = xs[2] + (W - PIC_W) / 2
+        inline_svg(drawing, left, Y + PIC_TOP, PIC_W, LIGAND_H)
+        label = f"{charge:+d} at pH 7.4"
+        text(xs[2] + W / 2, Y + PIC_TOP + PIC_H, label, 20, LIGAND, "bold", "middle")
     else:
-        window(xs[2], ligand_svg_data(ARGS.complex))
+        inline_svg(
+            ligand_svg_data(ARGS.complex), xs[2] + (W - PIC_W) / 2, Y + PIC_TOP, PIC_W, PIC_H
+        )
 else:
     protein(c[0], cy, MUTED, "#ececea")
     ligand(c[0] - 6, cy - 28, INK_2, "#ffffff", r=11)
@@ -411,7 +438,7 @@ arms = [
 engines = ["Vina", "Smina", "Gnina", "rDock"]
 MX, MY, CW, CH, PITCH_X, PITCH_Y = 290, 590, 58, 34, 70, 46
 for j, name in enumerate(engines):
-    text(MX + j * PITCH_X + CW / 2, MY - 14, name, 20, ENGINE, "bold", "middle")
+    text(MX + j * PITCH_X + CW / 2, MY - 14, name, 20, ENGINE, "bold", "middle")  # 6.4 pt; fits
 for i, (arm, color) in enumerate(arms):
     y = MY + i * PITCH_Y
     add(f'<rect x="40" y="{y + 9}" width="8" height="16" rx="2" fill="{color}"/>')
@@ -435,8 +462,8 @@ text(80, legend_y - 3, "one run: 428 complexes", BODY, INK_2)
 
 # Paired outcomes for the highlighted comparison.
 PX0, PX1, DY0 = 650, 740, MY + 30
-text(PX0, MY - 14, "Base", 20, INK_2, "bold", "middle")
-text(PX1, MY - 14, "Arm", 20, LIGAND, "bold", "middle")
+text(PX0, MY - 14, "Base", 22, INK_2, "bold", "middle")
+text(PX1, MY - 14, "Arm", 22, LIGAND, "bold", "middle")
 outcomes = [(1, 1), (1, 0), (0, 0), (1, 1), (0, 1), (1, 1), (0, 0), (0, 1)]
 for k, (a, b) in enumerate(outcomes):
     y = DY0 + k * 36

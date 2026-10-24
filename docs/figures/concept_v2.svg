@@ -125,8 +125,8 @@
 <rect x="287" y="771" width="64" height="40" rx="7" fill="none" stroke="#eb6834" stroke-width="3"/>
 <rect x="40" y="892" width="30" height="20" rx="4" fill="#e1e0d9"/>
 <text x="80.0" y="909.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">one run: 428 complexes</text>
-<text x="650.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#52514e" text-anchor="middle">Base</text>
-<text x="740.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#eb6834" text-anchor="middle">Arm</text>
+<text x="650.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#52514e" text-anchor="middle">Base</text>
+<text x="740.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#eb6834" text-anchor="middle">Arm</text>
 <line x1="661" y1="620" x2="729" y2="620" stroke="#e1e0d9" stroke-width="2"/>
 <circle cx="650" cy="620" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
 <circle cx="740" cy="620" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
