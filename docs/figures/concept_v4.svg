@@ -3,16 +3,20 @@
 <rect width="1600" height="1040" fill="#ffffff"/>
 <text x="30.0" y="40.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">a</text>
 <text x="70.0" y="40.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Docking pipeline and the preparation choices it exposes</text>
-<rect x="30.0" y="70" width="222" height="310" rx="14" fill="#f4f4f2" stroke="#52514e" stroke-width="2"/>
-<rect x="30.0" y="70" width="222" height="8" rx="4" fill="#52514e"/>
+<clipPath id="card-30-70"><rect x="30.0" y="70" width="222" height="310" rx="14"/></clipPath>
+<rect x="30.0" y="70" width="222" height="310" rx="14" fill="#f4f4f2"/>
+<rect x="30.0" y="70" width="222" height="8" fill="#52514e" clip-path="url(#card-30-70)"/>
+<rect x="30.0" y="70" width="222" height="310" rx="14" fill="none" stroke="#52514e" stroke-width="2"/>
 <text x="141.0" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Input</text>
 <text x="141.0" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">PoseBusters set</text>
 <text x="141.0" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">428 complexes</text>
 <text x="141.0" y="326.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Crystal pose</text>
 <circle cx="56.0" cy="74" r="15" fill="#52514e" stroke="#ffffff" stroke-width="3"/>
 <text x="56.0" y="81.0" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold" font-style="normal" fill="#ffffff" text-anchor="middle">1</text>
-<rect x="295.6" y="70" width="222" height="310" rx="14" fill="#f4f4f2" stroke="#52514e" stroke-width="2"/>
-<rect x="295.6" y="70" width="222" height="8" rx="4" fill="#52514e"/>
+<clipPath id="card-296-70"><rect x="295.6" y="70" width="222" height="310" rx="14"/></clipPath>
+<rect x="295.6" y="70" width="222" height="310" rx="14" fill="#f4f4f2"/>
+<rect x="295.6" y="70" width="222" height="8" fill="#52514e" clip-path="url(#card-296-70)"/>
+<rect x="295.6" y="70" width="222" height="310" rx="14" fill="none" stroke="#52514e" stroke-width="2"/>
 <text x="406.6" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Receptor</text>
 <text x="406.6" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">pH 7.4</text>
 <text x="406.6" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Cofactors removed</text>
@@ -20,8 +24,10 @@
 <text x="406.6" y="356.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Held fixed</text>
 <circle cx="321.6" cy="74" r="15" fill="#52514e" stroke="#ffffff" stroke-width="3"/>
 <text x="321.6" y="81.0" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold" font-style="normal" fill="#ffffff" text-anchor="middle">2</text>
-<rect x="561.2" y="70" width="222" height="310" rx="14" fill="#fdf0ea" stroke="#eb6834" stroke-width="2"/>
-<rect x="561.2" y="70" width="222" height="8" rx="4" fill="#eb6834"/>
+<clipPath id="card-561-70"><rect x="561.2" y="70" width="222" height="310" rx="14"/></clipPath>
+<rect x="561.2" y="70" width="222" height="310" rx="14" fill="#fdf0ea"/>
+<rect x="561.2" y="70" width="222" height="8" fill="#eb6834" clip-path="url(#card-561-70)"/>
+<rect x="561.2" y="70" width="222" height="310" rx="14" fill="none" stroke="#eb6834" stroke-width="2"/>
 <text x="672.2" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Ligand</text>
 <text x="672.2" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle"></text>
 <text x="672.2" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Protonation</text>
@@ -29,8 +35,10 @@
 <text x="672.2" y="356.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Start conformer</text>
 <circle cx="587.2" cy="74" r="15" fill="#eb6834" stroke="#ffffff" stroke-width="3"/>
 <text x="587.2" y="81.0" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold" font-style="normal" fill="#ffffff" text-anchor="middle">3</text>
-<rect x="826.8000000000001" y="70" width="222" height="310" rx="14" fill="#e9f7f1" stroke="#1baf7a" stroke-width="2"/>
-<rect x="826.8000000000001" y="70" width="222" height="8" rx="4" fill="#1baf7a"/>
+<clipPath id="card-827-70"><rect x="826.8000000000001" y="70" width="222" height="310" rx="14"/></clipPath>
+<rect x="826.8000000000001" y="70" width="222" height="310" rx="14" fill="#e9f7f1"/>
+<rect x="826.8000000000001" y="70" width="222" height="8" fill="#1baf7a" clip-path="url(#card-827-70)"/>
+<rect x="826.8000000000001" y="70" width="222" height="310" rx="14" fill="none" stroke="#1baf7a" stroke-width="2"/>
 <text x="937.8" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Search space</text>
 <text x="937.8" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Box padding</text>
 <text x="937.8" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">2 / 4 / 6 / 8 Å</text>
@@ -38,8 +46,10 @@
 <text x="937.8" y="356.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Around crystal ligand</text>
 <circle cx="852.8000000000001" cy="74" r="15" fill="#1baf7a" stroke="#ffffff" stroke-width="3"/>
 <text x="852.8" y="81.0" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold" font-style="normal" fill="#ffffff" text-anchor="middle">4</text>
-<rect x="1092.4" y="70" width="222" height="310" rx="14" fill="#efedfb" stroke="#6250d6" stroke-width="2"/>
-<rect x="1092.4" y="70" width="222" height="8" rx="4" fill="#6250d6"/>
+<clipPath id="card-1092-70"><rect x="1092.4" y="70" width="222" height="310" rx="14"/></clipPath>
+<rect x="1092.4" y="70" width="222" height="310" rx="14" fill="#efedfb"/>
+<rect x="1092.4" y="70" width="222" height="8" fill="#6250d6" clip-path="url(#card-1092-70)"/>
+<rect x="1092.4" y="70" width="222" height="310" rx="14" fill="none" stroke="#6250d6" stroke-width="2"/>
 <text x="1203.4" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Engine</text>
 <text x="1203.4" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">AutoDock Vina</text>
 <text x="1203.4" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Smina</text>
@@ -47,8 +57,10 @@
 <text x="1203.4" y="356.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">rDock</text>
 <circle cx="1118.4" cy="74" r="15" fill="#6250d6" stroke="#ffffff" stroke-width="3"/>
 <text x="1118.4" y="81.0" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold" font-style="normal" fill="#ffffff" text-anchor="middle">5</text>
-<rect x="1358.0" y="70" width="222" height="310" rx="14" fill="#f4f4f2" stroke="#52514e" stroke-width="2"/>
-<rect x="1358.0" y="70" width="222" height="8" rx="4" fill="#52514e"/>
+<clipPath id="card-1358-70"><rect x="1358.0" y="70" width="222" height="310" rx="14"/></clipPath>
+<rect x="1358.0" y="70" width="222" height="310" rx="14" fill="#f4f4f2"/>
+<rect x="1358.0" y="70" width="222" height="8" fill="#52514e" clip-path="url(#card-1358-70)"/>
+<rect x="1358.0" y="70" width="222" height="310" rx="14" fill="none" stroke="#52514e" stroke-width="2"/>
 <text x="1469.0" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Evaluation</text>
 <text x="1469.0" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">RMSD 0.43 Å ✓</text>
 <text x="1469.0" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">(success &lt; 2 Å)</text>

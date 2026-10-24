@@ -330,11 +330,14 @@ def window(
 
 
 def card(x, y, w, h, title, bullets, accent):
-    add(
-        f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="14" fill="{TINT[accent]}" '
-        f'stroke="{accent}" stroke-width="2"/>'
-    )
-    add(f'<rect x="{x}" y="{y}" width="{w}" height="8" rx="4" fill="{accent}"/>')
+    shape = f'x="{x}" y="{y}" width="{w}" height="{h}" rx="14"'
+    clip = f"card-{x:.0f}-{y:.0f}"
+    add(f'<clipPath id="{clip}"><rect {shape}/></clipPath>')
+    add(f'<rect {shape} fill="{TINT[accent]}"/>')
+    # The accent bar is clipped to the card, so it follows the rounded corners instead of
+    # sticking out past them; the border is drawn last, over the bar's edge.
+    add(f'<rect x="{x}" y="{y}" width="{w}" height="8" fill="{accent}" clip-path="url(#{clip})"/>')
+    add(f'<rect {shape} fill="none" stroke="{accent}" stroke-width="2"/>')
     text(x + w / 2, y + 44, title, TITLE, INK, "bold", "middle")
     for i, line in enumerate(bullets):
         text(x + w / 2, y + 196 + 30 * i, line, BODY, INK_2, anchor="middle")
