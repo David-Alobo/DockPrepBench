@@ -186,6 +186,20 @@ the gap between Vina and Gnina (6.8 of 16.4 points).
   \end{tabular}
 \end{table}
 
+\subsection{Robustness on the 308-complex subset}
+
+Restricting every comparison to the 308 complexes on which the journal version of
+PoseBusters reports results (structures without the crystal contacts its authors flagged)
+raised all absolute rates and left the conclusions unchanged. Baseline top-1 success was
+52.9\% [47.3, 58.4] for Vina, 53.9\% [48.3, 59.4] for Smina and 68.8\% [63.5, 73.7] for
+Gnina, between 6 and 7 points higher than on all 428 complexes, so the excluded complexes
+were harder for every engine. Gnina's lead over Vina was 15.9 points
+($p = 1.4 \times 10^{-6}$). The \SI{2}{\angstrom} box remained the only significant arm
+for Vina (+5.5 points; 25 gained, 8 lost; Holm $p = 0.023$) and Smina (+6.2 points; Holm
+$p = 0.017$), and no arm was significant for Gnina. The one notable shift was Gnina's
+protonation arm, which lowered success by 6.2 points on this subset (19 gained, 38 lost;
+Holm $p = 0.08$) against 3.3 points on all 428. \result{rDock on the subset.}
+
 \subsection{Which complexes are sensitive to preparation}
 
 Part of every arm's effect falls on complexes that are unstable anyway. The 33 complexes
