@@ -89,9 +89,16 @@ asked for up to nine poses with a fixed seed (42):
     poses with its default convolutional neural network ensemble (\texttt{--cnn\_scoring
     rescore}); exhaustiveness 8, on GPUs.
   \item \emph{rDock} 24.03 \citep{ruizcarmona2014rdock}, with 50 independent runs per ligand
-    and the standard docking protocol. The cavity is mapped with the sphere method on a
-    sphere centred on the box that passes through its corners, so it covers the box.
-    Poses are ranked by the rDock total score.
+    and the standard docking protocol. rDock defines its search space as a cavity rather
+    than a box; the cavity is mapped with rDock's reference-ligand method around the
+    crystal ligand, with a radius equal to the arm's box padding, so that it covers the
+    free space within the padding of any ligand atom, the analogue of the padded box used
+    by the other engines. Poses are ranked by the rDock total score. rDock writes poses
+    without formal charges and without all input hydrogens, so each pose's heavy atoms
+    are matched to the input ligand by element and connectivity, the input ligand takes
+    the pose's coordinates, and hydrogens are added back in place.
+    \todo{State that a first run, with a spherical cavity enclosing the box, gave 13.6\%
+    baseline success and was replaced (Supplementary).}
 \end{itemize}
 All returned poses are saved with their rank, score and RMSD.
 
