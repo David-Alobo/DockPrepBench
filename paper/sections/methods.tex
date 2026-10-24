@@ -68,7 +68,7 @@ Ligands are docked from the supplied start conformer. Two options are varied.
 \emph{Protonation}: the supplied state is kept, or the dominant state at the protocol's pH is
 assigned with Dimorphite-DL \citep{ropp2019dimorphite}, transferring charges, hydrogen counts
 and bond orders onto the start conformer while its heavy atoms stay fixed. At pH 7.4 this
-changes the charge state of 276 of the 428 ligands. \emph{Start conformer}: the supplied
+changes the net formal charge of 271 of the 428 ligands. \emph{Start conformer}: the supplied
 conformer, or a new one generated with RDKit \citep{rdkit} (ETKDGv3, fixed seed, then MMFF94
 minimisation). Protonation is applied before conformer generation; both options succeed for
 all 428 ligands.
@@ -133,6 +133,18 @@ the number of complexes whose outcome changes between pairs of seeds; an arm is 
 to change outcomes beyond chance only if it changes more complexes than a change of seed
 does. Engines are compared with each other both on all 428 complexes, counting preparation
 failures as failures, and on the complexes every engine docked.
+
+To see which complexes a preparation choice affects, the complexes whose top-1 outcome
+differs between an arm and its baseline (\emph{flipped}) are compared with the rest on
+properties of the supplied ligand and its complex: heavy atoms, rotatable bonds,
+absolute formal charge, whether protonation at pH 7.4 changes the net charge, and whether
+the protein file contains a cofactor (any heterogen other than solvent, simple ions and
+common crystallisation additives). For Vina, whose baseline was repeated with several
+seeds, seed sensitivity (an outcome that differs between replicates) is also included.
+Continuous properties are compared with the two-sided Mann--Whitney $U$ test, with the
+rank-biserial correlation as effect size; binary ones with Fisher's exact test and the
+odds ratio. P-values are Holm-adjusted over the properties tested for each engine and
+arm. These comparisons are exploratory.
 
 All tables are regenerated from the per-complex results with \texttt{dockprepbench report}.
 

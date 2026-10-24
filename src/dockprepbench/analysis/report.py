@@ -232,13 +232,17 @@ def transition_table(runs: dict[str, EngineRuns], site_shift: float = SITE_SHIFT
     return pd.DataFrame(rows)
 
 
-def write_report(results: str | Path, out: str | Path) -> list[Path]:
+def write_report(
+    results: str | Path, out: str | Path, dataset: str | Path | None = None
+) -> list[Path]:
     """
     Regenerate all report tables from raw results and write them as CSV files.
 
     Args:
         results (str | Path): Root containing `<engine>/<arm>/results.csv`.
         out (str | Path): Directory for the tables.
+        dataset (str | Path | None): Extracted PoseBusters set; when given, also writes the
+            ligand properties and the sensitivity of each arm's flips to them.
 
     Returns:
         list[Path]: Files written.
@@ -259,6 +263,14 @@ def write_report(results: str | Path, out: str | Path) -> list[Path]:
         "flips": flips_table(runs, noise),
         "transitions": transition_table(runs),
     }
+    if dataset is not None:
+        # Imported here: the sensitivity module builds on this one.
+        from dockprepbench.analysis.sensitivity import ligand_properties, sensitivity_table
+        from dockprepbench.datasets.posebusters import load_complexes
+
+        properties = ligand_properties(load_complexes(dataset))
+        tables["ligand_properties"] = properties.reset_index()
+        tables["sensitivity"] = sensitivity_table(runs, properties)
     written = []
     for name, table in tables.items():
         path = out / f"{name}.csv"

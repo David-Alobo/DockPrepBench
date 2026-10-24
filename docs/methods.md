@@ -74,7 +74,7 @@ The ligand is docked from the supplied start conformer. Two options can be varie
   state (neutral, as distributed). `dimorphite` assigns the dominant protonation state
   at the protocol's pH with Dimorphite-DL. Its charges, hydrogen counts and bond orders
   are transferred onto the start conformer's heavy atoms, which do not move. On the
-  PoseBusters set this changes the charge state of 276 of 428 ligands at pH 7.4.
+  PoseBusters set this changes the net formal charge of 271 of 428 ligands at pH 7.4.
 - **Start conformer** (`ligand_conformer`). `supplied`, or `rdkit` to regenerate it
   with ETKDGv3 (seed 0) followed by MMFF94 minimisation (UFF if MMFF94 lacks
   parameters). This tests sensitivity to the input geometry, which Vina keeps for

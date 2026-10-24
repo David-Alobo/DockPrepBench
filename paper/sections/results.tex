@@ -171,5 +171,44 @@ the gap between Vina and Gnina (6.8 of 16.4 points).
 
 \subsection{Which complexes are sensitive to preparation}
 
-\result{Relation between outcome changes and ligand properties (charge, flexibility, size)
-and the presence of cofactors.}
+Part of every arm's effect falls on complexes that are unstable anyway. The 33 complexes
+whose Vina outcome changed with the seed alone were strongly over-represented among each
+arm's flips (odds ratios 10.5--37; Holm $p < 10^{-8}$ for every arm): with the
+\SI{2}{\angstrom} box, 58\% of them flipped against 9\% of the other complexes. But they
+account for a minority of most arms' flips (Table~\ref{tab:stable-flips}). The RDKit start
+conformer changed the outcome of 63 complexes that never changed with the seed, the
+\SI{2}{\angstrom} box 34 and protonation 24. These are effects of the preparation choice
+itself, on complexes whose outcome is otherwise reproducible.
+
+\begin{table}[h]
+  \centering
+  \caption{Vina complexes whose top-1 outcome changed with each arm, split by whether
+    the outcome also changed between seed replicates of the baseline (33 seed-sensitive
+    complexes; 395 stable).}
+  \label{tab:stable-flips}
+  \begin{tabular}{lrrr}
+    \toprule
+    Arm & Flipped & of them seed-sensitive & of them stable \\
+    \midrule
+    Padding \SI{2}{\angstrom} & 53 & 19 & 34 \\
+    Padding \SI{6}{\angstrom} & 28 & 17 & 11 \\
+    Padding \SI{8}{\angstrom} & 47 & 19 & 28 \\
+    Protonation (pH 7.4) & 40 & 16 & 24 \\
+    RDKit conformer & 85 & 22 & 63 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Ligand properties explained little. The clearest association was with the
+\SI{2}{\angstrom} box, whose flips concentrated on larger and more flexible ligands: for
+Smina, flipped complexes had a median of 10 rotatable bonds against 6 (rank-biserial
+$r = 0.31$, Holm $p = 0.001$), and for Vina a median of 29 heavy atoms against 24
+($r = 0.21$, Holm $p = 0.057$). For Vina the tight box mostly helped such ligands: the 41
+complexes it gained had a median of 29 heavy atoms and 8 rotatable bonds, the 12 it lost
+22 and 4. Protonation flips leaned towards ligands whose charge it changed, consistently
+across engines (Vina: 80\% of flipped against 62\% of unflipped complexes, odds ratio
+2.5, $p = 0.024$; Gnina 1.7; Smina 1.6), but no engine's association survived correction
+(Holm $p \ge 0.12$). Flips from the RDKit conformer showed no association with ligand size
+or flexibility in any engine, and no arm's flips were associated with the presence of a
+cofactor. All but 10 of the supplied ligands are neutral, so the formal charge of the
+supplied ligand itself could not be tested meaningfully.

@@ -93,6 +93,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     report.add_argument("--results", type=Path, default=Path("results"), help="Results root.")
     report.add_argument("--out", type=Path, default=Path("paper/tables"), help="Output directory.")
+    report.add_argument(
+        "--dataset",
+        type=Path,
+        default=Path("data/raw/posebusters"),
+        help="Extracted PoseBusters set, for the sensitivity tables; skipped if absent.",
+    )
 
     figures = commands.add_parser("figures", help="Figures and summary table for runs.")
     figures.add_argument(
@@ -304,8 +310,12 @@ def report_command(args: argparse.Namespace) -> int:
         int: Process exit code.
     """
     from dockprepbench.analysis.report import write_report
+    from dockprepbench.datasets.posebusters import SET_NAME
 
-    for path in write_report(args.results, args.out):
+    dataset = args.dataset if (args.dataset / SET_NAME).is_dir() else None
+    if dataset is None:
+        print(f"No dataset at {args.dataset}; skipping the sensitivity tables.")
+    for path in write_report(args.results, args.out, dataset=dataset):
         print(path)
     return 0
 

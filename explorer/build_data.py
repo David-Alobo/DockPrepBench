@@ -27,13 +27,10 @@ from rdkit.Chem.Draw import rdMolDraw2D
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+from dockprepbench.analysis.sensitivity import ADDITIVES  # noqa: E402
 from dockprepbench.analysis.stats import load_run  # noqa: E402
 from dockprepbench.datasets.posebusters import SET_NAME, download, load_complexes  # noqa: E402
 
-ADDITIVES = {
-    "HOH", "EDO", "GOL", "SO4", "PO4", "DMS", "PEG", "PG4", "ACT", "CL", "NA", "K", "BR",
-    "IOD", "FMT", "MPD", "TRS", "EPE", "MES", "BME", "IMD", "NO3", "SCN", "1PE",
-}  # fmt: skip
 ARMS = {
     "baseline": ("Baseline", "4 Å padding, supplied ligand"),
     "box_padding_2": ("Box 2 Å", "Box padding 2 Å"),
