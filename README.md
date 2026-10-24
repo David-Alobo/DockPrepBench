@@ -37,6 +37,18 @@ Docking engines run on **Linux x86_64** only (the `vina` Python bindings ship Li
 Gnina and rDock are Linux-only). On Windows or macOS the library installs and the unit tests run, while
 engine tests are skipped; use WSL, a Linux machine or CI to dock.
 
+On a Linux machine or shared server, one script installs everything in user space (uv, the
+Python environment, Smina, Gnina with cuDNN 9, rDock and Open Babel), keeps caches out of your
+home directory and finishes by running the tests:
+
+```bash
+scripts/setup.sh --tools-dir /path/with/space/tools   # add --no-gnina to skip the 2 GB Gnina binary
+source /path/with/space/tools/env.sh
+uv run dockprepbench run --engine smina --workers 16 --config configs/*.toml
+```
+
+Engines: `--engine vina|smina|gnina|rdock`; Gnina spreads workers over GPUs with `--gpus 0,1,2`.
+
 ## Usage
 
 Docking runs on Linux (see Installation). Redock the PoseBusters benchmark set with Vina
