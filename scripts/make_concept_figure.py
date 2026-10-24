@@ -109,7 +109,12 @@ LIGAND_W = 210  # version 4 ligand drawing: the card's full width, less a small 
 BOX_W, BOX_H, BOX_TOP = 210, 112, 60
 
 
-def png_data(path: Path, size: tuple[int, int] = (PIC_W, PIC_H), fit_to: str | None = None) -> str:
+def png_data(
+    path: Path,
+    size: tuple[int, int] = (PIC_W, PIC_H),
+    fit_to: str | None = None,
+    margin: float = 1.06,
+) -> str:
     """
     Crop a render to its drawing and return it as a PNG data URI.
 
@@ -121,6 +126,7 @@ def png_data(path: Path, size: tuple[int, int] = (PIC_W, PIC_H), fit_to: str | N
         size (tuple[int, int]): Window width and height in figure px.
         fit_to (str | None): Hex colour to crop to instead of all the drawing, so an object
             of that colour fills the window and anything around it runs off the edges.
+        margin (float): Crop size relative to the drawing, so above 1 leaves room around it.
 
     Returns:
         str: data:image/png;base64,... URI.
@@ -130,15 +136,18 @@ def png_data(path: Path, size: tuple[int, int] = (PIC_W, PIC_H), fit_to: str | N
     image = Image.open(path).convert("RGB")
     ink = ImageChops.difference(image, Image.new("RGB", image.size, fit_to or "white"))
     if fit_to:
-        # Pixels close to the colour: the difference from it is small in every channel.
-        mask = ink.convert("L").point(lambda v: 255 if v < 40 else 0)
+        # Pixels close to the colour: the difference from it is small in every channel (a
+        # grey-level difference lets shaded ribbons through).
+        r, g, b = ink.split()
+        largest = ImageChops.lighter(ImageChops.lighter(r, g), b)
+        mask = largest.point(lambda v: 255 if v < 50 else 0)
     else:
         mask = ink.point(lambda v: 255 if v > 12 else 0)
     left, top, right, bottom = mask.getbbox()
     # Grow the crop to the window's aspect ratio, centred on the drawing, with a margin.
     pic_w, pic_h = size
     cx, cy, w, h = (left + right) / 2, (top + bottom) / 2, right - left, bottom - top
-    w, h = max(w, h * pic_w / pic_h) * 1.06, max(h, w * pic_h / pic_w) * 1.06
+    w, h = max(w, h * pic_w / pic_h) * margin, max(h, w * pic_h / pic_w) * margin
     box = (int(cx - w / 2), int(cy - h / 2), int(cx + w / 2), int(cy + h / 2))
     # Paste only the part inside the render, so any area beyond its edge stays white
     # (Image.crop would fill it black).
@@ -397,6 +406,12 @@ if ARGS.renders:
                 # Version 4: the box fills a larger window; the protein runs off its edges.
                 size = (BOX_W, BOX_H)
                 window(x, png_data(ARGS.renders / "box.png", size, BOX), size, BOX_TOP)
+            elif ARGS.v4 and scene == "engine":
+                # Version 4: the same window, cropped around the poses (a mid shade of the
+                # docked blue) with room for the pocket around them.
+                size = (BOX_W, BOX_H)
+                href = png_data(ARGS.renders / "engine.png", size, "#4a8fd8", margin=1.7)
+                window(x, href, size, BOX_TOP)
             else:
                 window(x, png_data(ARGS.renders / f"{scene}.png"))
     if ARGS.v4:
