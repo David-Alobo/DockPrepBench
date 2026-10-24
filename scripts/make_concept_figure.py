@@ -290,5 +290,5 @@ add("</svg>")
 
 target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("docs/figures/concept_v2.svg")
 target.parent.mkdir(parents=True, exist_ok=True)
-target.write_text("\n".join(out) + "\n", encoding="utf-8")
+target.write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")  # same on every OS
 print(target)
