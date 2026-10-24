@@ -59,11 +59,25 @@ cutoff); they fail in the baseline and in each arm alike, so they barely affect 
 comparisons, and the other engines, which do not use Meeko, dock them.
 
 The benchmark is redocking into the crystal structure of each complex, with the search
-space defined from the crystal ligand. This is the most favourable setting for docking;
-in cross-docking, or when the site must be predicted, both the absolute rates and the
-size of preparation effects may differ. Only the ligand side of protonation was varied,
-the receptor being protonated at pH 7.4 throughout, and tautomers were not enumerated. The
-seed replicates that set the noise floor were run for Vina only; Smina and Gnina share
+space defined from the crystal ligand. The receptor is held rigid in the conformation it
+adopts around that ligand, so induced fit is built into the input rather than tested, and
+a preparation step that moved side chains could favour one engine over another in ways
+this design cannot show. This is the most favourable setting for docking; in
+cross-docking, or when the site must be predicted, both the absolute rates and the size of
+preparation effects may differ.
+
+The design changes one choice at a time from a common baseline. Each arm is crossed with
+every engine but not with the other preparation choices, so each effect is measured at the
+baseline setting of the others and interactions between them are not detected: a
+protonation change that alters a ligand's charge might, for example, matter more or less
+in a larger box. A factorial or fractional factorial design over the preparation choices
+would capture such interactions at greater computational cost. Each choice was also
+tested at a few fixed settings. Ligands were docked in a single protonation state rather
+than as an ensemble of likely protomers, tautomers were not enumerated, and only the
+ligand side of protonation was varied, the receptor being protonated at pH 7.4
+throughout. The box padding was a fixed distance rather than scaled to the size of the
+ligand, as \citet{feinstein2015boxsize} proposed. The seed replicates that set the noise
+floor were run for Vina only; Smina and Gnina share
 much of Vina's search, but their own run-to-run variation was not measured. The analysis
 of which complexes are sensitive is exploratory, and the properties tested explained
 little of the variation. Results cover four engines and one dataset.
