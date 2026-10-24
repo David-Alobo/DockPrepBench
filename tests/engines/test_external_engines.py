@@ -100,6 +100,21 @@ def test_rdock_runs_cavity_then_docking_and_sorts_by_score(peptide_pdb, ligand, 
     assert result.scores == [-12.0, -8.0]  # best first, cut to n_poses
 
 
+def test_rdock_maps_the_cavity_from_the_reference_ligand(peptide_pdb, ligand, calls):
+    engine = RDockEngine(commands={p: FAKE for p in ("obabel", "rbcavity", "rbdock")})
+    box = Box(center=BOX.center, size=BOX.size, reference=Chem.RemoveHs(ligand), padding=4.0)
+
+    engine.dock(peptide_pdb, ligand, box)
+
+    rbcavity = calls()[1]
+    assert "reference.sdf" in rbcavity["files"]  # written before rbcavity reads it
+    prm = cavity_parameters("receptor.mol2", box)
+    assert "SITE_MAPPER RbtLigandSiteMapper" in prm
+    assert "REF_MOL reference.sdf" in prm
+    assert "RADIUS 4.000" in prm  # the box padding
+    assert "CENTER" not in prm
+
+
 def test_rdock_cavity_sphere_encloses_the_box():
     prm = cavity_parameters("receptor.mol2", BOX)
 
