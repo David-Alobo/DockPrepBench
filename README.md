@@ -13,6 +13,8 @@ prepares its inputs differently. DockPrepBench changes one preparation choice at
 all 428 complexes of the PoseBusters Benchmark set with each of four engines, and compares every
 arm with its baseline complex by complex.
 
+![Study design: the docking pipeline, the one-factor-at-a-time arms run with every engine, and the question asked](docs/figures/concept_v4.png)
+
 **Key findings** (Vina, Smina and Gnina; rDock is being added):
 
 - **Preparation moves top-1 success by 7 to 10.5 points within an engine.** Differences of a few
@@ -24,10 +26,6 @@ arm with its baseline complex by complex.
   change of docking seed did, up to 4.9 times as many, but gains and losses largely cancelled.
 - **The engine still matters most.** Gnina's CNN re-scoring put it 16.4 points above Vina at the
   same protocol; the best preparation closed about 40% of that gap.
-
-**[Browse every complex, engine and pose in 3D in the results explorer →](https://david-alobo.github.io/DockPrepBench/)**
-
-![Study design: the docking pipeline, the one-factor-at-a-time arms run with every engine, and the question asked](docs/figures/concept_v4.png)
 
 ## Results
 
@@ -48,6 +46,8 @@ Bold: different from the same engine's baseline after Holm correction (exact McN
 paired outcomes). The manuscript in [`paper/`](paper/) gives intervals, gained and lost
 complexes, PoseBusters validity, failure modes, the seed noise floor and a comparison with the
 published PoseBusters Vina run.
+
+**[Browse every complex, engine and pose in 3D in the results explorer →](https://david-alobo.github.io/DockPrepBench/)**
 
 ## Scope
 
