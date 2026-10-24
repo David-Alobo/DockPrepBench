@@ -3,13 +3,21 @@ import shutil
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from dockprepbench.engines.base import Box
 from dockprepbench.engines.external import EngineError, resolve_command
-from dockprepbench.engines.rdock import RDockEngine, cavity_parameters, restore_chemistry
+from dockprepbench.engines.rdock import (
+    MAX_REFERENCE_POINTS,
+    RDockEngine,
+    box_points,
+    box_reference,
+    cavity_parameters,
+    restore_chemistry,
+)
 from dockprepbench.engines.smina import GninaEngine, SminaEngine
 from dockprepbench.evaluation.rmsd import pose_rmsd
 
@@ -101,19 +109,52 @@ def test_rdock_runs_cavity_then_docking_and_sorts_by_score(peptide_pdb, ligand, 
     assert result.scores == [-12.0, -8.0]  # best first, cut to n_poses
 
 
-def test_rdock_maps_the_cavity_from_the_reference_ligand(peptide_pdb, ligand, calls):
+def test_rdock_maps_the_cavity_from_points_filling_the_box(peptide_pdb, ligand, calls):
     engine = RDockEngine(commands={p: FAKE for p in ("obabel", "rbcavity", "rbdock")})
-    box = Box(center=BOX.center, size=BOX.size, reference=Chem.RemoveHs(ligand), padding=4.0)
 
-    engine.dock(peptide_pdb, ligand, box)
+    engine.dock(peptide_pdb, ligand, BOX)
 
     rbcavity = calls()[1]
-    assert "reference.sdf" in rbcavity["files"]  # written before rbcavity reads it
-    prm = cavity_parameters("receptor.mol2", box)
+    assert "box.sdf" in rbcavity["files"]  # written before rbcavity reads it
+    prm = cavity_parameters("receptor.mol2", 1.3)
     assert "SITE_MAPPER RbtLigandSiteMapper" in prm
-    assert "REF_MOL reference.sdf" in prm
-    assert "RADIUS 4.000" in prm  # the box padding
-    assert "CENTER" not in prm
+    assert "REF_MOL box.sdf" in prm
+    assert "RADIUS 1.300" in prm
+
+
+def test_box_points_cover_the_box_and_stay_under_the_sd_atom_limit():
+    points, radius = box_points(BOX)  # 10 x 12 x 14 Å
+
+    low = np.array(BOX.center) - np.array(BOX.size) / 2
+    assert (points > low).all() and (points < low + np.array(BOX.size)).all()  # cell centres
+    # Every point of the box lies within `radius` of a grid point: test a dense sample.
+    rng = np.random.default_rng(0)
+    sample = low + rng.random((2000, 3)) * np.array(BOX.size)
+    nearest = np.linalg.norm(sample[:, None, :] - points[None, :, :], axis=2).min(axis=1)
+    assert nearest.max() <= radius + 1e-9
+    assert len(points) <= MAX_REFERENCE_POINTS
+
+
+def test_box_points_coarsen_for_large_boxes():
+    big = Box(center=(0.0, 0.0, 0.0), size=(32.0, 30.0, 28.0))
+
+    points, radius = box_points(big)
+
+    assert len(points) <= MAX_REFERENCE_POINTS
+    # The outermost centres sit half a cell inside each face, so the cavity reaches at most
+    # radius - cell/2 beyond the box.
+    low = np.array(big.center) - np.array(big.size) / 2
+    overshoot = radius - (points.min(axis=0) - low).min()
+    assert overshoot < 1.5
+
+
+def test_box_reference_is_one_unbonded_carbon_per_point():
+    mol, radius = box_reference(BOX)
+    points, expected_radius = box_points(BOX)
+
+    assert mol.GetNumAtoms() == len(points) and mol.GetNumBonds() == 0
+    assert {a.GetSymbol() for a in mol.GetAtoms()} == {"C"}
+    assert radius == expected_radius
 
 
 def test_rdock_pose_gets_the_input_ligands_charges_back():
@@ -163,14 +204,6 @@ def test_rdock_pose_with_other_atoms_is_rejected():
     AllChem.EmbedMolecule(other, randomSeed=1)
 
     assert restore_chemistry(other, ligand) is None
-
-
-def test_rdock_cavity_sphere_encloses_the_box():
-    prm = cavity_parameters("receptor.mol2", BOX)
-
-    assert "CENTER (1.000,2.000,3.000)" in prm
-    radius = float(next(line.split()[1] for line in prm.splitlines() if "RADIUS" in line))
-    assert radius == pytest.approx(0.5 * (10**2 + 12**2 + 14**2) ** 0.5, abs=1e-3)
 
 
 real_engines = {

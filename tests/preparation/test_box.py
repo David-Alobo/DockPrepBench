@@ -23,15 +23,6 @@ def test_box_is_centred_on_extent_with_padding():
     assert box.size == pytest.approx((10.0, 12.0, 14.0))
 
 
-def test_box_keeps_the_heavy_atom_ligand_and_padding():
-    mol = Chem.AddHs(ligand_at((0, 0, 0), (2, 0, 0)), addCoords=True)
-
-    box = box_from_ligand(mol, padding=6.0)
-
-    assert box.reference.GetNumAtoms() == 2
-    assert box.padding == 6.0
-
-
 def test_box_ignores_hydrogens():
     mol = Chem.AddHs(ligand_at((0, 0, 0), (2, 0, 0)), addCoords=True)
 
