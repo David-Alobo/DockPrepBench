@@ -176,5 +176,4 @@
 <text x="1185.0" y="860.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#52514e" text-anchor="middle">Δ preparation</text>
 <line x1="900" y1="905" x2="1550" y2="905" stroke="#898781" stroke-width="2.5" marker-end="url(#head)"/>
 <text x="1225.0" y="940.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Docking success rate</text>
-<text x="1225.0" y="985.0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="normal" font-style="italic" fill="#898781" text-anchor="middle">Schematic: positions are illustrative, not results.</text>
 </svg>

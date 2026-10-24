@@ -131,8 +131,32 @@ def png_data(path: Path) -> str:
     canvas.paste(image.crop(inside), (inside[0] - box[0], inside[1] - box[1]))
     canvas = canvas.resize((PIC_W * 3, PIC_H * 3), Image.LANCZOS)  # 3x for print
     buffer = io.BytesIO()
-    canvas.save(buffer, format="PNG", optimize=True)
+    white_to_alpha(canvas).save(buffer, format="PNG", optimize=True)
     return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+
+def white_to_alpha(image):
+    """
+    Make a picture drawn on white transparent, keeping antialiased edges clean.
+
+    Each pixel becomes the colour that, laid over white at the derived opacity, reproduces it
+    ("colour to alpha"): pure white turns fully transparent and the soft edges of ribbons and
+    sticks blend into any background instead of leaving a white halo.
+
+    Args:
+        image (PIL.Image.Image): RGB picture on a white background.
+
+    Returns:
+        PIL.Image.Image: RGBA picture.
+    """
+    import numpy as np
+    from PIL import Image
+
+    rgb = np.asarray(image.convert("RGB"), dtype=float) / 255
+    alpha = (1 - rgb).max(axis=2, keepdims=True)
+    colour = 1 - (1 - rgb) / np.maximum(alpha, 1e-6)
+    rgba = np.concatenate([np.clip(colour, 0, 1), alpha], axis=2)
+    return Image.fromarray((rgba * 255).round().astype("uint8"), "RGBA")
 
 
 def ligand_svg_data(complex_id: str) -> str:
@@ -156,6 +180,7 @@ def ligand_svg_data(complex_id: str) -> str:
     opts = drawer.drawOptions()
     opts.bondLineWidth = 2.5
     opts.padding = 0.08
+    opts.clearBackground = False  # transparent, so the card's tint shows through
     drawer.DrawMolecule(mol)
     drawer.FinishDrawing()
     return (
@@ -165,25 +190,16 @@ def ligand_svg_data(complex_id: str) -> str:
 
 def window(x: float, href: str) -> None:
     """
-    Place a picture in a card's icon area, in a white rounded window.
+    Place a transparent picture in a card's icon area, directly on the card's tint.
 
     Args:
         x (float): Card's left edge.
         href (str): Data URI of the picture.
     """
     left, top = x + (W - PIC_W) / 2, Y + PIC_TOP
-    clip = f"clip{len(out)}"
-    add(
-        f'<clipPath id="{clip}"><rect x="{left}" y="{top}" width="{PIC_W}" height="{PIC_H}" '
-        f'rx="8"/></clipPath>'
-    )
-    add(
-        f'<rect x="{left}" y="{top}" width="{PIC_W}" height="{PIC_H}" rx="8" fill="#ffffff" '
-        f'stroke="{GRID}" stroke-width="1.5"/>'
-    )
     add(
         f'<image x="{left}" y="{top}" width="{PIC_W}" height="{PIC_H}" href="{href}" '
-        f'preserveAspectRatio="xMidYMid meet" clip-path="url(#{clip})"/>'
+        f'preserveAspectRatio="xMidYMid meet"/>'
     )
 
 
@@ -391,15 +407,6 @@ dot_row(
 )
 arrow(AX0, 905, AX1, 905, MUTED)
 text((AX0 + AX1) / 2, 940, "Docking success rate", BODY, INK_2, anchor="middle")
-text(
-    (AX0 + AX1) / 2,
-    985,
-    "Schematic: positions are illustrative, not results.",
-    18,
-    MUTED,
-    anchor="middle",
-    style="italic",
-)
 
 add("</svg>")
 
