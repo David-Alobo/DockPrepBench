@@ -50,7 +50,4 @@ candidates not yet checked here rather than in `references.bib`.
 
 To verify before citing:
 
-- Holm, S. (1979). A simple sequentially rejective multiple test procedure.
-  *Scandinavian Journal of Statistics* 6, 65–70. No DOI; check via JSTOR.
-- Prior studies of protonation, tautomer and water effects on docking, for the
-  Introduction (to be found).
+- None at present.

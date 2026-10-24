@@ -1,22 +1,62 @@
 \section{Introduction}
 \label{sec:introduction}
 
-% Outline. Every literature claim needs a verified source in references.bib before it
-% becomes prose (see paper/README.md, "References").
+% Every literature claim cites a source verified in references.bib (see paper/README.md).
 
-\todo{Paragraph 1: why docking still matters (structure-based design, virtual screening);
-  classical engines remain the workhorse; cite Vina \citep{trott2010vina,eberhardt2021vina}.}
+Molecular docking predicts how a small molecule binds to a protein of known structure and
+is a standard tool of structure-based drug design, both for proposing binding modes and for
+virtual screening \citep{kitchen2004docking,irwin2016docking}. Screens of hundreds of
+millions of molecules have found new chemotypes for well-studied targets
+\citep{lyu2019ultralarge}, and published protocols now guide such campaigns
+\citep{bender2021practical}. Classical engines with empirical scoring functions, such as
+AutoDock Vina \citep{trott2010vina,eberhardt2021vina}, remain the workhorses of this work.
+Deep-learning methods have recently been proposed as alternatives, but the PoseBusters study
+found that many of them produce physically invalid poses and generalise poorly to new
+proteins, while classical methods remained competitive \citep{buttenschoen2024posebusters}.
 
-\todo{Paragraph 2: how docking methods are benchmarked. Pose prediction on curated sets such
-  as the Astex Diverse set \citep{hartshorn2007astex} and PoseBusters
-  \citep{buttenschoen2024posebusters}; RMSD below \SI{2}{\angstrom} as the success criterion;
-  PoseBusters adds physical-validity checks.}
+Docking methods are usually compared by redocking: the crystal ligand is removed and docked
+back into its protein, and the top-ranked pose is counted as a success if its heavy-atom
+RMSD to the crystal pose is below \SI{2}{\angstrom}. Curated sets such as the Astex Diverse
+set \citep{hartshorn2007astex} and the PoseBusters Benchmark set
+\citep{buttenschoen2024posebusters} make these comparisons repeatable, and PoseBusters adds
+checks of chemical and physical plausibility, so that a pose close to the crystal structure
+but with clashes or distorted geometry is not counted as a success. Large comparisons of
+programs and scoring functions \citep{warren2006critical} have shaped how docking is chosen
+and used.
 
-\todo{Paragraph 3: the gap. Benchmarks fix one preparation protocol and vary the engine, but
-  preparation (protonation, tautomers, cofactors, waters, start conformer, search space) is
-  rarely varied systematically or reported in full. Needs sources: prior studies of
-  protonation or water effects on docking, and reporting-practice surveys.}
+Every such comparison also fixes a preparation protocol: how the protein is protonated and
+repaired, which cofactors and waters are kept, which protonation state and starting
+conformer the ligand is given, and how the search space is defined. These choices are
+usually treated as settled details, yet each is known to matter. Protonation, tautomeric and
+stereoisomeric states change docking results \citep{tenbrink2009protonation}; including
+water molecules changes them too \citep{roberts2008water}; the size of the search box
+affects docking accuracy \citep{feinstein2015boxsize}; and docking can respond chaotically
+to small changes in its input \citep{feher2012chaotic}. For whole benchmarks, differences
+in how the same dataset is prepared alone produce substantial variation in reported success
+rates \citep{corbeil2012variability}, and the protein and ligand preparation protocol
+influences virtual screening enrichment \citep{sastry2013preparation}. Guidelines for
+evaluating computational methods have long asked that preparation be reported and that
+results come with statistical uncertainty \citep{jain2008recommendations}. Even so, it is
+rarely measured how large preparation effects are compared with the differences between
+engines that benchmarks are designed to detect, or how large they are compared with the
+run-to-run variation of a single engine.
 
-\todo{Paragraph 4: this work. A reproducible, paired benchmark that varies one preparation
-  choice at a time on the same complexes, with failure-mode analysis, set against the effect
-  of changing engines. State the contributions as a short list.}
+Here we measure this directly. DockPrepBench redocks the 428 complexes of the PoseBusters
+Benchmark set under a reproducible baseline protocol and under arms that each change one
+preparation choice, with four engines: the classical AutoDock Vina, Smina
+\citep{koes2013smina} and rDock \citep{ruizcarmona2014rdock}, and Gnina
+\citep{mcnutt2021gnina}, which uses the same search as Smina but re-ranks poses with a
+convolutional neural network. Our contributions are:
+\begin{itemize}
+  \item a deterministic preparation and docking pipeline in which every arm is evaluated on
+    the same complexes, so that arms can be compared complex by complex with exact paired
+    tests;
+  \item the run-to-run variation of the baseline across docking seeds, which sets the
+    smallest effect worth interpreting;
+  \item effect sizes for search-box padding, ligand protonation and the ligand start
+    conformer, set against the differences between engines;
+  \item a failure-mode analysis that separates scoring failures from search failures and
+    wrong sites from wrong binding modes, explaining how each choice changes outcomes; and
+  \item open code, configurations and per-complex results, with an interactive explorer.
+\end{itemize}
+\result{One sentence with the headline finding once all engines are in.}

@@ -21,7 +21,7 @@ are run on the same complexes and compared with paired statistics
     preparation choice from the baseline and is compared with it complex by complex.
     \textbf{(c)}~The question addressed: is the spread in success across preparation choices
     comparable to the spread across engines? Positions in (c) are schematic.
-    \todo{Update panels to the arms and engines actually run.}}
+    \todo{Update panels to the arms and engines actually run: four engines, six arms.}}
   \label{fig:design}
 \end{figure}
 
@@ -55,10 +55,12 @@ generator. New hydrogens are otherwise placed at random positions and multithrea
 summation is order-dependent, which together made prepared receptors differ between runs by
 up to \SI{2.6}{\angstrom}; with these measures, preparation is reproducible to the byte.
 
-The prepared receptor is converted to rigid-receptor PDBQT with Meeko \citep{meeko}, which
-matches every residue to a chemical template. A residue that fails matching is dropped only
-if it lies more than \SI{8}{\angstrom} outside the search box, Vina's interaction cutoff;
-otherwise the complex is recorded as a preparation failure.
+For Vina, the prepared receptor is converted to rigid-receptor PDBQT with Meeko
+\citep{meeko}, which matches every residue to a chemical template. A residue that fails
+matching is dropped only if it lies more than \SI{8}{\angstrom} outside the search box,
+Vina's interaction cutoff; otherwise the complex is recorded as a preparation failure. The
+other engines read the prepared receptor directly (Smina and Gnina) or after conversion to
+Mol2 with Open Babel 3.2.1 (rDock), so this step is specific to Vina.
 
 \subsection{Ligand preparation}
 
@@ -74,11 +76,24 @@ all 428 ligands.
 \subsection{Search space and docking}
 
 The search box is axis-aligned and centred on the extent of the crystal ligand's heavy
-atoms, padded on each side by the protocol's padding (baseline \SI{4}{\angstrom}). Docking
-uses AutoDock Vina 1.2.7 \citep{trott2010vina,eberhardt2021vina} through its Python
-bindings, with the Vina scoring function, exhaustiveness 8, up to nine poses and a fixed
-seed. All returned poses are converted back to RDKit molecules through Meeko, which restores
-bond orders, and are saved with their rank, score and RMSD.
+atoms, padded on each side by the protocol's padding (baseline \SI{4}{\angstrom}). Every
+arm is docked with four engines, each given the same prepared receptor, ligand and box and
+asked for up to nine poses with a fixed seed (42):
+\begin{itemize}
+  \item \emph{AutoDock Vina} 1.2.7 \citep{trott2010vina,eberhardt2021vina}, through its
+    Python bindings, with the Vina scoring function and exhaustiveness 8. Poses are
+    converted back to RDKit molecules through Meeko, which restores bond orders.
+  \item \emph{Smina} \citep{koes2013smina}, a fork of Vina whose default scoring function
+    reproduces Vina's, run from the command line with exhaustiveness 8.
+  \item \emph{Gnina} 1.3.3 \citep{mcnutt2021gnina}, which searches with the Smina machinery and re-ranks the final
+    poses with its default convolutional neural network ensemble (\texttt{--cnn\_scoring
+    rescore}); exhaustiveness 8, on GPUs.
+  \item \emph{rDock} 24.03 \citep{ruizcarmona2014rdock}, with 50 independent runs per ligand
+    and the standard docking protocol. The cavity is mapped with the sphere method on a
+    sphere centred on the box that passes through its corners, so it covers the box.
+    Poses are ranked by the rDock total score.
+\end{itemize}
+All returned poses are saved with their rank, score and RMSD.
 
 \subsection{Evaluation}
 
@@ -101,10 +116,18 @@ but is not ranked first); wrong site (the top pose's centroid lies more than
 Success rates are reported with 95\% Wilson score intervals \citep{wilson1927}. An arm is
 compared with the baseline on the complexes both share using an exact McNemar test
 \citep{mcnemar1947}, a two-sided binomial test on the complexes that succeed in exactly one
-of the two. P-values across the arms tested against one baseline are adjusted with Holm's
-method. \todo{Add the Holm (1979) reference once verified.} Effects are interpreted against
-the run-to-run variation of the baseline across docking seeds. \todo{Report the seed
-variation once measured.}
+of the two. P-values across the five arms tested against one baseline are adjusted with
+Holm's method \citep{holm1979}, separately for each engine and each success metric.
+
+Effects are interpreted against the run-to-run variation of the baseline. The Vina baseline
+was repeated with three further docking seeds (1, 2 and 3; preparation is identical, so only
+the search differs). From the four replicates we report the spread of the success rate and
+the number of complexes whose outcome changes between pairs of seeds; an arm is considered
+to change outcomes beyond chance only if it changes more complexes than a change of seed
+does. Engines are compared with each other both on all 428 complexes, counting preparation
+failures as failures, and on the complexes every engine docked.
+
+All tables are regenerated from the per-complex results with \texttt{dockprepbench report}.
 
 \subsection{Experiment arms}
 
@@ -130,4 +153,7 @@ Each run records its configuration, engine settings, software version and timest
 alongside its results. Dependencies are pinned in a lock file (Python 3.12, RDKit 2026.09,
 Meeko 0.8, Vina 1.2.7, OpenMM 8.6, PDBFixer 1.12, PoseBusters 0.6.5, Dimorphite-DL 2.1).
 Receptor preparation, ligand preparation and docking are deterministic for given inputs and
-versions.
+versions. External engines are installed by \texttt{scripts/setup.sh} in the repository.
+Runs were carried out on a shared Linux server (Ubuntu 22.04) with one complex per worker
+process; Gnina used NVIDIA GPUs. Each run writes a per-complex checkpoint, so an interrupted
+run resumes without redocking finished complexes.
