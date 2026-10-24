@@ -1,0 +1,3 @@
+# Box-size experiment: a cube 2.857 times the docked ligand's radius of gyration
+# (Feinstein and Brylinski 2015), centred on the crystal ligand.
+box_size = "gyration"

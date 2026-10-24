@@ -59,3 +59,19 @@ def test_invalid_ligand_setting_is_rejected(tmp_path):
 
     with pytest.raises(ValueError, match="ligand_conformer"):
         load_config(path)
+
+
+def test_box_size_defaults_to_padding():
+    assert PrepConfig().box_size == "padding"
+
+
+def test_invalid_box_size_is_rejected(tmp_path):
+    path = tmp_path / "bad.toml"
+    path.write_text('box_size = "sphere"\n', encoding="utf-8")
+
+    with pytest.raises(ValueError, match="box_size"):
+        load_config(path)
+
+
+def test_receptor_key_ignores_box_size():
+    assert PrepConfig(box_size="gyration").receptor_key() == PrepConfig().receptor_key()

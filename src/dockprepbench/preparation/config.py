@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any
 
-from dockprepbench.preparation.box import DEFAULT_PADDING
+from dockprepbench.preparation.box import BOX_SIZE_CHOICES, DEFAULT_PADDING
 from dockprepbench.preparation.ligand import CONFORMER_CHOICES, PROTONATION_CHOICES
 from dockprepbench.preparation.receptor import DEFAULT_PH
 
@@ -19,6 +19,8 @@ class PrepConfig:
         name (str): Short identifier, used in result paths.
         ph (float): pH for receptor protonation.
         box_padding (float): Å added on each side of the crystal ligand's extent.
+        box_size (str): "padding" sizes the box by `box_padding`; "gyration" makes it a cube
+            2.857 times the docked ligand's radius of gyration, ignoring `box_padding`.
         ligand_protonation (str): "supplied" or "dimorphite" (dominant state at `ph`).
         ligand_conformer (str): "supplied" start conformer, or "rdkit" to regenerate it.
     """
@@ -26,10 +28,13 @@ class PrepConfig:
     name: str = "baseline"
     ph: float = DEFAULT_PH
     box_padding: float = DEFAULT_PADDING
+    box_size: str = "padding"
     ligand_protonation: str = "supplied"
     ligand_conformer: str = "supplied"
 
     def __post_init__(self) -> None:
+        if self.box_size not in BOX_SIZE_CHOICES:
+            raise ValueError(f"box_size must be one of {BOX_SIZE_CHOICES}, got {self.box_size!r}")
         if self.ligand_protonation not in PROTONATION_CHOICES:
             raise ValueError(
                 f"ligand_protonation must be one of {PROTONATION_CHOICES}, "

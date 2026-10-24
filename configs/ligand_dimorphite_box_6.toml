@@ -1,0 +1,3 @@
+# Interaction experiment: ligand protonation at pH 7.4 combined with 6 Å box padding.
+ligand_protonation = "dimorphite"
+box_padding = 6.0
