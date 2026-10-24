@@ -62,10 +62,24 @@ function draw(data) {
   } else if (SCENE === "box") {
     // v4: the protein as a light cartoon for context and the ligand as spheres filling the
     // site, so the picture shows where the box sits on the protein.
-    if (CLEAN) protein("#efe6d3");  // pale, so the box and ligand stand out
-    else pocket();
+    const shell = CLEAN ? protein("#efe6d3") : (pocket(), null);  // pale, so box and ligand stand out
     focus = crystal();
-    if (CLEAN) viewer.setStyle({ model: focus }, { sphere: { scale: 0.85, color: CRYSTAL } });
+    if (CLEAN) {
+      viewer.setStyle({ model: focus }, { sphere: { scale: 0.85, color: CRYSTAL } });
+      // Only the protein around the site: it fits inside the frame instead of being cut off
+      // at its edges, and fewer ribbons pass in front of the ligand.
+      // Residues are chosen here by distance (3Dmol's `within` selector ignored the ligand).
+      const lig = focus.selectedAtoms({});
+      const near = new Set(
+        shell.selectedAtoms({}).filter((a) => lig.some((b) =>
+          (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2 < 10 * 10)).map((a) => `${a.chain}:${a.resi}`),
+      );
+      viewer.setStyle({ model: shell }, {});
+      for (const key of near) {
+        const [chain, resi] = key.split(":");
+        viewer.setStyle({ model: shell, chain, resi: Number(resi) }, { cartoon: { color: "#e3d6bd" } });
+      }
+    }
     // The search box as docking uses it: the ligand's heavy-atom extent plus the padding.
     const xyz = focus.selectedAtoms({ elem: ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"] });
     const lo = ["x", "y", "z"].map((k) => Math.min(...xyz.map((a) => a[k])) - PADDING);
@@ -88,7 +102,7 @@ function draw(data) {
       // v4: centre on the box and let it fill most of the frame, with the protein around it
       // running off the edges (a whole-protein view makes the box too small in a card).
       viewer.zoomTo({ model: focus });
-      viewer.zoom(0.42);
+      viewer.zoom(0.45);  // the box nearly fills the frame
     } else {
       viewer.zoomTo({ model: focus });
       viewer.zoom(0.55);
