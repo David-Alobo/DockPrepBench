@@ -1,18 +1,31 @@
 """Draw the study-design figure (Figure 1) as SVG.
 
-Usage: python scripts/make_concept_figure.py [OUT.svg]
+Usage:
+    python scripts/make_concept_figure.py [OUT.svg]                       # version 2
+    python scripts/make_concept_figure.py --renders docs/figures/renders  # version 3
 
-Version 2 (default output docs/figures/concept_v2.svg) shows the study as run: the receptor
-is held fixed, and the arms vary the search box and the ligand. Version 1 (concept.svg, the
-original plan with receptor, cofactor and water arms) is kept for reference.
+Version 2 (docs/figures/concept_v2.svg) shows the study as run: the receptor is held fixed,
+and the arms vary the search box and the ligand; panel a uses drawn glyphs. Version 3
+(docs/figures/concept_v3.svg) is the same figure with panel a showing a real complex: 3D
+renders made by scripts/figure_renders/render.ps1 and the ligand's 2D structure drawn by
+RDKit. Version 1 (concept.svg, the original plan with receptor, cofactor and water arms) is
+kept for reference.
 
 The figure is 180 mm wide (double column). At that size 1 px = 0.32 pt, so body text
 (22 px) prints at 7 pt. Convert to PDF/PNG with e.g. `rsvg-convert`.
 """
 
+import argparse
+import base64
+import io
 import math
-import sys
 from pathlib import Path
+
+parser = argparse.ArgumentParser(description="Draw Figure 1 (study design) as SVG.")
+parser.add_argument("out", nargs="?", type=Path, help="Output SVG (default by version)")
+parser.add_argument("--renders", type=Path, help="Directory of 3D renders: makes version 3")
+parser.add_argument("--complex", default="5SAK_ZRY", help="Complex shown in version 3")
+ARGS = parser.parse_args()
 
 WIDTH, HEIGHT = 1600, 1040
 FONT = "Arial, Helvetica, sans-serif"
@@ -82,6 +95,98 @@ def arrow(x1, y1, x2, y2, color=MUTED, width=2.5):
     )
 
 
+PIC_W, PIC_H, PIC_TOP = (
+    196,
+    108,
+    60,
+)  # picture window in a card (version 3): below the title, above the text
+
+
+def png_data(path: Path) -> str:
+    """
+    Crop a render to its drawing and return it as a PNG data URI.
+
+    Renders have a white background (headless WebGL exports no alpha), so the crop is to the
+    pixels that differ from white, padded and fitted to the window's aspect ratio.
+
+    Args:
+        path (Path): Render from scripts/figure_renders/render.ps1.
+
+    Returns:
+        str: data:image/png;base64,... URI.
+    """
+    from PIL import Image, ImageChops
+
+    image = Image.open(path).convert("RGB")
+    ink = ImageChops.difference(image, Image.new("RGB", image.size, "white"))
+    left, top, right, bottom = ink.point(lambda v: 255 if v > 12 else 0).getbbox()
+    # Grow the crop to the window's aspect ratio, centred on the drawing, with a margin.
+    cx, cy, w, h = (left + right) / 2, (top + bottom) / 2, right - left, bottom - top
+    w, h = max(w, h * PIC_W / PIC_H) * 1.06, max(h, w * PIC_H / PIC_W) * 1.06
+    box = (int(cx - w / 2), int(cy - h / 2), int(cx + w / 2), int(cy + h / 2))
+    # Paste only the part inside the render, so any area beyond its edge stays white
+    # (Image.crop would fill it black).
+    canvas = Image.new("RGB", (box[2] - box[0], box[3] - box[1]), "white")
+    inside = (max(box[0], 0), max(box[1], 0), min(box[2], image.width), min(box[3], image.height))
+    canvas.paste(image.crop(inside), (inside[0] - box[0], inside[1] - box[1]))
+    canvas = canvas.resize((PIC_W * 3, PIC_H * 3), Image.LANCZOS)  # 3x for print
+    buffer = io.BytesIO()
+    canvas.save(buffer, format="PNG", optimize=True)
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+
+def ligand_svg_data(complex_id: str) -> str:
+    """
+    Draw a complex's crystal ligand in 2D with RDKit and return it as an SVG data URI.
+
+    Args:
+        complex_id (str): PoseBusters complex id, e.g. 5SAK_ZRY.
+
+    Returns:
+        str: data:image/svg+xml;base64,... URI, heteroatoms in RDKit's colours.
+    """
+    from rdkit import Chem
+    from rdkit.Chem import rdDepictor
+    from rdkit.Chem.Draw import rdMolDraw2D
+
+    sdf = Path("data/raw/posebusters/posebusters_benchmark_set") / complex_id
+    mol = Chem.RemoveHs(next(Chem.SDMolSupplier(str(sdf / f"{complex_id}_ligand.sdf"))))
+    rdDepictor.Compute2DCoords(mol)
+    drawer = rdMolDraw2D.MolDraw2DSVG(PIC_W * 2, PIC_H * 2)
+    opts = drawer.drawOptions()
+    opts.bondLineWidth = 2.5
+    opts.padding = 0.08
+    drawer.DrawMolecule(mol)
+    drawer.FinishDrawing()
+    return (
+        "data:image/svg+xml;base64," + base64.b64encode(drawer.GetDrawingText().encode()).decode()
+    )
+
+
+def window(x: float, href: str) -> None:
+    """
+    Place a picture in a card's icon area, in a white rounded window.
+
+    Args:
+        x (float): Card's left edge.
+        href (str): Data URI of the picture.
+    """
+    left, top = x + (W - PIC_W) / 2, Y + PIC_TOP
+    clip = f"clip{len(out)}"
+    add(
+        f'<clipPath id="{clip}"><rect x="{left}" y="{top}" width="{PIC_W}" height="{PIC_H}" '
+        f'rx="8"/></clipPath>'
+    )
+    add(
+        f'<rect x="{left}" y="{top}" width="{PIC_W}" height="{PIC_H}" rx="8" fill="#ffffff" '
+        f'stroke="{GRID}" stroke-width="1.5"/>'
+    )
+    add(
+        f'<image x="{left}" y="{top}" width="{PIC_W}" height="{PIC_H}" href="{href}" '
+        f'preserveAspectRatio="xMidYMid meet" clip-path="url(#{clip})"/>'
+    )
+
+
 def card(x, y, w, h, title, bullets, accent):
     add(
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="14" fill="{TINT[accent]}" '
@@ -127,41 +232,51 @@ for x in xs[:-1]:
 # Icons, centred in each card's upper half.
 cy = Y + 120
 c = [x + W / 2 for x in xs]
-protein(c[0], cy, MUTED, "#ececea")
-ligand(c[0] - 6, cy - 28, INK_2, "#ffffff", r=11)
+if ARGS.renders:
+    # Version 3: a real complex. 3D renders for the receptor, search space, engine and
+    # evaluation stages; the ligand's 2D structure for the ligand stage.
+    for x, scene in zip(
+        xs, ["input", "receptor", None, "box", "engine", "evaluation"], strict=True
+    ):
+        if scene:
+            window(x, png_data(ARGS.renders / f"{scene}.png"))
+    window(xs[2], ligand_svg_data(ARGS.complex))
+else:
+    protein(c[0], cy, MUTED, "#ececea")
+    ligand(c[0] - 6, cy - 28, INK_2, "#ffffff", r=11)
 
-protein(c[1], cy, MUTED, "#ffffff")  # held fixed: drawn in neutral ink, not a stage colour
-for dx, dy in [(-44, -22), (-50, 18), (40, -26), (50, 14), (-8, 30), (24, 32)]:
-    add(f'<circle cx="{c[1] + dx}" cy="{cy + dy}" r="5" fill="{MUTED}"/>')  # added H atoms
-text(c[1], cy + 6, "+H", 20, MUTED, "bold", "middle")
+    protein(c[1], cy, MUTED, "#ffffff")  # held fixed: drawn in neutral ink, not a stage colour
+    for dx, dy in [(-44, -22), (-50, 18), (40, -26), (50, 14), (-8, 30), (24, 32)]:
+        add(f'<circle cx="{c[1] + dx}" cy="{cy + dy}" r="5" fill="{MUTED}"/>')  # added H atoms
+    text(c[1], cy + 6, "+H", 20, MUTED, "bold", "middle")
 
-ligand(c[2] - 14, cy, LIGAND, "#ffffff", r=22)
-add(
-    f'<circle cx="{c[2] + 40}" cy="{cy - 22}" r="12" fill="#ffffff" '
-    f'stroke="{LIGAND}" stroke-width="2.5"/>'
-)
-text(c[2] + 40, cy - 15, "±", 20, LIGAND, "bold", "middle")
+    ligand(c[2] - 14, cy, LIGAND, "#ffffff", r=22)
+    add(
+        f'<circle cx="{c[2] + 40}" cy="{cy - 22}" r="12" fill="#ffffff" '
+        f'stroke="{LIGAND}" stroke-width="2.5"/>'
+    )
+    text(c[2] + 40, cy - 15, "±", 20, LIGAND, "bold", "middle")
 
-add(  # padded box (dashed) around the ligand's extent (solid)
-    f'<rect x="{c[3] - 62}" y="{cy - 48}" width="124" height="96" fill="none" '
-    f'stroke="{BOX}" stroke-width="2.5" stroke-dasharray="7 5"/>'
-)
-add(
-    f'<rect x="{c[3] - 32}" y="{cy - 20}" width="64" height="40" fill="#ffffff" '
-    f'stroke="{BOX}" stroke-width="2"/>'
-)
-ligand(c[3] - 14, cy, INK_2, r=10)
-arrow(c[3] + 34, cy, c[3] + 58, cy, BOX, 2)
+    add(  # padded box (dashed) around the ligand's extent (solid)
+        f'<rect x="{c[3] - 62}" y="{cy - 48}" width="124" height="96" fill="none" '
+        f'stroke="{BOX}" stroke-width="2.5" stroke-dasharray="7 5"/>'
+    )
+    add(
+        f'<rect x="{c[3] - 32}" y="{cy - 20}" width="64" height="40" fill="#ffffff" '
+        f'stroke="{BOX}" stroke-width="2"/>'
+    )
+    ligand(c[3] - 14, cy, INK_2, r=10)
+    arrow(c[3] + 34, cy, c[3] + 58, cy, BOX, 2)
 
-protein(c[4], cy + 14, ENGINE, "#ffffff")
-ligand(c[4] - 8, cy - 14, ENGINE, "#ffffff", r=11)
-add(  # sampling arrow: poses explored around the pocket
-    f'<path d="M{c[4] - 58},{cy - 30} Q{c[4] - 36},{cy - 54} {c[4] - 14},{cy - 40}" fill="none" '
-    f'stroke="{ENGINE}" stroke-width="2.5" marker-end="url(#head)"/>'
-)
+    protein(c[4], cy + 14, ENGINE, "#ffffff")
+    ligand(c[4] - 8, cy - 14, ENGINE, "#ffffff", r=11)
+    add(  # sampling arrow: poses explored around the pocket
+        f'<path d="M{c[4] - 58},{cy - 30} Q{c[4] - 36},{cy - 54} {c[4] - 14},{cy - 40}" '
+        f'fill="none" stroke="{ENGINE}" stroke-width="2.5" marker-end="url(#head)"/>'
+    )
 
-ligand(c[5] - 12, cy - 6, MUTED, r=20, dashed=True)  # crystal reference
-ligand(c[5] - 4, cy + 4, INK, r=20)  # docked pose
+    ligand(c[5] - 12, cy - 6, MUTED, r=20, dashed=True)  # crystal reference
+    ligand(c[5] - 4, cy + 4, INK, r=20)  # docked pose
 
 # Brackets naming what varies.
 by = Y + H + 22
@@ -288,7 +403,8 @@ text(
 
 add("</svg>")
 
-target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("docs/figures/concept_v2.svg")
+default = "concept_v3.svg" if ARGS.renders else "concept_v2.svg"
+target = ARGS.out or Path("docs/figures") / default
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")  # same on every OS
 print(target)
