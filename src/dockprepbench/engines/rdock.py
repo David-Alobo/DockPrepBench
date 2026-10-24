@@ -74,27 +74,60 @@ def cavity_parameters(receptor_mol2: str, box: Box) -> str:
     )
 
 
+def _graph(mol: Chem.Mol) -> Chem.Mol:
+    """
+    Reduce a heavy-atom molecule to elements and connectivity, for atom matching.
+
+    Args:
+        mol (Chem.Mol): Heavy-atom molecule, sanitized or not.
+
+    Returns:
+        Chem.Mol: Copy with single, non-aromatic bonds and neutral atoms; not sanitized.
+    """
+    graph = Chem.RWMol(mol)
+    for atom in graph.GetAtoms():
+        atom.SetFormalCharge(0)
+        atom.SetIsAromatic(False)
+        atom.SetNoImplicit(True)
+        atom.SetNumExplicitHs(0)
+    for bond in graph.GetBonds():
+        bond.SetBondType(Chem.BondType.SINGLE)
+        bond.SetIsAromatic(False)
+    graph.UpdatePropertyCache(strict=False)
+    return graph.GetMol()
+
+
 def restore_chemistry(pose: Chem.Mol, ligand: Chem.Mol) -> Chem.Mol | None:
     """
-    Put an rDock pose's coordinates onto the input ligand.
+    Put an rDock pose's heavy-atom coordinates onto the input ligand.
 
     rDock writes poses without formal charges, so charged groups (nitro, quaternary N) come
-    back with impossible valences. It keeps the input atom order, so the input ligand with
-    the pose's conformer is the same pose with the right chemistry.
+    back with impossible valences, and it does not keep every input hydrogen. The heavy
+    atoms are matched to the input ligand on elements and connectivity alone, the input's
+    heavy atoms take the pose's coordinates, and hydrogens are added back in place.
 
     Args:
         pose (Chem.Mol): Unsanitized pose read from rDock's output.
         ligand (Chem.Mol): The ligand as passed to rDock.
 
     Returns:
-        Chem.Mol | None: The ligand in the pose's coordinates, with the pose's properties;
-            None if the atoms do not match the input in order.
+        Chem.Mol | None: The ligand in the pose's coordinates, with hydrogens and the pose's
+            properties; None if the heavy atoms do not match the input.
     """
-    if [a.GetAtomicNum() for a in pose.GetAtoms()] != [a.GetAtomicNum() for a in ligand.GetAtoms()]:
+    heavy_pose = Chem.RemoveAllHs(pose, sanitize=False)
+    template = Chem.RemoveAllHs(ligand)
+    if heavy_pose.GetNumAtoms() != template.GetNumAtoms():
         return None
-    mol = Chem.Mol(ligand)
-    mol.RemoveAllConformers()
-    mol.AddConformer(Chem.Conformer(pose.GetConformer()), assignId=True)
+    match = _graph(heavy_pose).GetSubstructMatch(_graph(template))  # template atom -> pose atom
+    if len(match) != template.GetNumAtoms():
+        return None
+    source = heavy_pose.GetConformer()
+    conf = Chem.Conformer(template.GetNumAtoms())
+    for i, j in enumerate(match):
+        conf.SetAtomPosition(i, source.GetAtomPosition(j))
+    template.RemoveAllConformers()
+    template.AddConformer(conf, assignId=True)
+    mol = Chem.AddHs(template, addCoords=True)
     for key, value in pose.GetPropsAsDict(includePrivate=False).items():
         mol.SetProp(key, str(value))
     return mol

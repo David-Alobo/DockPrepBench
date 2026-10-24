@@ -11,6 +11,7 @@ from dockprepbench.engines.base import Box
 from dockprepbench.engines.external import EngineError, resolve_command
 from dockprepbench.engines.rdock import RDockEngine, cavity_parameters, restore_chemistry
 from dockprepbench.engines.smina import GninaEngine, SminaEngine
+from dockprepbench.evaluation.rmsd import pose_rmsd
 
 FAKE = [sys.executable, str(Path(__file__).with_name("fake_engine.py"))]
 BOX = Box(center=(1.0, 2.0, 3.0), size=(10.0, 12.0, 14.0))
@@ -135,6 +136,24 @@ def test_rdock_pose_gets_the_input_ligands_charges_back():
         ligand.GetConformer().GetAtomPosition(0).x + 5
     )
     assert restored.GetProp("SCORE") == "-12.5"
+
+
+def test_rdock_pose_without_hydrogens_in_another_order_is_matched():
+    ligand = Chem.AddHs(Chem.MolFromSmiles("c1ccccc1[N+](=O)[O-]"))
+    AllChem.EmbedMolecule(ligand, randomSeed=1)
+    heavy = Chem.RWMol(Chem.RemoveHs(ligand))
+    for atom in heavy.GetAtoms():
+        atom.SetFormalCharge(0)
+    order = list(reversed(range(heavy.GetNumAtoms())))
+    pose = Chem.RenumberAtoms(heavy.GetMol(), order)  # pose atom k = template atom order[k]
+
+    restored = restore_chemistry(pose, ligand)
+
+    assert Chem.MolToSmiles(Chem.RemoveHs(restored)) == Chem.MolToSmiles(Chem.RemoveHs(ligand))
+    assert restored.GetNumAtoms() == ligand.GetNumAtoms()  # hydrogens added back
+    # Same pose as the input, whichever order rDock wrote the atoms in. Symmetric atoms
+    # (the ring either side of the nitro group) may swap, so compare symmetry-corrected.
+    assert pose_rmsd(restored, ligand) < 1e-6
 
 
 def test_rdock_pose_with_other_atoms_is_rejected():
