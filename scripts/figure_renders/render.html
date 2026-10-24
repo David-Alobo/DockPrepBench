@@ -75,8 +75,14 @@ function draw(data) {
         viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius: CLEAN ? 0.22 : 0.12, color: BOX, fromCap: 1, toCap: 1 });
       }
     }
+    // v4: tilt the view so the box reads as 3D, and let it fill the picture; residues
+    // outside it fall off the edge.
+    if (CLEAN) {
+      viewer.rotate(20, "y");
+      viewer.rotate(-12, "x");
+    }
     viewer.zoomTo({ model: focus });
-    viewer.zoom(0.55);
+    viewer.zoom(CLEAN ? 0.5 : 0.55);
   } else if (SCENE === "engine") {
     pocket();
     // v4: the four best-ranked poses in distinct shades of the docked colour, top pose darkest.

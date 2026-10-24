@@ -129,10 +129,12 @@
 <line x1="661" y1="872" x2="729" y2="872" stroke="#eb6834" stroke-width="3"/>
 <circle cx="650" cy="872" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
 <circle cx="740" cy="872" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
-<circle cx="610" cy="902" r="10" fill="#52514e"/>
-<text x="628.0" y="909.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">success</text>
-<line x1="610" y1="938" x2="640" y2="938" stroke="#eb6834" stroke-width="3"/>
-<text x="650.0" y="945.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">changed</text>
+<circle cx="625" cy="902" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<text x="650.0" y="909.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">success</text>
+<circle cx="625" cy="936" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<text x="650.0" y="943.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">miss</text>
+<line x1="610" y1="970" x2="640" y2="970" stroke="#eb6834" stroke-width="3"/>
+<text x="650.0" y="977.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">outcome changed</text>
 <text x="840.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">c</text>
 <text x="880.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Which matters more: preparation or engine?</text>
 <text x="900.0" y="604.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Engines, at a fixed preparation</text>

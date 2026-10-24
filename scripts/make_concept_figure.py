@@ -104,7 +104,8 @@ def arrow(x1, y1, x2, y2, color=MUTED, width=2.5):
 
 # Picture window in a card (versions 3 and 4): below the title, above the text.
 PIC_W, PIC_H, PIC_TOP = 196, 108, 60
-LIGAND_H = PIC_H - 24  # version 4 ligand drawing, leaving a line for its label
+LIGAND_H = PIC_H - 34  # version 4 ligand drawing: a margin above it and a line for its label
+LIGAND_TOP = 8  # gap between the card title and the drawing
 
 
 def png_data(path: Path) -> str:
@@ -365,7 +366,7 @@ if ARGS.renders:
         # Version 4: the ligand card shows the change the protonation arm makes.
         drawing, charge = ligand_states_svg_data(ARGS.complex)
         left = xs[2] + (W - PIC_W) / 2
-        inline_svg(drawing, left, Y + PIC_TOP, PIC_W, LIGAND_H)
+        inline_svg(drawing, left, Y + PIC_TOP + LIGAND_TOP, PIC_W, LIGAND_H)
         label = f"{charge:+d} at pH 7.4"
         text(xs[2] + W / 2, Y + PIC_TOP + PIC_H, label, 20, LIGAND, "bold", "middle")
     else:
@@ -475,13 +476,20 @@ for k, (a, b) in enumerate(outcomes):
     for x, hit in ((PX0, a), (PX1, b)):
         fill = INK_2 if hit else "#ffffff"
         add(f'<circle cx="{x}" cy="{y}" r="10" fill="{fill}" stroke="{INK_2}" stroke-width="2"/>')
-add(f'<circle cx="610" cy="{legend_y - 10}" r="10" fill="{INK_2}"/>')
-text(628, legend_y - 3, "success", BODY, INK_2)
-add(
-    f'<line x1="610" y1="{legend_y + 26}" x2="640" y2="{legend_y + 26}" '
-    f'stroke="{LIGAND}" stroke-width="3"/>'
-)
-text(650, legend_y + 33, "changed", BODY, INK_2)
+# Legend: symbols centred on one column, labels starting on another.
+KEY_X, LABEL_X, ROW = 625, 650, 34
+key_rows = [
+    (f'<circle cx="{KEY_X}" cy="{{y}}" r="10" fill="{INK_2}" stroke="{INK_2}" stroke-width="2"/>',
+     "success"),
+    (f'<circle cx="{KEY_X}" cy="{{y}}" r="10" fill="#ffffff" stroke="{INK_2}" stroke-width="2"/>',
+     "miss"),
+    (f'<line x1="{KEY_X - 15}" y1="{{y}}" x2="{KEY_X + 15}" y2="{{y}}" stroke="{LIGAND}" '
+     f'stroke-width="3"/>', "outcome changed"),
+]  # fmt: skip
+for k, (symbol, label) in enumerate(key_rows):
+    y = legend_y - 10 + k * ROW
+    add(symbol.format(y=y))
+    text(LABEL_X, y + 7, label, BODY, INK_2)
 
 # ---------------------------------------------------------------- panel c: question
 CX0 = 880
