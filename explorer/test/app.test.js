@@ -220,6 +220,82 @@ describe("built data: failures and poses loaded per complex", () => {
   });
 });
 
+describe("several engines", () => {
+  /** Two engines: A is the fixture; B has only box_padding_2, identical to its baseline. */
+  function bootEngines(search = "") {
+    document.head.querySelectorAll('script[src^="poses/"]').forEach((s) => s.remove());
+    document.body.innerHTML = body;
+    window.history.replaceState(null, "", `/${search}`);
+    const data = makeData();
+    const armsB = data.arms.slice(0, 2);
+    data.engines = [
+      { key: "a", label: "Engine A", arms: data.arms },
+      { key: "b", label: "Engine B", arms: armsB },
+    ];
+    for (const c of data.complexes) {
+      c.byEngine = { a: c.arms, b: { baseline: c.arms.baseline, box_padding_2: c.arms.baseline } };
+      delete c.arms;
+    }
+    data.demo = false;
+    data.poseDir = "poses";
+    delete data.arms;
+    window.EXPLORER_DATA = data;
+    window.ExplorerLib = require("../lib.js");
+    delete window.$3Dmol;
+    window.matchMedia = () => ({ matches: false, addEventListener() {} });
+    new Function(appSource)();
+  }
+  const pick = (value) => {
+    $("engine-select").value = value;
+    $("engine-select").dispatchEvent(new Event("change"));
+  };
+
+  it("starts on the first engine and lists every engine", () => {
+    bootEngines();
+    expect($("engine-field").hidden).toBe(false);
+    expect([...$("engine-select").options].map((o) => o.textContent)).toEqual(["Engine A", "Engine B"]);
+    expect(text("meta")).toMatch(/Engine A$/);
+    expect(text("t-changed")).toBe("6");
+  });
+
+  it("switches outcomes, arms and the header with the engine", () => {
+    bootEngines();
+    pick("b");
+    expect(text("meta")).toMatch(/Engine B$/);
+    expect(text("t-changed")).toBe("0");
+    expect([...$("arm-select").options].map((o) => o.value)).toEqual(["box_padding_2"]);
+    expect(window.location.search).toBe("?engine=b");
+  });
+
+  it("falls back to a default arm when the new engine lacks the selected one", () => {
+    bootEngines();
+    $("arm-select").value = "ligand_dimorphite";
+    $("arm-select").dispatchEvent(new Event("change"));
+    pick("b");
+    expect($("arm-select").value).toBe("box_padding_2");
+  });
+
+  it("opens the engine named in the link", () => {
+    bootEngines("?engine=b");
+    expect($("engine-select").value).toBe("b");
+    expect(text("meta")).toMatch(/Engine B$/);
+  });
+
+  it("shows the selected engine's poses", () => {
+    bootEngines();
+    click($("tab-complexes"));
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    const pose = (rank, rmsd) => ({ rank, score: -7, rmsd, block: "" });
+    window.ExplorerPoses("C03_LIG", {
+      crystal: "", pocket: "",
+      poses: { a: { box_padding_2: [pose(1, 1), pose(2, 3)] }, b: { box_padding_2: [pose(1, 5)] } },
+    });
+    expect($("d-poses").querySelectorAll("button[data-rank]")).toHaveLength(2);
+    pick("b");
+    expect($("d-poses").querySelectorAll("button[data-rank]")).toHaveLength(1);
+  });
+});
+
 describe("links between views", () => {
   it("opens the complexes behind a matrix cell, and clears that filter", () => {
     boot();

@@ -9,8 +9,8 @@ from CDNs.
 ## Start it
 
 ```bash
-scripts/explorer.sh                       # build the data for Vina and serve the page
-scripts/explorer.sh --engine gnina --open # another engine; open the browser too
+scripts/explorer.sh                       # build the data for every engine and serve the page
+scripts/explorer.sh --engine vina --open  # one engine only; open the browser too
 ```
 
 Then open <http://localhost:8000/>. The script needs [uv](https://docs.astral.sh/uv/) and
@@ -18,25 +18,26 @@ works on Linux, macOS and Git Bash on Windows. Options:
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--engine` | `vina` | Engine whose runs to show (`vina`, `smina`, `gnina`, `rdock`) |
+| `--engine NAME` | all | Engine to include; repeat for several (`vina`, `smina`, `gnina`, `rdock`) |
 | `--results DIR` | `results/server/results` if present, else `results` | Root holding `<engine>/<arm>/` runs |
 | `--port N` | `8000` | Port to serve on (bound to localhost only) |
 | `--skip-build` | off | Serve the data built last time |
 | `--open` | off | Open the default browser |
 | `--share-url URL` | page address | Base URL used by "Copy link", e.g. a hosted copy |
 
-Every finished arm of the engine is shown; seed replicates are left out. A complex whose
+Every engine with a finished baseline is included, each with the arms it has finished; switch
+engines with the Engine menu (or `?engine=gnina` in the address). Seed replicates are left out. A complex whose
 preparation or docking failed is shown as *failed* and counted as a miss, as in the paper.
 
 ## Build the data only
 
 ```bash
-uv run python explorer/build_data.py --engine vina
+uv run python explorer/build_data.py            # all engines; --engine NAME to pick
 ```
 
 This writes `data.js` (outcomes and ligand properties, about 2 MB) and
-`poses/<engine>/<id>.js` (crystal ligand, binding pocket from the dataset's protein file,
-and every arm's docked poses; about 150 KB each). The page loads a complex's pose file
+`poses/<id>.js` (crystal ligand, protein and binding pocket from the dataset's protein file,
+and the docked poses of every engine and arm; about 0.6 MB each). The page loads a complex's pose file
 only when the complex is opened. Both are generated and ignored by git. The PoseBusters
 set is downloaded to `data/raw/` on first use.
 

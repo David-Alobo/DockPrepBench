@@ -1,15 +1,16 @@
 """Build the explorer's data from benchmark results.
 
-Writes `data.js` (complexes, ligand properties and every arm's per-complex outcome for one
-engine) and one `poses/<engine>/<id>.js` per complex (crystal ligand, protein,
-binding pocket and the docked poses of every arm), which the page loads when a complex is opened.
+Writes `data.js` (complexes, ligand properties and the per-complex outcome of every engine and
+arm) and one `poses/<id>.js` per complex (crystal ligand, protein, binding pocket and the docked
+poses of every engine and arm), which the page loads when a complex is opened.
 
 Usage:
-    python explorer/build_data.py [--results DIR] [--engine vina] [--out explorer]
+    python explorer/build_data.py [--results DIR] [--engine NAME ...] [--out explorer]
                                   [--share-url URL]
 
 Runs are read from `<results>/<engine>/<arm>/results.csv` and `poses/`, as written by
-`dockprepbench run`. Seed replicates (`baseline_seed<N>`) are not shown.
+`dockprepbench run`. Every engine with a finished baseline is included unless `--engine` names
+some; each shows the arms it has finished. Seed replicates (`baseline_seed<N>`) are not shown.
 """
 
 import argparse
@@ -236,25 +237,47 @@ def poses(sdf: Path) -> list[dict]:
     ]
 
 
+def find_engines(results: Path, wanted: list[str] | None) -> list[str]:
+    """
+    List the engines to show: those requested, or every engine with a finished baseline.
+
+    Args:
+        results (Path): Results root.
+        wanted (list[str] | None): Engines named on the command line, or None for all.
+
+    Returns:
+        list[str]: Engine names, known engines first in their usual order.
+    """
+    if wanted:
+        missing = [e for e in wanted if not (results / e / "baseline" / "results.csv").is_file()]
+        if missing:
+            sys.exit(f"No finished baseline under {results} for: {', '.join(missing)}")
+        return wanted
+    found = {d.name for d in results.iterdir() if (d / "baseline" / "results.csv").is_file()}
+    if not found:
+        sys.exit(f"No engine under {results} has a finished baseline; nothing to show")
+    return [e for e in ENGINES if e in found] + sorted(found - set(ENGINES))
+
+
 def main() -> None:
     """Build data.js and the per-complex pose files."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--results", type=Path, default=None, help="Results root")
-    parser.add_argument("--engine", default="vina", help="Engine to show")
+    parser.add_argument(
+        "--engine", action="append", help="Engine to include (repeatable); default: all"
+    )
     parser.add_argument("--out", type=Path, default=REPO / "explorer", help="Explorer directory")
     parser.add_argument("--share-url", default=None, help="Base URL for 'Copy link'")
     args = parser.parse_args()
 
     results = args.results or default_results()
-    engine_dir = results / args.engine
-    if not engine_dir.is_dir():
-        sys.exit(f"No results for engine '{args.engine}' under {results}")
-    arms = find_arms(engine_dir)
-    if "baseline" not in arms:
-        sys.exit(f"No finished baseline under {engine_dir}; nothing to compare with")
-    runs = {arm: load_run(engine_dir / arm / "results.csv") for arm in arms}
+    engines = find_engines(results, args.engine)
+    arms = {e: find_arms(results / e) for e in engines}
+    runs = {
+        e: {arm: load_run(results / e / arm / "results.csv") for arm in arms[e]} for e in engines
+    }
 
-    pose_dir = args.out / "poses" / args.engine
+    pose_dir = args.out / "poses"
     shutil.rmtree(pose_dir, ignore_errors=True)
     pose_dir.mkdir(parents=True)
 
@@ -265,8 +288,6 @@ def main() -> None:
 
     rows = []
     for c in load_complexes(dataset):
-        if c.id not in runs["baseline"].index:
-            continue
         lig = next(Chem.SDMolSupplier(str(c.crystal_ligand)))
         records = c.protein.read_text().splitlines()
         hets = {ln[17:20].strip() for ln in records if ln.startswith("HETATM")}
@@ -285,14 +306,24 @@ def main() -> None:
                 "charge": Chem.GetFormalCharge(lig),
                 "chains": len({r[0] for r in residues}),
                 "residues": len(residues),
-                "arms": {arm: outcome(run.loc[c.id]) for arm, run in runs.items()},
+                # A complex missing from a run (e.g. a run limited with --limit) counts as failed.
+                "byEngine": {
+                    e: {
+                        arm: outcome(run.loc[c.id]) if c.id in run.index else {"error": "not run"}
+                        for arm, run in runs[e].items()
+                    }
+                    for e in engines
+                },
             }
         )
         payload = {
             "crystal": Chem.MolToMolBlock(lig),
             "pocket": pocket(c.protein, lig),
             "protein": chains(c.protein),
-            "poses": {arm: poses(engine_dir / arm / "poses" / f"{c.id}.sdf") for arm in arms},
+            "poses": {
+                e: {arm: poses(results / e / arm / "poses" / f"{c.id}.sdf") for arm in arms[e]}
+                for e in engines
+            },
         }
         (pose_dir / f"{c.id}.js").write_text(
             f"window.ExplorerPoses({json.dumps(c.id)}, "
@@ -305,14 +336,20 @@ def main() -> None:
         "demo": False,
         "shareUrl": args.share_url,
         "dataset": "PoseBusters Benchmark set",
-        "engine": ENGINES.get(args.engine, args.engine),
-        "arms": [
-            {"key": a, "label": ARMS.get(a, (a, a))[0], "detail": ARMS.get(a, (a, a))[1]}
-            for a in arms
+        "engines": [
+            {
+                "key": e,
+                "label": ENGINES.get(e, e),
+                "arms": [
+                    {"key": a, "label": ARMS.get(a, (a, a))[0], "detail": ARMS.get(a, (a, a))[1]}
+                    for a in arms[e]
+                ],
+            }
+            for e in engines
         ],
         "complexes": rows,
         "real": {},
-        "poseDir": f"poses/{args.engine}",
+        "poseDir": "poses",
     }
     (args.out / "data.js").write_text(
         "window.EXPLORER_DATA = " + json.dumps(data, separators=(",", ":")) + ";\n",
@@ -320,9 +357,11 @@ def main() -> None:
     )
     size = sum(f.stat().st_size for f in pose_dir.iterdir()) / 2**20
     print(
-        f"{len(rows)} complexes, {len(arms)} arms ({', '.join(arms)}) for {args.engine}; "
-        f"data.js {(args.out / 'data.js').stat().st_size / 2**10:.0f} KB, poses {size:.0f} MB"
+        f"{len(rows)} complexes; data.js {(args.out / 'data.js').stat().st_size / 2**10:.0f} KB, "
+        f"poses {size:.0f} MB"
     )
+    for e in engines:
+        print(f"  {e}: {len(arms[e])} arms ({', '.join(arms[e])})")
 
 
 if __name__ == "__main__":

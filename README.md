@@ -80,7 +80,7 @@ Browse the results in a web page: success by arm, how outcomes moved between the
 and an arm, and every complex with its docked poses in 3D.
 
 ```bash
-scripts/explorer.sh                  # Vina; then open http://localhost:8000/
+scripts/explorer.sh                  # every engine; then open http://localhost:8000/
 scripts/explorer.sh --engine gnina --open
 ```
 

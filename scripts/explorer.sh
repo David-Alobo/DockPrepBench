@@ -2,18 +2,19 @@
 # Build the results explorer from benchmark results and serve it locally.
 #
 # Usage:
-#   scripts/explorer.sh [--engine vina|smina|gnina|rdock] [--results DIR] [--port 8000]
+#   scripts/explorer.sh [--engine NAME]... [--results DIR] [--port 8000]
 #                       [--skip-build] [--open] [--share-url URL]
 #
 # Reads <results>/<engine>/<arm>/ (default results: results/server/results if present,
-# else results), writes explorer/data.js and explorer/poses/<engine>/, then serves
+# else results) for every engine with a finished baseline, or only those named with
+# --engine (repeatable). Writes explorer/data.js and explorer/poses/, then serves
 # explorer/ at http://localhost:<port>/ until you press Ctrl+C. Needs uv (scripts/setup.sh
 # installs it); the PoseBusters set is downloaded on first use. Works on Linux, macOS and
 # Git Bash on Windows.
 set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-ENGINE=vina
+ENGINES=()
 RESULTS=
 PORT=8000
 BUILD=1
@@ -21,13 +22,13 @@ OPEN=0
 SHARE_URL=
 while [ $# -gt 0 ]; do
     case $1 in
-        --engine) ENGINE=$2; shift 2 ;;
+        --engine) ENGINES+=(--engine "$2"); shift 2 ;;
         --results) RESULTS=$2; shift 2 ;;
         --port) PORT=$2; shift 2 ;;
         --skip-build) BUILD=0; shift ;;
         --open) OPEN=1; shift ;;
         --share-url) SHARE_URL=$2; shift 2 ;;
-        -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -37,8 +38,8 @@ command -v uv >/dev/null || fail "uv not found; install it (https://docs.astral.
 cd "$REPO"
 
 if [ "$BUILD" = 1 ]; then
-    echo "==> Building explorer data for $ENGINE"
-    args=(--engine "$ENGINE")
+    echo "==> Building explorer data"
+    args=("${ENGINES[@]}")
     [ -n "$RESULTS" ] && args+=(--results "$RESULTS")
     [ -n "$SHARE_URL" ] && args+=(--share-url "$SHARE_URL")
     uv run --frozen python explorer/build_data.py "${args[@]}"

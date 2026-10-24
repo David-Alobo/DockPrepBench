@@ -4,12 +4,29 @@
 // in lib.js (window.ExplorerLib).
 const L = window.ExplorerLib;
 const DATA = window.EXPLORER_DATA;
-const ARMS = DATA.arms;
 const { BASE, CLASSES, CLASS_LABEL, CLASS_SHORT, SITE_SHIFT, PAGE_SIZE } = L;
+
+// Built data holds several engines, each with its own arms, and per-complex outcomes in
+// c.byEngine; demo and test data hold one engine, with outcomes already in c.arms.
+// useEngine() points ARMS and every c.arms at one engine, so the rest of the page is unchanged.
+const ENGINES = DATA.engines || null;
+let ARMS = DATA.arms;
+const defaultArm = (arms) =>
+  arms.some((a) => a.key === "box_padding_2") ? "box_padding_2" : (arms.find((a) => a.key !== BASE) || arms[0]).key;
+
+function useEngine(key) {
+  const engine = ENGINES.find((e) => e.key === key) || ENGINES[0];
+  ARMS = engine.arms;
+  DATA.engine = engine.label;
+  for (const c of DATA.complexes) c.arms = c.byEngine[engine.key];
+  return engine.key;
+}
 
 const state = {
   tab: "overview",
-  arm: ARMS.some((a) => a.key === "box_padding_2") ? "box_padding_2" : ARMS.find((a) => a.key !== BASE).key,
+  engine: ENGINES ? useEngine(new URLSearchParams(location.search).get("engine")) : null,
+  arm: null, // set below, once ARMS is known
+
   metric: "top1",
   search: "",
   klass: "",
@@ -26,6 +43,7 @@ const state = {
   showSurface: true,
   closeUp: false,
 };
+state.arm = defaultArm(ARMS);
 
 const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -264,7 +282,9 @@ function requestPoses(id) {
 /** The selected arm's poses from a payload (demo payloads hold one list for the baseline). */
 function armPoses(payload) {
   if (!payload) return [];
-  return Array.isArray(payload.poses) ? payload.poses : payload.poses[state.arm] || [];
+  if (Array.isArray(payload.poses)) return payload.poses;
+  const byArm = ENGINES ? payload.poses[state.engine] || {} : payload.poses;
+  return byArm[state.arm] || [];
 }
 
 function showNoPoses(message, list) {
@@ -460,7 +480,33 @@ async function copyText(button, text, label) {
 
 function copyLink() {
   const base = DATA.shareUrl || `${location.origin}${location.pathname}`;
-  return copyText($("copy-link"), `${base}#${state.selected}`, "Copy link");
+  const engine = ENGINES ? `?engine=${state.engine}` : "";
+  return copyText($("copy-link"), `${base}${engine}#${state.selected}`, "Copy link");
+}
+
+function fillArmSelect() {
+  $("arm-select").innerHTML = ARMS.filter((a) => a.key !== BASE)
+    .map((a) => `<option value="${a.key}">${a.label}: ${a.detail}</option>`)
+    .join("");
+  $("arm-select").value = state.arm;
+}
+
+function showMeta() {
+  $("meta").textContent = `${DATA.dataset} · ${DATA.complexes.length} complexes · ${DATA.engine}`;
+}
+
+function setEngine(key) {
+  state.engine = useEngine(key);
+  if (!ARMS.some((a) => a.key === state.arm)) state.arm = defaultArm(ARMS);
+  state.page = 1;
+  fillArmSelect();
+  showMeta();
+  try {
+    history.replaceState(null, "", `?engine=${state.engine}${location.hash}`);
+  } catch {
+    /* sandboxed frames may refuse */
+  }
+  renderAll();
 }
 
 // ---------------------------------------------------------------- wiring
@@ -494,7 +540,13 @@ function renderAll() {
 }
 
 function init() {
-  $("meta").textContent = `${DATA.dataset} · ${DATA.complexes.length} complexes · ${DATA.engine}`;
+  showMeta();
+  $("engine-field").hidden = !ENGINES;
+  if (ENGINES) {
+    $("engine-select").innerHTML = ENGINES.map((e) => `<option value="${e.key}">${e.label}</option>`).join("");
+    $("engine-select").value = state.engine;
+    $("engine-select").addEventListener("change", (e) => setEngine(e.target.value));
+  }
   $("badge").hidden = !DATA.demo;
   $("real-key").hidden = !DATA.demo;
   $("key").innerHTML = CLASSES.map((k) => `<span>${glyph(k)} ${CLASS_LABEL[k]}</span>`).join("");
@@ -502,10 +554,7 @@ function init() {
     "Outcome classes follow the top-ranked pose: valid success (RMSD < 2 Å and PB-valid); correct but not PB-valid; " +
     `scoring miss (a pose under 2 Å exists below rank 1); wrong site (centroid more than ${SITE_SHIFT} Å away, a heuristic); ` +
     "wrong binding mode (right site, wrong pose); failed (preparation or docking raised an error, counted as a miss).";
-  $("arm-select").innerHTML = ARMS.filter((a) => a.key !== BASE)
-    .map((a) => `<option value="${a.key}">${a.label}: ${a.detail}</option>`)
-    .join("");
-  $("arm-select").value = state.arm;
+  fillArmSelect();
 
   $("tab-overview").addEventListener("click", () => showTab("overview"));
   $("tab-complexes").addEventListener("click", () => showTab("complexes"));
