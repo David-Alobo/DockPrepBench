@@ -1,6 +1,7 @@
 """Stand-in for external docking programs in tests.
 
-Records its command line (and CUDA_VISIBLE_DEVICES) to `<cwd>/call.json`, then behaves like:
+Records its command line, CUDA_VISIBLE_DEVICES and the files in its working directory to
+`<cwd>/call.json`, then behaves like:
 
 - smina/gnina (`--ligand ... --out ...`): writes `--num_modes` copies of the ligand with
   increasing minimizedAffinity;
@@ -20,7 +21,13 @@ from rdkit import Chem
 args = sys.argv[1:]
 log = Path("call.json")
 calls = json.loads(log.read_text()) if log.exists() else []
-calls.append({"args": args, "cuda": os.environ.get("CUDA_VISIBLE_DEVICES")})
+calls.append(
+    {
+        "args": args,
+        "cuda": os.environ.get("CUDA_VISIBLE_DEVICES"),
+        "files": sorted(p.name for p in Path().iterdir()),
+    }
+)
 log.write_text(json.dumps(calls))
 # Keep a copy outside the engine's temporary directory for assertions.
 if "FAKE_ENGINE_LOG" in os.environ:

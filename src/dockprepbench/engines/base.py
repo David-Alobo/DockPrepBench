@@ -1,7 +1,7 @@
 """Common interface shared by all docking engines."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
@@ -10,10 +10,17 @@ from rdkit import Chem
 
 @dataclass(frozen=True)
 class Box:
-    """Axis-aligned search box in Å, in the receptor frame."""
+    """
+    Axis-aligned search box in Å, in the receptor frame.
+
+    A box built around a reference ligand also keeps that ligand and the padding, for engines
+    that define their search space from a ligand rather than a box (rDock).
+    """
 
     center: tuple[float, float, float]
     size: tuple[float, float, float]
+    reference: Chem.Mol | None = field(default=None, compare=False, repr=False)
+    padding: float | None = None
 
     def __post_init__(self) -> None:
         # Coerce numpy scalars to float: engine bindings (e.g. Vina's SWIG layer) reject them.

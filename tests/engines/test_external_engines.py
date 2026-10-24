@@ -9,8 +9,9 @@ from rdkit.Chem import AllChem
 
 from dockprepbench.engines.base import Box
 from dockprepbench.engines.external import EngineError, resolve_command
-from dockprepbench.engines.rdock import RDockEngine, cavity_parameters
+from dockprepbench.engines.rdock import RDockEngine, cavity_parameters, restore_chemistry
 from dockprepbench.engines.smina import GninaEngine, SminaEngine
+from dockprepbench.evaluation.rmsd import pose_rmsd
 
 FAKE = [sys.executable, str(Path(__file__).with_name("fake_engine.py"))]
 BOX = Box(center=(1.0, 2.0, 3.0), size=(10.0, 12.0, 14.0))
@@ -98,6 +99,70 @@ def test_rdock_runs_cavity_then_docking_and_sorts_by_score(peptide_pdb, ligand, 
     assert "receptor.prm" in rbcavity
     assert (arg(rbdock, "-n"), arg(rbdock, "-s"), arg(rbdock, "-p")) == ("5", "11", "dock.prm")
     assert result.scores == [-12.0, -8.0]  # best first, cut to n_poses
+
+
+def test_rdock_maps_the_cavity_from_the_reference_ligand(peptide_pdb, ligand, calls):
+    engine = RDockEngine(commands={p: FAKE for p in ("obabel", "rbcavity", "rbdock")})
+    box = Box(center=BOX.center, size=BOX.size, reference=Chem.RemoveHs(ligand), padding=4.0)
+
+    engine.dock(peptide_pdb, ligand, box)
+
+    rbcavity = calls()[1]
+    assert "reference.sdf" in rbcavity["files"]  # written before rbcavity reads it
+    prm = cavity_parameters("receptor.mol2", box)
+    assert "SITE_MAPPER RbtLigandSiteMapper" in prm
+    assert "REF_MOL reference.sdf" in prm
+    assert "RADIUS 4.000" in prm  # the box padding
+    assert "CENTER" not in prm
+
+
+def test_rdock_pose_gets_the_input_ligands_charges_back():
+    ligand = Chem.AddHs(Chem.MolFromSmiles("c1ccccc1[N+](=O)[O-]"))  # nitrobenzene
+    AllChem.EmbedMolecule(ligand, randomSeed=1)
+    # rDock's output: same atoms in order, moved, no formal charges, so N has valence 4.
+    pose = Chem.RWMol(ligand)
+    for atom in pose.GetAtoms():
+        atom.SetFormalCharge(0)
+    conf = pose.GetConformer()
+    for i in range(pose.GetNumAtoms()):
+        p = conf.GetAtomPosition(i)
+        conf.SetAtomPosition(i, (p.x + 5, p.y, p.z))
+    pose.SetProp("SCORE", "-12.5")
+
+    restored = restore_chemistry(pose.GetMol(), ligand)
+
+    assert Chem.MolToSmiles(Chem.RemoveHs(restored)) == Chem.MolToSmiles(Chem.RemoveHs(ligand))
+    assert restored.GetConformer().GetAtomPosition(0).x == pytest.approx(
+        ligand.GetConformer().GetAtomPosition(0).x + 5
+    )
+    assert restored.GetProp("SCORE") == "-12.5"
+
+
+def test_rdock_pose_without_hydrogens_in_another_order_is_matched():
+    ligand = Chem.AddHs(Chem.MolFromSmiles("c1ccccc1[N+](=O)[O-]"))
+    AllChem.EmbedMolecule(ligand, randomSeed=1)
+    heavy = Chem.RWMol(Chem.RemoveHs(ligand))
+    for atom in heavy.GetAtoms():
+        atom.SetFormalCharge(0)
+    order = list(reversed(range(heavy.GetNumAtoms())))
+    pose = Chem.RenumberAtoms(heavy.GetMol(), order)  # pose atom k = template atom order[k]
+
+    restored = restore_chemistry(pose, ligand)
+
+    assert Chem.MolToSmiles(Chem.RemoveHs(restored)) == Chem.MolToSmiles(Chem.RemoveHs(ligand))
+    assert restored.GetNumAtoms() == ligand.GetNumAtoms()  # hydrogens added back
+    # Same pose as the input, whichever order rDock wrote the atoms in. Symmetric atoms
+    # (the ring either side of the nitro group) may swap, so compare symmetry-corrected.
+    assert pose_rmsd(restored, ligand) < 1e-6
+
+
+def test_rdock_pose_with_other_atoms_is_rejected():
+    ligand = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(ligand, randomSeed=1)
+    other = Chem.AddHs(Chem.MolFromSmiles("CCN"))
+    AllChem.EmbedMolecule(other, randomSeed=1)
+
+    assert restore_chemistry(other, ligand) is None
 
 
 def test_rdock_cavity_sphere_encloses_the_box():

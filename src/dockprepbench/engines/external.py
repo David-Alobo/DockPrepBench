@@ -79,12 +79,14 @@ def write_ligand(ligand: Chem.Mol, path: Path) -> Path:
     return path
 
 
-def read_poses(path: Path) -> list[Chem.Mol]:
+def read_poses(path: Path, sanitize: bool = True) -> list[Chem.Mol]:
     """
     Read docked poses from an SDF file in file order, keeping hydrogens and properties.
 
     Args:
         path (Path): Output .sdf from the engine.
+        sanitize (bool): Sanitize each pose; turn off for output whose chemistry is restored
+            afterwards (rDock drops formal charges).
 
     Returns:
         list[Chem.Mol]: Poses that RDKit could parse.
@@ -94,7 +96,8 @@ def read_poses(path: Path) -> list[Chem.Mol]:
     """
     if not path.is_file():
         raise EngineError(f"No output file {path.name}")
-    poses = [m for m in Chem.SDMolSupplier(str(path), removeHs=False) if m is not None]
+    supplier = Chem.SDMolSupplier(str(path), removeHs=False, sanitize=sanitize)
+    poses = [m for m in supplier if m is not None]
     if not poses:
         raise EngineError(f"No readable poses in {path.name}")
     return poses

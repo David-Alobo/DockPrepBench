@@ -8,47 +8,129 @@ from tempfile import TemporaryDirectory
 from rdkit import Chem
 
 from dockprepbench.engines.base import Box, DockingEngine, DockingResult
-from dockprepbench.engines.external import read_poses, resolve_command, run, write_ligand
+from dockprepbench.engines.external import (
+    EngineError,
+    read_poses,
+    resolve_command,
+    run,
+    write_ligand,
+)
 
 # rDock's standard docking protocol, shipped with rDock.
 DOCKING_PROTOCOL = "dock.prm"
 
 
+REFERENCE_FILE = "reference.sdf"
+
+
 def cavity_parameters(receptor_mol2: str, box: Box) -> str:
     """
-    Write an rDock receptor parameter file whose cavity is a sphere enclosing the box.
+    Write an rDock receptor parameter file defining the docking cavity.
 
-    rDock maps cavities rather than boxes; a sphere through the box's corners keeps the
-    whole search box available, so the box-padding arms mean the same thing as for the
-    other engines.
+    With a reference ligand (boxes from `box_from_ligand`), the cavity is rDock's standard
+    reference-ligand mapping: free space within the box padding of any ligand atom, the
+    analogue of the padded box the other engines search. Without one, it falls back to a
+    sphere through the box's corners, which is larger than the box.
 
     Args:
         receptor_mol2 (str): Receptor file name, relative to the working directory.
-        box (Box): Search box.
+        box (Box): Search box; its reference ligand, if any, is expected in REFERENCE_FILE.
 
     Returns:
         str: Contents of the .prm file.
     """
-    cx, cy, cz = box.center
-    radius = 0.5 * sum(s * s for s in box.size) ** 0.5
+    if box.reference is not None:
+        mapper = (
+            "    SITE_MAPPER RbtLigandSiteMapper\n"
+            f"    REF_MOL {REFERENCE_FILE}\n"
+            f"    RADIUS {box.padding:.3f}\n"
+            "    SMALL_SPHERE 1.0\n"
+            "    MIN_VOLUME 100\n"
+            "    MAX_CAVITIES 1\n"
+            "    VOL_INCR 0.0\n"
+            "    GRIDSTEP 0.5\n"
+        )
+    else:
+        cx, cy, cz = box.center
+        radius = 0.5 * sum(s * s for s in box.size) ** 0.5
+        mapper = (
+            "    SITE_MAPPER RbtSphereSiteMapper\n"
+            f"    CENTER ({cx:.3f},{cy:.3f},{cz:.3f})\n"
+            f"    RADIUS {radius:.3f}\n"
+            "    SMALL_SPHERE 1.0\n"
+            "    LARGE_SPHERE 3.5\n"
+            "    MAX_CAVITIES 1\n"
+        )
     return (
         "RBT_PARAMETER_FILE_V1.00\n"
         "TITLE dockprepbench\n"
         f"RECEPTOR_FILE {receptor_mol2}\n"
         "RECEPTOR_FLEX 3.0\n"
-        "SECTION MAPPER\n"
-        "    SITE_MAPPER RbtSphereSiteMapper\n"
-        f"    CENTER ({cx:.3f},{cy:.3f},{cz:.3f})\n"
-        f"    RADIUS {radius:.3f}\n"
-        "    SMALL_SPHERE 1.0\n"
-        "    LARGE_SPHERE 3.5\n"
-        "    MAX_CAVITIES 1\n"
-        "END_SECTION\n"
+        "SECTION MAPPER\n" + mapper + "END_SECTION\n"
         "SECTION CAVITY\n"
         "    SCORING_FUNCTION RbtCavityGridSF\n"
         "    WEIGHT 1.0\n"
         "END_SECTION\n"
     )
+
+
+def _graph(mol: Chem.Mol) -> Chem.Mol:
+    """
+    Reduce a heavy-atom molecule to elements and connectivity, for atom matching.
+
+    Args:
+        mol (Chem.Mol): Heavy-atom molecule, sanitized or not.
+
+    Returns:
+        Chem.Mol: Copy with single, non-aromatic bonds and neutral atoms; not sanitized.
+    """
+    graph = Chem.RWMol(mol)
+    for atom in graph.GetAtoms():
+        atom.SetFormalCharge(0)
+        atom.SetIsAromatic(False)
+        atom.SetNoImplicit(True)
+        atom.SetNumExplicitHs(0)
+    for bond in graph.GetBonds():
+        bond.SetBondType(Chem.BondType.SINGLE)
+        bond.SetIsAromatic(False)
+    graph.UpdatePropertyCache(strict=False)
+    return graph.GetMol()
+
+
+def restore_chemistry(pose: Chem.Mol, ligand: Chem.Mol) -> Chem.Mol | None:
+    """
+    Put an rDock pose's heavy-atom coordinates onto the input ligand.
+
+    rDock writes poses without formal charges, so charged groups (nitro, quaternary N) come
+    back with impossible valences, and it does not keep every input hydrogen. The heavy
+    atoms are matched to the input ligand on elements and connectivity alone, the input's
+    heavy atoms take the pose's coordinates, and hydrogens are added back in place.
+
+    Args:
+        pose (Chem.Mol): Unsanitized pose read from rDock's output.
+        ligand (Chem.Mol): The ligand as passed to rDock.
+
+    Returns:
+        Chem.Mol | None: The ligand in the pose's coordinates, with hydrogens and the pose's
+            properties; None if the heavy atoms do not match the input.
+    """
+    heavy_pose = Chem.RemoveAllHs(pose, sanitize=False)
+    template = Chem.RemoveAllHs(ligand)
+    if heavy_pose.GetNumAtoms() != template.GetNumAtoms():
+        return None
+    match = _graph(heavy_pose).GetSubstructMatch(_graph(template))  # template atom -> pose atom
+    if len(match) != template.GetNumAtoms():
+        return None
+    source = heavy_pose.GetConformer()
+    conf = Chem.Conformer(template.GetNumAtoms())
+    for i, j in enumerate(match):
+        conf.SetAtomPosition(i, source.GetAtomPosition(j))
+    template.RemoveAllConformers()
+    template.AddConformer(conf, assignId=True)
+    mol = Chem.AddHs(template, addCoords=True)
+    for key, value in pose.GetPropsAsDict(includePrivate=False).items():
+        mol.SetProp(key, str(value))
+    return mol
 
 
 class RDockEngine(DockingEngine):
@@ -122,6 +204,8 @@ class RDockEngine(DockingEngine):
                 [*self._cmd("obabel"), str(Path(receptor).resolve()), "-O", "receptor.mol2"],
                 cwd=work,
             )
+            if box.reference is not None:
+                write_ligand(box.reference, work / REFERENCE_FILE)
             (work / "receptor.prm").write_text(cavity_parameters("receptor.mol2", box))
             run([*self._cmd("rbcavity"), "-W", "-r", "receptor.prm"], cwd=work, env=env)
             write_ligand(ligand, work / "ligand.sdf")
@@ -131,7 +215,10 @@ class RDockEngine(DockingEngine):
                 "-p", DOCKING_PROTOCOL, "-n", str(self.n_runs), "-s", str(self.seed),
             ]  # fmt: skip
             run(rbdock, cwd=work, env=env)
-            poses = read_poses(work / "poses.sd")
+            poses = read_poses(work / "poses.sd", sanitize=False)
+        poses = [p for p in (restore_chemistry(p, ligand) for p in poses) if p is not None]
+        if not poses:
+            raise EngineError("rDock poses do not match the input ligand's atoms")
         poses.sort(key=lambda p: float(p.GetProp("SCORE")))
         poses = poses[: self.n_poses]
         return DockingResult(poses=poses, scores=[float(p.GetProp("SCORE")) for p in poses])
