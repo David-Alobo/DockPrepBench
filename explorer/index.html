@@ -176,7 +176,7 @@ table.list { border-collapse: collapse; width: 100%; height: 100%; font-size: 13
 .page-label { font-size: 12.5px; color: var(--muted); padding: 0 4px; white-space: nowrap; }
 
 /* Detail */
-.detail-head { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 12px; align-items: start; }
+.detail-head { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; align-items: start; }
 .props { display: flex; flex-wrap: wrap; gap: 2px 14px; color: var(--muted); font-size: 12.5px; margin-top: 4px; }
 .props b { color: var(--fg); font-weight: 500; font-family: var(--font-data); }
 .props a { color: var(--metric-1); text-decoration: none; } .props a:hover { text-decoration: underline; }
@@ -189,6 +189,15 @@ table.list { border-collapse: collapse; width: 100%; height: 100%; font-size: 13
    space; SMILES runs full width below both. */
 .depict { color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 2px; height: 76px; box-sizing: border-box; display: grid; place-items: center; }
 .depict svg { display: block; width: 100%; height: 100%; }
+button.depict { font: inherit; background: transparent; cursor: zoom-in; width: 100%; }
+button.depict:hover { border-color: var(--metric-1); }
+#depict-dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--fg); padding: 16px; width: min(860px, 92vw); }
+#depict-dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+.dialog-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dialog-head h2 { margin: 0; font-size: 16px; }
+.depict-large { color: var(--fg); aspect-ratio: 5 / 2; }
+.depict-large svg { display: block; width: 100%; height: 100%; stroke-width: 1.4; } /* thinner when drawn large */
+#depict-smiles { display: block; white-space: normal; word-break: break-all; margin-top: 10px; }
 #viewer { position: relative; flex: 0 0 350px; min-height: 350px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--viewer-bg); }
 .viewer-empty { display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); position: absolute; inset: 0; }
 .viewer-caption { margin: 0; font-size: 12.5px; color: var(--muted); }
@@ -350,7 +359,7 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
             <div class="props" id="d-props"></div>
             <div class="props" id="d-protein"></div>
           </div>
-          <div class="depict" id="d-depict" aria-label="2D structure of the ligand"></div>
+          <button type="button" class="depict" id="d-depict" title="Enlarge the 2D structure" aria-label="2D structure of the ligand; enlarge"></button>
         </div>
         <div class="smiles-row" id="d-smiles-row">
           <span class="smiles-label">SMILES</span>
@@ -390,6 +399,14 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
   <footer id="footer"></footer>
 </div>
 <div id="tip" hidden></div>
+<dialog id="depict-dialog" aria-labelledby="depict-title">
+  <div class="dialog-head">
+    <h2 class="mono" id="depict-title"></h2>
+    <button type="button" class="btn" id="depict-close">Close</button>
+  </div>
+  <div class="depict-large" id="depict-large"></div>
+  <code class="smiles" id="depict-smiles"></code>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
 <script src="data.js"></script>

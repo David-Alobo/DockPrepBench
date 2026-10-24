@@ -187,6 +187,17 @@ describe("built data: failures and poses loaded per complex", () => {
     expect(links).toEqual(["https://www.rcsb.org/structure/C03", "https://www.rcsb.org/ligand/LIG"]);
   });
 
+  it("enlarges the 2D structure with its SMILES on click", () => {
+    window.EXPLORER_DATA.complexes[3].smiles = "CC(=O)O";
+    window.EXPLORER_DATA.complexes[3].svg = "<svg id='big'></svg>";
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    click($("d-depict"));
+    expect($("depict-dialog").hasAttribute("open")).toBe(true);
+    expect(text("depict-title")).toBe("C03_LIG");
+    expect($("depict-large").querySelector("#big")).not.toBeNull();
+    expect(text("depict-smiles")).toBe("CC(=O)O");
+  });
+
   it("hides the prototype badge and the ◆ key", () => {
     expect($("badge").hidden).toBe(true);
     expect($("real-key").hidden).toBe(true);

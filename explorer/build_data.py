@@ -51,9 +51,25 @@ ENGINES = {
 POCKET_CUTOFF = 5.0  # Å from any crystal-ligand atom: residues in contact with it
 
 
+DEPICTION_SIZE = (300, 120)  # px; wide, like the header box it is shown in
+# RDKit's default atom colours -> colours legible on light and dark backgrounds. Carbon (black)
+# becomes currentColor, so the drawing follows the page's text colour.
+ELEMENT_COLOURS = {
+    "#000000": "currentColor",
+    "#0000FF": "#3b6fe0",  # N
+    "#FF0000": "#e03131",  # O
+    "#CCCC00": "#d4a800",  # S
+    "#33CCCC": "#1fa2a2",  # F
+    "#00CC00": "#2f9e44",  # Cl
+    "#FF7F00": "#e8590c",  # P
+    "#A62929": "#b5542a",  # Br
+    "#940094": "#9a4fd1",  # I
+}
+
+
 def depiction(mol: Chem.Mol) -> str:
     """
-    Draw a ligand in 2D as inline SVG, in `currentColor` so it follows the page theme.
+    Draw a ligand in 2D as inline SVG, carbon in `currentColor` and heteroatoms coloured.
 
     Args:
         mol (Chem.Mol): Ligand.
@@ -63,23 +79,28 @@ def depiction(mol: Chem.Mol) -> str:
     """
     flat = Chem.Mol(mol)
     rdDepictor.Compute2DCoords(flat)
-    drawer = rdMolDraw2D.MolDraw2DSVG(240, 170, -1, -1, True)  # noFreetype: <text>, not glyph paths
+    drawer = rdMolDraw2D.MolDraw2DSVG(*DEPICTION_SIZE, -1, -1, True)  # noFreetype: <text> labels
     opts = drawer.drawOptions()
     opts.clearBackground = False
-    opts.useBWAtomPalette()
-    opts.padding = 0.06
+    opts.padding = 0.04
+    opts.bondLineWidth = 2.5
     drawer.DrawMolecule(flat)
     drawer.FinishDrawing()
     svg = drawer.GetDrawingText()
     svg = svg[svg.index("<svg") :]
-    for colour in ("#000000", "#FF0000", "#000"):
-        svg = svg.replace(colour, "currentColor")
+    svg = re.sub(
+        r"#[0-9A-Fa-f]{6}",
+        lambda m: ELEMENT_COLOURS.get(m.group(0).upper(), m.group(0)),
+        svg,
+    )
     return compact_svg(svg)
 
 
 def compact_svg(svg: str) -> str:
     """
     Move RDKit's repeated per-element styles onto the root to shrink each drawing ~4x.
+
+    Keeps each element's stroke and fill colour when it differs from the root's.
 
     Args:
         svg (str): SVG from RDKit's drawer.
@@ -88,22 +109,34 @@ def compact_svg(svg: str) -> str:
         str: Equivalent, smaller SVG.
     """
 
+    def colour(style: str, prop: str) -> str | None:
+        found = re.search(rf"(?:^|;){prop}:([^;]+)", style)
+        return found.group(1) if found else None
+
     def path(m):
         style = m.group(2)
-        filled = "fill:currentColor" in style
         attrs = re.sub(r" class='[^']*'| style='[^']*'", "", m.group(1) + m.group(3))
-        fill = " fill='currentColor'" if filled else ""
-        return f"<path{attrs}{fill}"
+        stroke, fill = colour(style, "stroke"), colour(style, "fill")
+        if stroke and stroke not in ("currentColor", "none"):
+            attrs += f" stroke='{stroke}'"
+        if fill and fill != "none":
+            attrs += f" fill='{fill}'"
+        return f"<path{attrs}"
 
     svg = re.sub(r"<path([^>]*?) style='([^']*)'([^>]*?)", path, svg)
     svg = re.sub(r"(<path[^>]*?) class='[^']*'", r"\1", svg)
 
     def text(m):
-        anchor = re.search(r"text-anchor:(\w+)", m.group(0))
-        size = re.search(r"font-size:([\d.]+)px", m.group(0))
+        style = m.group(0)
+        anchor = re.search(r"text-anchor:(\w+)", style)
+        size = re.search(r"font-size:([\d.]+)px", style)
         align = f" text-anchor='{anchor.group(1)}'" if anchor and anchor.group(1) != "start" else ""
         font_size = size.group(1) if size else 15
-        return f"<text x='{m.group(1)}' y='{m.group(2)}' font-size='{font_size}'{align}>"
+        fill = colour(re.search(r"style='([^']*)'", style).group(1), "fill") or "currentColor"
+        return (
+            f"<text x='{m.group(1)}' y='{m.group(2)}' font-size='{font_size}' fill='{fill}' "
+            f"stroke='none'{align}>"
+        )
 
     svg = re.sub(r"<text x='([^']*)' y='([^']*)'[^>]*>", text, svg)
     svg = re.sub(r"<!--.*?-->", "", svg)
@@ -111,11 +144,10 @@ def compact_svg(svg: str) -> str:
     svg = re.sub(
         r"<svg[^>]*?viewBox='([^']*)'[^>]*>",
         r"<svg xmlns='http://www.w3.org/2000/svg' viewBox='\1' fill='none' stroke='currentColor' "
-        r"stroke-width='1.6' stroke-linecap='round' font-family='sans-serif'>",
+        r"stroke-width='2.5' stroke-linecap='round' font-family='sans-serif'>",
         svg,
         count=1,
     )
-    svg = svg.replace("<text ", "<text fill='currentColor' stroke='none' ")
     return " ".join(svg.split())
 
 

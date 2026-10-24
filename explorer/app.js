@@ -478,6 +478,18 @@ async function copyText(button, text, label) {
   setTimeout(() => { button.textContent = label; }, 2500);
 }
 
+/** Show the selected ligand's 2D structure large, with its full SMILES. */
+function openDepiction() {
+  const c = byId.get(state.selected);
+  if (!c || !c.svg) return;
+  $("depict-title").textContent = c.id;
+  $("depict-large").innerHTML = c.svg;
+  $("depict-smiles").textContent = c.smiles || "";
+  const dialog = $("depict-dialog");
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", ""); // older browsers and jsdom
+}
+
 function copyLink() {
   const base = DATA.shareUrl || `${location.origin}${location.pathname}`;
   const engine = ENGINES ? `?engine=${state.engine}` : "";
@@ -609,6 +621,11 @@ function init() {
     drawDetail();
   });
   $("copy-link").addEventListener("click", copyLink);
+  $("d-depict").addEventListener("click", openDepiction);
+  $("depict-close").addEventListener("click", () => $("depict-dialog").close());
+  $("depict-dialog").addEventListener("click", (e) => {
+    if (e.target === $("depict-dialog")) $("depict-dialog").close(); // click on the backdrop
+  });
   $("copy-smiles").addEventListener("click", () => copyText($("copy-smiles"), byId.get(state.selected).smiles, "Copy"));
 
   const redraw = () => { drawChart(); drawMatrix(); drawDetail(); };
