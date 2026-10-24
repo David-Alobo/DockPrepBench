@@ -42,6 +42,10 @@ All notable changes to this project are documented here. The format follows
   Holm-adjusted p-values (`analysis.stats.holm_adjust`).
 - Runs save every returned pose to `results/<engine>/<arm>/poses/<id>.sdf`, in rank order with
   `rank`, `score` and `rmsd` properties, for inspection and the planned results explorer.
+- `preparation.box.box_from_gyration` and the `box_size` config field: a cubic box 2.857 times
+  the docked ligand's radius of gyration (Feinstein and Brylinski 2015); arm `box_gyration`.
+- Interaction arms `ligand_dimorphite_box_2`, `_6` and `_8`: ligand protonation combined with
+  each box padding.
 
 ### Changed
 - Pose RMSD matches atoms on the charge-free heavy-atom skeleton, so poses docked in a different

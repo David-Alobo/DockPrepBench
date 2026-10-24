@@ -89,6 +89,17 @@ An axis-aligned box centred on the extent of the crystal ligand's heavy atoms, p
 on each side by `box_padding` (baseline 4 Å, matching smina's `--autobox_add`
 default).
 
+With `box_size = "gyration"` the box is instead a cube whose edge is 2.857 times the radius
+of gyration of the docked ligand's heavy atoms, centred on the crystal ligand's centroid:
+the optimum Feinstein and Brylinski (J. Cheminform. 2015, 7, 18) found for AutoDock Vina.
+As in their protocol, the radius of gyration is taken from a low-energy conformer, here the
+start conformer that is docked. Checked on all 428 complexes before docking: every box was
+built, the boxes are smaller than the baseline 4 Å box in 427 complexes (median volume
+0.31 times) and smaller than the 2 Å box in 331 (median 0.75 times), and they contain all
+crystal heavy atoms in 221 complexes, at least 95% in 302 and at least 80% in 416. Vina
+keeps poses inside the box, so where part of the crystal ligand lies outside, the crystal
+pose can only be approached.
+
 ## Docking
 
 AutoDock Vina 1.2.7 through its Python bindings, with the Vina scoring function,
@@ -135,6 +146,8 @@ baseline.
 | `box_padding_2`, `_6`, `_8` | Box padding 2, 6 or 8 Å |
 | `ligand_dimorphite` | Ligand protonated at pH 7.4 |
 | `ligand_rdkit_conformer` | Start conformer regenerated with RDKit |
+| `box_gyration` | Cubic box 2.857 times the ligand's radius of gyration |
+| `ligand_dimorphite_box_2`, `_6`, `_8` | Ligand protonated at pH 7.4 and box padding 2, 6 or 8 Å (interaction with box size) |
 
 ## Known limitations
 

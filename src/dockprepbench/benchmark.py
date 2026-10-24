@@ -17,7 +17,7 @@ from dockprepbench.engines.base import DockingEngine
 from dockprepbench.evaluation.rmsd import centroid_shift, pose_rmsd
 from dockprepbench.evaluation.validity import is_pb_valid, validity_checks
 from dockprepbench.io import load_sdf_file, write_sdf_file
-from dockprepbench.preparation.box import box_from_ligand
+from dockprepbench.preparation.box import box_from_gyration, box_from_ligand
 from dockprepbench.preparation.config import PrepConfig
 from dockprepbench.preparation.ligand import prepare_ligand
 from dockprepbench.preparation.receptor import protonate_receptor
@@ -105,7 +105,10 @@ def dock_complex(
             ph=config.ph,
         )
         receptor = prepared_receptor(entry, config, work_dir)
-        box = box_from_ligand(crystal, padding=config.box_padding)
+        if config.box_size == "gyration":
+            box = box_from_gyration(crystal, ligand)
+        else:
+            box = box_from_ligand(crystal, padding=config.box_padding)
         result = engine.dock(receptor, ligand, box)
         if not result.poses:
             raise RuntimeError(f"{engine.name} returned no poses")
