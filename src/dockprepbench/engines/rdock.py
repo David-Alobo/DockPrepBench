@@ -93,18 +93,25 @@ class RDockEngine(DockingEngine):
         """
         Environment for rDock: RBT_ROOT must point at rDock's data directory.
 
-        A conda environment sets it on activation; when it is unset, it is inferred from the
-        install layout (`<env>/bin/rbdock` → `<env>/share/rdock-*`).
+        When unset it is inferred from where `rbdock` lives: a release tarball
+        (`<root>/bin/rbdock` beside `<root>/data`, whose `<root>/lib` is also added to the
+        library path) or a conda environment (`<env>/share/rdock-*`).
 
         Returns:
             dict: Environment for rDock's processes.
         """
         env = dict(os.environ)
-        if "RBT_ROOT" not in env:
-            prefix = Path(self._cmd("rbdock")[-1]).resolve().parent.parent
-            roots = sorted((prefix / "share").glob("rdock*"))
-            if roots:
-                env["RBT_ROOT"] = str(roots[-1])
+        if "RBT_ROOT" in env:
+            return env
+        prefix = Path(self._cmd("rbdock")[-1]).resolve().parent.parent
+        if (prefix / "data" / "scripts" / DOCKING_PROTOCOL).is_file():
+            env["RBT_ROOT"] = str(prefix)
+            lib = str(prefix / "lib")
+            env["LD_LIBRARY_PATH"] = os.pathsep.join(
+                filter(None, [lib, env.get("LD_LIBRARY_PATH")])
+            )
+        elif roots := sorted((prefix / "share").glob("rdock*")):
+            env["RBT_ROOT"] = str(roots[-1])
         return env
 
     def dock(self, receptor: Path, ligand: Chem.Mol, box: Box) -> DockingResult:

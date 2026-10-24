@@ -111,7 +111,6 @@ def test_rdock_cavity_sphere_encloses_the_box():
 real_engines = {
     "smina": (SminaEngine, ["smina"]),
     "gnina": (GninaEngine, ["gnina"]),
-    "rdock": (RDockEngine, ["rbdock", "rbcavity", "obabel"]),
 }
 
 
@@ -132,3 +131,32 @@ def test_real_engine_docks_into_box(name, peptide_pdb, ligand):
     assert result.scores == sorted(result.scores) or name == "gnina"  # gnina ranks by CNN
     for pose in result.poses:
         assert Chem.MolToSmiles(Chem.RemoveHs(pose)) == "NC(=O)c1ccccc1"
+
+
+POSEBUSTERS = (
+    Path(__file__).parents[2] / "data" / "raw" / "posebusters" / "posebusters_benchmark_set"
+)
+
+
+def test_real_rdock_redocks_a_posebusters_complex(tmp_path):
+    # rDock maps buried cavities, so it needs a real pocket rather than the toy peptide.
+    if not all(shutil.which(p) for p in ("rbdock", "rbcavity", "obabel")):
+        pytest.skip("rdock not installed")
+    entry = POSEBUSTERS / "5SAK_ZRY"
+    if not entry.is_dir():
+        pytest.skip("PoseBusters data not downloaded")
+    from dockprepbench.evaluation.rmsd import pose_rmsd
+    from dockprepbench.io import load_sdf_file
+    from dockprepbench.preparation.box import box_from_ligand
+    from dockprepbench.preparation.receptor import protonate_receptor
+
+    receptor = tmp_path / "receptor.pdb"
+    receptor.write_text(protonate_receptor(entry / "5SAK_ZRY_protein.pdb"))
+    crystal = load_sdf_file(entry / "5SAK_ZRY_ligand.sdf")[0]
+    start = load_sdf_file(entry / "5SAK_ZRY_ligand_start_conf.sdf")[0]
+
+    result = RDockEngine(n_runs=10).dock(receptor, start, box_from_ligand(crystal))
+
+    assert 1 <= len(result.poses) <= 9
+    assert result.scores == sorted(result.scores)
+    assert all(pose_rmsd(p, crystal) < 30 for p in result.poses)  # poses stay in the site
