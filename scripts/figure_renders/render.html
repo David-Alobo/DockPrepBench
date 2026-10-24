@@ -31,6 +31,8 @@ document.head.appendChild(s);
 function draw(data) {
   $3Dmol.setSyncSurface(true);
   const viewer = $3Dmol.createViewer(document.getElementById("v"), { backgroundColor: "white", backgroundAlpha: 0, antialias: true });
+  // v4: a thin dark outline around every object, for a crisp illustrative look at small size.
+  if (CLEAN) viewer.setViewStyle({ style: "outline", color: "black", width: 0.035 });
   const crystal = () => {
     const m = viewer.addModel(data.crystal, "sdf");
     viewer.setStyle({ model: m }, { stick: { radius: 0.28, color: CRYSTAL } });
@@ -48,6 +50,23 @@ function draw(data) {
     viewer.setStyle({ model: m, atom: ["N", "C", "O"], hetflag: false }, {});
     return m;
   };
+  // The protein around a ligand only (residues within 10 Å), as pale ribbons: it fits inside
+  // the frame instead of being cut off at its edges, and fewer ribbons pass in front.
+  // Residues are chosen by distance here; 3Dmol's `within` selector ignored the ligand model.
+  const pocketRibbons = (ligandModel, color = "#e3d6bd") => {
+    const shell = viewer.addModel(data.protein, "pdb");
+    viewer.setStyle({ model: shell }, {});  // a new model is drawn as lines by default
+    const lig = ligandModel.selectedAtoms({});
+    const near = new Set(
+      shell.selectedAtoms({}).filter((a) => lig.some((b) =>
+        (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2 < 10 * 10)).map((a) => `${a.chain}:${a.resi}`),
+    );
+    for (const key of near) {
+      const [chain, resi] = key.split(":");
+      viewer.setStyle({ model: shell, chain, resi: Number(resi) }, { cartoon: { color } });
+    }
+    return shell;
+  };
   const poses = (data.poses.vina || {}).baseline || [];
   let focus;
   if (SCENE === "input") {
@@ -62,23 +81,11 @@ function draw(data) {
   } else if (SCENE === "box") {
     // v4: the protein as a light cartoon for context and the ligand as spheres filling the
     // site, so the picture shows where the box sits on the protein.
-    const shell = CLEAN ? protein("#efe6d3") : (pocket(), null);  // pale, so box and ligand stand out
+    if (!CLEAN) pocket();
     focus = crystal();
     if (CLEAN) {
       viewer.setStyle({ model: focus }, { sphere: { scale: 0.85, color: CRYSTAL } });
-      // Only the protein around the site: it fits inside the frame instead of being cut off
-      // at its edges, and fewer ribbons pass in front of the ligand.
-      // Residues are chosen here by distance (3Dmol's `within` selector ignored the ligand).
-      const lig = focus.selectedAtoms({});
-      const near = new Set(
-        shell.selectedAtoms({}).filter((a) => lig.some((b) =>
-          (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2 < 10 * 10)).map((a) => `${a.chain}:${a.resi}`),
-      );
-      viewer.setStyle({ model: shell }, {});
-      for (const key of near) {
-        const [chain, resi] = key.split(":");
-        viewer.setStyle({ model: shell, chain, resi: Number(resi) }, { cartoon: { color: "#e3d6bd" } });
-      }
+      pocketRibbons(focus);
     }
     // The search box as docking uses it: the ligand's heavy-atom extent plus the padding.
     const xyz = focus.selectedAtoms({ elem: ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"] });
@@ -108,7 +115,14 @@ function draw(data) {
       viewer.zoom(0.55);
     }
   } else if (SCENE === "engine") {
-    pocket();
+    if (CLEAN) {
+      // v4: the same pocket ribbons as the search-space picture, so the cards read as a series.
+      const site = viewer.addModel(data.crystal, "sdf");
+      viewer.setStyle({ model: site }, {});
+      pocketRibbons(site);
+    } else {
+      pocket();
+    }
     // v4: the four best-ranked poses in distinct shades of the docked colour, top pose darkest.
     const SHADES = ["#1f5fae", "#4a8fd8", "#7fb0e6", "#b3cff0"];
     for (const pose of CLEAN ? poses.filter((p) => p.rank <= 4) : poses) {
@@ -120,7 +134,7 @@ function draw(data) {
     focus = viewer.addModel(data.crystal, "sdf");
     viewer.setStyle({ model: focus }, {});
     viewer.zoomTo({ model: focus });
-    viewer.zoom(0.7);
+    viewer.zoom(CLEAN ? 0.48 : 0.7);  // v4: the pocket around the poses, not just the poses
   } else {
     focus = crystal();
     viewer.setStyle({ model: focus }, { stick: { radius: 0.36, color: "#f7c57a" } });  // pale amber halo

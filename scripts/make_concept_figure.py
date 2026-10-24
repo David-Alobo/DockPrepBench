@@ -346,8 +346,16 @@ if ARGS.v4:
     verdict = "✓" if rmsd < 2 else "✗"
     cards[5] = ("Evaluation", [f"RMSD {rmsd:.2f} Å {verdict}", "(success &lt; 2 Å)",
                                "PoseBusters validity"], INK_2)  # fmt: skip
-for x, (title, bullets, accent) in zip(xs, cards, strict=True):
+for i, (x, (title, bullets, accent)) in enumerate(zip(xs, cards, strict=True), 1):
     card(x, Y, W, H, title, bullets, accent)
+    if ARGS.v4:
+        # Numbered badge on the card's top edge, clear of the title, so the flow reads at a
+        # glance.
+        add(
+            f'<circle cx="{x + 26}" cy="{Y + 4}" r="15" fill="{accent}" stroke="#ffffff" '
+            f'stroke-width="3"/>'
+        )
+        text(x + 26, Y + 11, str(i), 19, "#ffffff", "bold", "middle")
 for x in xs[:-1]:
     arrow(x + W + 4, Y + 125, x + W + GAP - 6, Y + 125)
 
