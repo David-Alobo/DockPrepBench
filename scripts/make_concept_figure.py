@@ -2,6 +2,10 @@
 
 Usage: python scripts/make_concept_figure.py [OUT.svg]
 
+Version 2 (default output docs/figures/concept_v2.svg) shows the study as run: the receptor
+is held fixed, and the arms vary the search box and the ligand. Version 1 (concept.svg, the
+original plan with receptor, cofactor and water arms) is kept for reference.
+
 The figure is 180 mm wide (double column). At that size 1 px = 0.32 pt, so body text
 (22 px) prints at 7 pt. Convert to PDF/PNG with e.g. `rsvg-convert`.
 """
@@ -109,8 +113,8 @@ W, H, GAP, Y = 222, 310, 43.6, 70
 xs = [30 + i * (W + GAP) for i in range(6)]
 cards = [
     ("Input", ["PoseBusters set", "428 complexes", "Crystal pose"], INK_2),
-    ("Receptor", ["Protonation", "Cofactors", "Waters", "Holo vs apo"], RECEPTOR),
-    ("Ligand", ["Protonation", "Tautomer", "Start conformer"], LIGAND),
+    ("Receptor", ["pH 7.4", "Cofactors removed", "No waters in set", "Held fixed"], INK_2),
+    ("Ligand", ["Protonation", "(supplied or pH 7.4)", "Start conformer"], LIGAND),
     ("Search space", ["Box padding", "2 / 4 / 6 / 8 Å"], BOX),
     ("Engine", ["AutoDock Vina", "Smina", "Gnina", "rDock"], ENGINE),
     ("Evaluation", ["RMSD &lt; 2 Å", "PoseBusters", "validity"], INK_2),
@@ -126,10 +130,10 @@ c = [x + W / 2 for x in xs]
 protein(c[0], cy, MUTED, "#ececea")
 ligand(c[0] - 6, cy - 28, INK_2, "#ffffff", r=11)
 
-protein(c[1], cy, RECEPTOR, "#ffffff")
+protein(c[1], cy, MUTED, "#ffffff")  # held fixed: drawn in neutral ink, not a stage colour
 for dx, dy in [(-44, -22), (-50, 18), (40, -26), (50, 14), (-8, 30), (24, 32)]:
-    add(f'<circle cx="{c[1] + dx}" cy="{cy + dy}" r="5" fill="{RECEPTOR}"/>')  # added H atoms
-text(c[1], cy + 6, "+H", 20, RECEPTOR, "bold", "middle")
+    add(f'<circle cx="{c[1] + dx}" cy="{cy + dy}" r="5" fill="{MUTED}"/>')  # added H atoms
+text(c[1], cy + 6, "+H", 20, MUTED, "bold", "middle")
 
 ligand(c[2] - 14, cy, LIGAND, "#ffffff", r=22)
 add(
@@ -162,7 +166,8 @@ ligand(c[5] - 4, cy + 4, INK, r=20)  # docked pose
 # Brackets naming what varies.
 by = Y + H + 22
 for (x0, x1), label, color in [
-    ((xs[1], xs[3] + W), "Preparation choices, varied one at a time", INK_2),
+    ((xs[1], xs[1] + W), "Held fixed", MUTED),
+    ((xs[2], xs[3] + W), "Varied one at a time", INK_2),
     ((xs[4], xs[4] + W), "Engine", ENGINE),
 ]:
     add(
@@ -177,13 +182,12 @@ text(30, PY, "b", PANEL, INK, "bold")
 text(70, PY, "One factor at a time, paired by complex", TITLE, INK, "bold")
 
 arms = [
-    ("Baseline", INK_2),
-    ("Box padding", BOX),
+    ("Baseline (4 Å box)", INK_2),
+    ("Box padding 2 Å", BOX),
+    ("Box padding 6 Å", BOX),
+    ("Box padding 8 Å", BOX),
     ("Ligand protonation", LIGAND),
     ("Start conformer", LIGAND),
-    ("Receptor protonation", RECEPTOR),
-    ("Cofactors kept", RECEPTOR),
-    ("Waters kept", RECEPTOR),
 ]
 engines = ["Vina", "Smina", "Gnina", "rDock"]
 MX, MY, CW, CH, PITCH_X, PITCH_Y = 290, 590, 58, 34, 70, 46
@@ -200,12 +204,13 @@ for i, (arm, color) in enumerate(arms):
             f'rx="5" fill="{fill}"/>'
         )
 # Highlight one comparison: ligand protonation vs baseline under Vina.
-for i in (0, 2):
+for i in (0, 4):
     add(
         f'<rect x="{MX - 3}" y="{MY + i * PITCH_Y - 3}" width="{CW + 6}" height="{CH + 6}" rx="7" '
         f'fill="none" stroke="{LIGAND}" stroke-width="3"/>'
     )
-legend_y = MY + len(arms) * PITCH_Y + 18
+# Below both the arm list and the 8 paired-outcome rows drawn next to it (36 px apart).
+legend_y = max(MY + len(arms) * PITCH_Y, MY + 30 + 7 * 36 + 10) + 30
 add(f'<rect x="40" y="{legend_y - 20}" width="30" height="20" rx="4" fill="{GRID}"/>')
 text(80, legend_y - 3, "one run: 428 complexes", BODY, INK_2)
 
@@ -264,8 +269,8 @@ dot_row(
 dot_row(
     800,
     "Preparation choices, at a fixed engine",
-    [1010, 1095, 1150, 1240, 1330, 1385],
-    [BOX, LIGAND, RECEPTOR, LIGAND, RECEPTOR, BOX],
+    [1040, 1120, 1190, 1260, 1330],
+    [BOX, BOX, LIGAND, LIGAND, BOX],
     "Δ preparation",
     INK_2,
 )
@@ -283,7 +288,7 @@ text(
 
 add("</svg>")
 
-target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("docs/figures/concept.svg")
+target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("docs/figures/concept_v2.svg")
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text("\n".join(out) + "\n", encoding="utf-8")
 print(target)
