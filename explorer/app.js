@@ -360,12 +360,14 @@ function drawViewer(real, poses) {
     if (withProtein) {
       const map = chainColours(real.protein);
       scene.protein = viewer.addModel(real.protein, "pdb");
-      // In close-up the cartoon sits in front of the ligand, so it is made see-through.
-      viewer.setStyle({ model: scene.protein }, { cartoon: { colorscheme: { prop: "chain", map }, opacity: state.closeUp ? 0.5 : 0.95 } });
-      if (state.showSurface) {
+      // Opacity below 1 puts the cartoon in 3Dmol's transparent pass, where a surface hides it.
+      // So: opaque cartoon inside the surface for the whole protein; in close-up, where the
+      // cartoon sits in front of the ligand, a see-through cartoon and no surface.
+      viewer.setStyle({ model: scene.protein }, { cartoon: { colorscheme: { prop: "chain", map }, opacity: state.closeUp ? 0.5 : 1 } });
+      if (state.showSurface && !state.closeUp) {
         // One surface per chain: 3Dmol colours a surface from `color`, not from a chain map.
         for (const [chain, color] of Object.entries(map)) {
-          const done = viewer.addSurface(window.$3Dmol.SurfaceType.MS, { opacity: 0.2, color }, { model: scene.protein, chain });
+          const done = viewer.addSurface(window.$3Dmol.SurfaceType.MS, { opacity: 0.35, color }, { model: scene.protein, chain });
           if (done && typeof done.then === "function") done.then(() => viewer.render());
         }
       }
@@ -392,6 +394,7 @@ function drawViewer(real, poses) {
     // range (so the cartoon is not clipped away) and moves in on the ligand.
     if (scene.protein) {
       viewer.zoomTo({ model: scene.protein });
+      if (!state.closeUp) viewer.zoom(1.3); // zoomTo leaves a wide margin
       if (state.closeUp) {
         viewer.center({ model: crystal });
         viewer.zoom(3.5);
@@ -535,7 +538,11 @@ function init() {
   $("t-pocket").addEventListener("change", (e) => { state.showPocket = e.target.checked; drawDetail(); });
   $("t-protein").addEventListener("change", (e) => { state.showProtein = e.target.checked; drawDetail(); });
   $("t-surface").addEventListener("change", (e) => { state.showSurface = e.target.checked; drawDetail(); });
-  $("t-closeup").addEventListener("change", (e) => { state.closeUp = e.target.checked; drawDetail(); });
+  $("t-closeup").addEventListener("change", (e) => {
+    state.closeUp = e.target.checked;
+    $("t-surface").disabled = state.closeUp; // no surface in close-up: it would hide the ligand
+    drawDetail();
+  });
   $("copy-link").addEventListener("click", copyLink);
 
   const redraw = () => { drawChart(); drawMatrix(); drawDetail(); };
