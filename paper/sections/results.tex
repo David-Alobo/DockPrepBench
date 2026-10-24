@@ -14,8 +14,25 @@ at all. These
 complexes are counted as failures; the other engines do not use this step and docked all
 428. With the baseline protocol, Vina placed the top-ranked pose within \SI{2}{\angstrom} of
 the crystal ligand for 46.3\% [41.6, 51.0] of complexes, and 41.8\% [37.2, 46.5] were also
-\pbvalid{}. \result{Comparison with the Vina results reported by PoseBusters, listing
-protocol differences.}
+\pbvalid{}.
+
+The PoseBusters authors also docked these 428 complexes with Vina and released their
+per-complex results with the dataset \citep{posebusters2023data}. Their run reached 52.3\%
+[47.6, 57.0] top-1 success and 51.2\% \pbvalid{} success, 6.0 points above our baseline
+(their run succeeded on 49 complexes where ours failed, ours on 23 where theirs failed;
+exact McNemar $p = 0.003$). The two runs agreed on 356 of the 428 complexes. Our
+preparation failures account for little of the difference: their run solved 5 of those 16
+complexes, and on the 412 we docked the gap was 5.1 points (53.2\% against 48.1\%,
+$p = 0.014$). The protocols differ in several of the choices studied here. Theirs used Vina
+1.2.3 with exhaustiveness 32 and 40 poses, a cubic search box of side \SI{25}{\angstrom}
+centred on the crystal ligand, and receptors protonated with Reduce and converted with
+ADFR \citep{buttenschoen2024posebusters}, against exhaustiveness 8, nine poses, a box
+padded by \SI{4}{\angstrom} around the ligand and PDBFixer/OpenMM preparation here. Our
+\SI{2}{\angstrom}-padding arm reached 53.0\%, indistinguishable from their result
+($p = 0.82$). A difference of six points between two careful Vina protocols on the same
+complexes is itself comparable to the preparation effects reported below.
+\todo{Confirm the exhaustiveness, pose count and receptor tools against the journal
+version's supplementary information (checked in the preprint versions).}
 
 Search was rarely the main limitation at the baseline padding. A pose within
 \SI{2}{\angstrom} was among the nine returned for 303 complexes (70.8\%), but ranked first
