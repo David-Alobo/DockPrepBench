@@ -324,4 +324,7 @@ def write_report(
         path = out / f"{name}.csv"
         table.to_csv(path, index=False, float_format="%.6g")
         written.append(path)
-    return written
+    # LaTeX fragments for the supplementary information, from the CSVs just written.
+    from dockprepbench.analysis.latex import write_latex
+
+    return written + write_latex(out)

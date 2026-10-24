@@ -1,0 +1,16 @@
+engine,arm,delta_pts,flipped,seed_flips_mean,vs_noise
+gnina,box_padding_2,2.92208,41,,
+gnina,box_padding_6,-2.5974,40,,
+gnina,box_padding_8,-5.19481,52,,
+gnina,ligand_dimorphite,-6.16883,57,,
+gnina,ligand_rdkit_conformer,0.974026,61,,
+smina,box_padding_2,6.16883,39,,
+smina,box_padding_6,-1.62338,19,,
+smina,box_padding_8,-3.57143,27,,
+smina,ligand_dimorphite,0,22,,
+smina,ligand_rdkit_conformer,2.5974,58,,
+vina,box_padding_2,5.51948,33,9.83333,3.35593
+vina,box_padding_6,-2.5974,16,9.83333,1.62712
+vina,box_padding_8,-3.24675,28,9.83333,2.84746
+vina,ligand_dimorphite,1.62338,29,9.83333,2.94915
+vina,ligand_rdkit_conformer,3.57143,57,9.83333,5.79661

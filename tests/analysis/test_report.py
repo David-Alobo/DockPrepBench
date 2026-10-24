@@ -137,8 +137,15 @@ def test_write_report_writes_every_table(results, tmp_path):
     written = write_report(results, tmp_path / "tables")
 
     assert sorted(p.name for p in written) == [
-        "comparisons.csv", "flips.csv", "noise.csv", "summary.csv", "transitions.csv",
-    ]  # fmt: skip
+        "comparisons.csv",
+        "flips.csv",
+        "flips_table.tex",
+        "noise.csv",
+        "pb_valid_table.tex",
+        "summary.csv",
+        "top1_table.tex",
+        "transitions.csv",
+    ]  # fmt: skip (no dataset given, so no sensitivity tables)
     assert not math.isnan(pd.read_csv(tmp_path / "tables" / "noise.csv")["flips_mean"][0])
 
 
