@@ -83,14 +83,12 @@ asked for up to nine poses with a fixed seed (42):
   \item \emph{AutoDock Vina} 1.2.7 \citep{trott2010vina,eberhardt2021vina}, through its
     Python bindings, with the Vina scoring function and exhaustiveness 8. Poses are
     converted back to RDKit molecules through Meeko, which restores bond orders.
-  \item \emph{Smina}, a fork of Vina with its own implementation of the same default
-    scoring function, run from the command line with exhaustiveness 8. \todo{Cite Smina
-    (Koes et al., 2013) once verified.}
-  \item \emph{Gnina} 1.3.3, which searches with the Smina machinery and re-ranks the final
+  \item \emph{Smina} \citep{koes2013smina}, a fork of Vina whose default scoring function
+    reproduces Vina's, run from the command line with exhaustiveness 8.
+  \item \emph{Gnina} 1.3.3 \citep{mcnutt2021gnina}, which searches with the Smina machinery and re-ranks the final
     poses with its default convolutional neural network ensemble (\texttt{--cnn\_scoring
-    rescore}); exhaustiveness 8, on GPUs. \todo{Cite Gnina (McNutt et al.) once verified.}
-  \item \emph{rDock} 24.03 \todo{Cite rDock (Ruiz-Carmona et al., 2014) once verified.},
-    with 50 independent runs per ligand
+    rescore}); exhaustiveness 8, on GPUs.
+  \item \emph{rDock} 24.03 \citep{ruizcarmona2014rdock}, with 50 independent runs per ligand
     and the standard docking protocol. The cavity is mapped with the sphere method on a
     sphere centred on the box that passes through its corners, so it covers the box.
     Poses are ranked by the rDock total score.

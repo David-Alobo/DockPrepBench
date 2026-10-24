@@ -50,5 +50,4 @@ candidates not yet checked here rather than in `references.bib`.
 
 To verify before citing:
 
-- Prior studies of protonation, tautomer and water effects on docking, for the
-  Introduction (to be found).
+- None at present.
