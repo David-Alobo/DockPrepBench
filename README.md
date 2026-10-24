@@ -1,26 +1,63 @@
 # DockPrepBench
 
 [![CI](https://github.com/David-Alobo/DockPrepBench/actions/workflows/ci.yml/badge.svg)](https://github.com/David-Alobo/DockPrepBench/actions/workflows/ci.yml)
+[![Paper](https://github.com/David-Alobo/DockPrepBench/actions/workflows/paper.yml/badge.svg)](https://github.com/David-Alobo/DockPrepBench/actions/workflows/paper.yml)
+[![Explorer](https://img.shields.io/badge/results-explorer-2a78d6)](https://david-alobo.github.io/DockPrepBench/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
 
-**How much does preparation matter in classical docking?**
+**How much does preparation matter in molecular docking, compared with the choice of engine?**
 
-DockPrepBench measures how much protein and ligand preparation choices change docking outcomes,
-compared with the choice of docking engine.
+Docking benchmarks usually compare engines under one fixed preparation protocol, yet every study
+prepares its inputs differently. DockPrepBench changes one preparation choice at a time, docks
+all 428 complexes of the PoseBusters Benchmark set with each of four engines, and compares every
+arm with its baseline complex by complex.
 
-Docking benchmarks usually compare engines under a single, fixed preparation protocol. In practice,
-decisions such as protonation state, tautomer enumeration, retained waters, holo vs. apo receptor and
-binding-box definition can shift results as much as switching tools. This project quantifies that
-effect in a reproducible, hardware-agnostic pipeline.
+**Key findings** (Vina, Smina and Gnina; rDock is being added):
 
-> Status: early development. Results will be added as milestones are completed.
+- **Preparation moves top-1 success by 7 to 10.5 points within an engine.** Differences of a few
+  points between engines, measured under one protocol, are within what preparation alone produces.
+- **The search box matters most.** A tight box (2 Å padding around the reference ligand) raised
+  Vina from 46.3% to 53.0% and Smina from 47.0% to 54.7%, the only effects that survive Holm
+  correction. Larger boxes sent top poses to wrong sites in every engine.
+- **Net rates hide most of the effect.** Every arm changed the outcome of more complexes than a
+  change of docking seed did, up to 4.9 times as many, but gains and losses largely cancelled.
+- **The engine still matters most.** Gnina's CNN re-scoring put it 16.4 points above Vina at the
+  same protocol; the best preparation closed about 40% of that gap.
+
+**[Browse every complex, engine and pose in 3D in the results explorer →](https://david-alobo.github.io/DockPrepBench/)**
+
+![Study design: the docking pipeline, the one-factor-at-a-time arms run with every engine, and the question asked](docs/figures/concept_v4.png)
+
+## Results
+
+Top-1 success (heavy-atom RMSD < 2 Å) on all 428 complexes, with 95% Wilson intervals.
+
+![Top-1 success by preparation arm and engine](docs/figures/engine_arms.png)
+
+| Arm | Vina | Smina | Gnina |
+|---|---|---|---|
+| Baseline (4 Å box, supplied ligand) | 46.3 | 47.0 | 62.6 |
+| Box padding 2 Å | **53.0** | **54.7** | 65.7 |
+| Box padding 6 Å | 44.4 | 45.6 | 60.3 |
+| Box padding 8 Å | 44.2 | 44.2 | 58.6 |
+| Protonation at pH 7.4 | 49.1 | 48.1 | 59.3 |
+| RDKit start conformer | 50.7 | 50.2 | 63.3 |
+
+Bold: different from the same engine's baseline after Holm correction (exact McNemar test on the
+paired outcomes). The manuscript in [`paper/`](paper/) gives intervals, gained and lost
+complexes, PoseBusters validity, failure modes, the seed noise floor and a comparison with the
+published PoseBusters Vina run.
 
 ## Scope
 
 | | |
 |---|---|
-| **Engines** | AutoDock Vina, Smina, Gnina, rDock/CmDock |
-| **Datasets** | PoseBusters benchmark set; similarity-split PLINDER subset; virtual screening subset (planned) |
-| **Metrics** | Top-1 success (RMSD < 2 Å), PoseBusters physical validity, enrichment (EF, BEDROC) |
+| **Engines** | AutoDock Vina 1.2.7, Smina, Gnina (CNN re-scoring), rDock (in progress) |
+| **Dataset** | PoseBusters Benchmark set, 428 complexes (and the 308-complex subset of the journal paper) |
+| **Arms** | Box padding 2 / 6 / 8 Å, ligand protonation at pH 7.4, RDKit start conformer; baseline 4 Å |
+| **Metrics** | Top-1 success (RMSD < 2 Å), PoseBusters validity, wrong-site and sampling failures |
+| **Statistics** | Wilson intervals, exact McNemar tests with Holm correction, a four-seed noise floor |
 
 ## Installation
 
@@ -76,16 +113,17 @@ complexes whose outcome changed. Use `--limit N` on `run` for a quick check.
 
 ### Results explorer
 
-Browse the results in a web page: success by arm, how outcomes moved between the baseline
-and an arm, and every complex with its docked poses in 3D.
+The explorer is online at **https://david-alobo.github.io/DockPrepBench/**: success by arm, how
+outcomes moved between the baseline and an arm, and every complex with its docked poses in 3D.
+To browse your own runs locally:
 
 ```bash
 scripts/explorer.sh                  # every engine; then open http://localhost:8000/
 scripts/explorer.sh --engine gnina --open
 ```
 
-The script builds the page's data from `results/` and serves it locally. See
-[explorer/README.md](explorer/README.md).
+The script builds the page's data from `results/` and serves it locally; `scripts/publish_explorer.sh`
+publishes it to GitHub Pages. See [explorer/README.md](explorer/README.md).
 
 ## Project layout
 
@@ -112,11 +150,13 @@ for how the stages fit together, and
 
 ## Roadmap
 
-- [x] Project foundation: packaging, tests, CI
-- [ ] Vina end-to-end on a small complex set with RMSD scoring
-- [ ] All engines + PoseBusters validity checks on the full set
-- [ ] Preparation-variant experiments
-- [ ] Figures, write-up and preprint
+- [x] Packaging, tests, CI
+- [x] Vina, Smina and Gnina on the full PoseBusters set, with PoseBusters validity checks
+- [x] Preparation arms, paired statistics and the seed noise floor
+- [x] Results explorer and manuscript draft
+- [ ] rDock on all arms
+- [ ] Interaction runs (protonation × box size) and a box scaled to ligand size
+- [ ] Preprint on ChemRxiv and an archived release
 
 ## License
 
