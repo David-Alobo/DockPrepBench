@@ -89,6 +89,78 @@ def plot_success_rates(table: pd.DataFrame, path_stem: Path) -> list[Path]:
     return _save(fig, path_stem)
 
 
+# Engines and arms in display order; an engine keeps its colour slot in every figure.
+ENGINE_LABELS = {"vina": "Vina", "smina": "Smina", "gnina": "Gnina", "rdock": "rDock"}
+ARM_LABELS = {
+    "baseline": "Baseline (4 Å box)",
+    "box_padding_2": "Box padding 2 Å",
+    "box_padding_6": "Box padding 6 Å",
+    "box_padding_8": "Box padding 8 Å",
+    "ligand_dimorphite": "Protonation (pH 7.4)",
+    "ligand_rdkit_conformer": "RDKit conformer",
+}
+
+
+def plot_engine_arms(summary: pd.DataFrame, path_stem: Path) -> list[Path]:
+    """
+    Draw top-1 success per preparation arm (rows) and engine (colours), with 95% intervals.
+
+    Each engine's baseline success is marked by a faint vertical line in its colour, so an
+    arm's shift from its own baseline can be read off directly.
+
+    Args:
+        summary (pd.DataFrame): The report's summary table (`report.summary_table`); seed
+            replicates are ignored.
+        path_stem (Path): Output path without extension; one file per format is written.
+
+    Returns:
+        list[Path]: Files written.
+
+    Raises:
+        ValueError: If there are more engines than colour slots.
+    """
+    engines = [e for e in ENGINE_LABELS if e in set(summary["engine"])]
+    engines += sorted(set(summary["engine"]) - set(engines))
+    if len(engines) > len(SERIES):
+        raise ValueError(f"{len(engines)} engines but only {len(SERIES)} colour slots")
+    arms = [a for a in ARM_LABELS if a in set(summary["run"])]
+    table = summary.set_index(["engine", "run"])
+
+    fig = Figure(figsize=(6.4, 0.62 * len(arms) + 1.2), facecolor=SURFACE)
+    ax = fig.add_subplot()
+    _style_axes(ax)
+    rows = np.arange(len(arms))[::-1]  # baseline at the top
+    step = 0.16
+    offsets = (np.arange(len(engines)) - (len(engines) - 1) / 2) * -step
+    for engine, colour, offset in zip(engines, SERIES, offsets, strict=False):
+        if (engine, "baseline") in table.index:
+            ax.axvline(100 * table.loc[(engine, "baseline"), "top1"], color=colour, lw=1,
+                       alpha=0.35, zorder=1)  # fmt: skip
+        for arm, y in zip(arms, rows + offset, strict=True):
+            if (engine, arm) not in table.index:
+                continue
+            r = table.loc[(engine, arm)]
+            ax.hlines(y, 100 * r["top1_low"], 100 * r["top1_high"], color=colour, lw=2, zorder=2)
+            ax.scatter(100 * r["top1"], y, s=36, color=colour, edgecolor=SURFACE, lw=1.5, zorder=3)
+        ax.plot(
+            [], [], marker="o", ms=6, lw=2, color=colour, label=ENGINE_LABELS.get(engine, engine)
+        )
+
+    ax.set_yticks(rows, [ARM_LABELS[a] for a in arms])
+    for y in rows[:-1] - 0.5:
+        ax.axhline(y, color=GRID, lw=0.8, zorder=0)
+    ax.set_ylim(-0.6, len(arms) - 0.4)
+    shown = table.loc[[(e, a) for e in engines for a in arms if (e, a) in table.index]]
+    low, high = 100 * shown["top1_low"].min(), 100 * shown["top1_high"].max()
+    ax.set_xlim(
+        5 * np.floor((low - 2) / 5), 5 * np.ceil((high + 2) / 5)
+    )  # intervals clear of edges
+    ax.set_xlabel("Top-1 success, RMSD < 2 Å (% of 428 complexes)", color=INK_SECONDARY)
+    ax.grid(axis="x", color=GRID, lw=0.8)
+    _legend_above(ax, ncol=len(engines))
+    return _save(fig, path_stem)
+
+
 def plot_rmsd_cdf(
     runs: dict[str, pd.DataFrame], path_stem: Path, max_rmsd: float = 10.0
 ) -> list[Path]:

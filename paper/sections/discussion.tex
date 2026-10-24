@@ -1,14 +1,50 @@
 \section{Discussion}
 \label{sec:discussion}
 
-\todo{Main finding in one paragraph: the size of preparation effects relative to seed noise
-  and (later) to the choice of engine.}
+Preparation choices changed redocking success by amounts that matter, but less than the
+choice of engine. Across the six arms, top-1 success varied by 7.0 to 10.5 points within
+an engine, while Gnina's re-scoring of the same search placed it 16.4 points above Vina
+at the baseline protocol. Only one choice, the size of the search box, shifted success
+beyond what multiple testing allows, and it did so for both Vina and Smina. The best
+preparation for Vina closed about 40\% of its gap to Gnina. \result{Whether rDock, an engine
+outside the Vina family, follows the same pattern.} For anyone comparing engines, these
+numbers set a scale: differences between engines of a few points, measured under a single
+preparation protocol, are within the range that preparation alone produces.
 
-\todo{Mechanisms, from the failure-mode analysis: which choices act through scoring and
-  which through sampling or the search space.}
+Net success rates hide most of what preparation does. Every arm changed the outcome of more
+complexes than a change of docking seed did, up to 4.9 times as many, and most of these
+changes fell on complexes whose outcome was otherwise reproducible: the regenerated start
+conformer changed 63 such complexes while moving the success rate by only 4.4 points,
+because gains and losses nearly cancelled. A study that docks a particular ligand series,
+or that reports which complexes an engine solves, inherits this sensitivity even when
+benchmark-level rates look stable. That docking responds strongly to small changes in its
+input has been reported before \citep{feher2012chaotic}; here it is quantified against the
+seed-to-seed variation of the same protocol.
 
-\todo{Practical recommendations: what to report, and which choices matter for which kinds of
-  ligand or pocket.}
+The failure-mode analysis shows how the choices act. The search box worked through
+sampling, not scoring: a tight box removed nearly all wrong-site poses and raised the
+number of complexes with any correct pose, and larger boxes did the reverse for every
+engine, sending top poses to high-scoring sites away from the crystal ligand. This agrees
+with earlier work showing that box size affects docking accuracy
+\citep{feinstein2015boxsize}, and it means that a box drawn generously around a known
+ligand is not a neutral default. Gnina was the least sensitive to the box, consistent
+with its re-scoring rejecting many of the wrong-site poses that a larger box admits. The
+start conformer, in contrast, changed which basin the search ended in, in both directions,
+and its effect was not related to ligand size or flexibility: it behaves like a
+reproducible perturbation of a stochastic search rather than a better or worse input.
+Protonation at pH 7.4 had small effects that leaned towards the ligands whose charge it
+changed, and no effect survived correction.
+
+These results suggest four practices for docking benchmarks and applications. First,
+report the search space exactly (centre, size and how it was derived), since it is the
+preparation choice with the largest and most consistent effect. Where a reference ligand
+is available, a tight box (\SI{2}{\angstrom} padding here) raised success for all three
+engines, significantly for Vina and Smina. Second, repeat runs with several seeds and report the spread: a single run cannot
+separate a real difference from seed noise, which here amounted to 17.5 changed complexes
+between two runs of the same protocol. Third, compare protocols complex by complex with
+paired tests and report how many complexes changed, not only the net rate. Fourth, state
+the ligand protonation and start conformer used, as both change individual outcomes even
+when they leave the overall rate unchanged.
 
 \subsection{Limitations}
 
@@ -20,5 +56,14 @@ the deposited structure lie close enough for a spurious bond to be perceived; th
 repaired, since that would move experimental atoms. This affects 16 complexes for Vina
 (15 with \SI{2}{\angstrom} padding, where one problem residue falls outside Meeko's
 cutoff); they fail in the baseline and in each arm alike, so they barely affect the paired
-comparisons, and the other engines, which do not use Meeko, dock them. Results cover four
-engines but one dataset. \todo{Update if further datasets are added.}
+comparisons, and the other engines, which do not use Meeko, dock them.
+
+The benchmark is redocking into the crystal structure of each complex, with the search
+space defined from the crystal ligand. This is the most favourable setting for docking;
+in cross-docking, or when the site must be predicted, both the absolute rates and the
+size of preparation effects may differ. Only the ligand side of protonation was varied,
+the receptor being protonated at pH 7.4 throughout, and tautomers were not enumerated. The
+seed replicates that set the noise floor were run for Vina only; Smina and Gnina share
+much of Vina's search, but their own run-to-run variation was not measured. The analysis
+of which complexes are sensitive is exploratory, and the properties tested explained
+little of the variation. Results cover four engines and one dataset.
