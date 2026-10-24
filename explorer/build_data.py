@@ -47,7 +47,7 @@ ENGINES = {
     "gnina": "Gnina 1.3.3",
     "rdock": "rDock 24.03",
 }
-POCKET_CUTOFF = 8.0  # Å from any crystal-ligand atom
+POCKET_CUTOFF = 5.0  # Å from any crystal-ligand atom: residues in contact with it
 
 
 def depiction(mol: Chem.Mol) -> str:

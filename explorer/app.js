@@ -270,6 +270,7 @@ function armPoses(payload) {
 function showNoPoses(message, list) {
   viewer = null;
   $("viewer-bar").hidden = true;
+  $("viewer-caption").textContent = "";
   $("viewer").innerHTML = `<div class="viewer-empty">${message}</div>`;
   $("d-poses").innerHTML = `<span class="count">${list}</span>`;
 }
@@ -359,7 +360,8 @@ function drawViewer(real, poses) {
     if (withProtein) {
       const map = chainColours(real.protein);
       scene.protein = viewer.addModel(real.protein, "pdb");
-      viewer.setStyle({ model: scene.protein }, { cartoon: { colorscheme: { prop: "chain", map }, opacity: 0.95 } });
+      // In close-up the cartoon sits in front of the ligand, so it is made see-through.
+      viewer.setStyle({ model: scene.protein }, { cartoon: { colorscheme: { prop: "chain", map }, opacity: state.closeUp ? 0.5 : 0.95 } });
       if (state.showSurface) {
         // One surface per chain: 3Dmol colours a surface from `color`, not from a chain map.
         for (const [chain, color] of Object.entries(map)) {
@@ -370,30 +372,47 @@ function drawViewer(real, poses) {
     }
     if (state.showPocket) {
       const pocket = viewer.addModel(real.pocket, "pdb");
-      viewer.setStyle({ model: pocket }, { stick: { radius: 0.12, colorscheme: { prop: "elem", map: elementColours("#9aa3b2") } } });
-      // With the cartoon shown, keep only side chains (anchored at CA); cofactors stay whole.
-      if (withProtein) viewer.setStyle({ model: pocket, atom: ["N", "C", "O"], hetflag: false }, {});
+      // Residues: thin and faded, so the two ligands stay in front. Cofactors: violet, whole.
+      viewer.setStyle({ model: pocket }, { stick: { radius: 0.09, opacity: 0.75, colorscheme: { prop: "elem", map: elementColours(RESIDUE) } } });
+      if (withProtein) viewer.setStyle({ model: pocket, atom: ["N", "C", "O"], hetflag: false }, {}); // backbone is in the cartoon
+      viewer.setStyle({ model: pocket, hetflag: true }, { stick: { radius: 0.16, colorscheme: { prop: "elem", map: elementColours(COFACTOR) } } });
     }
   } else {
     scene.ligands.forEach((m) => viewer.removeModel(m));
   }
   const crystal = viewer.addModel(real.crystal, "sdf");
-  viewer.setStyle({ model: crystal }, state.showCrystal ? { stick: { radius: 0.2, color: css("--faint"), opacity: 0.85 } } : {});
+  viewer.setStyle({ model: crystal }, state.showCrystal ? { stick: { radius: 0.36, color: CRYSTAL, opacity: 0.7 } } : {});
   const pose = poses.find((p) => p.rank === state.pose) || poses[0];
   const docked = viewer.addModel(pose.block, "sdf");
-  viewer.setStyle({ model: docked }, { stick: { radius: 0.24, colorscheme: { prop: "elem", map: elementColours(css("--metric-1")) } } });
+  viewer.setStyle({ model: docked }, { stick: { radius: 0.18, colorscheme: { prop: "elem", map: elementColours(css("--metric-1")) } } });
   scene.ligands = [crystal, docked];
   viewer.resize();
   if (rebuild) {
-    // Whole protein by default, as in a structure figure; close-up frames the ligand.
-    if (scene.protein && !state.closeUp) viewer.zoomTo({ model: scene.protein });
-    else {
+    // Whole protein by default, as in a structure figure. Close-up keeps the protein's depth
+    // range (so the cartoon is not clipped away) and moves in on the ligand.
+    if (scene.protein) {
+      viewer.zoomTo({ model: scene.protein });
+      if (state.closeUp) {
+        viewer.center({ model: crystal });
+        viewer.zoom(3.5);
+      }
+    } else {
       viewer.zoomTo({ model: crystal });
       viewer.zoom(0.7);
     }
   }
   viewer.render();
+  const ok = pose.rmsd < 2;
+  $("viewer-caption").innerHTML =
+    `<b>Blue</b>: docked pose #${pose.rank} (${armLabel(Array.isArray(real.poses) ? BASE : state.arm)}). <b>Amber</b>: crystal pose, the right answer. ` +
+    `They are ${L.fmtA(pose.rmsd)} Å apart (RMSD), ${ok ? "under 2 Å: <span class=\"delta up\">a success</span>" : "over 2 Å: <span class=\"delta down\">a miss</span>"}.`;
 }
+
+// The reference pose: one solid colour, drawn thicker than the docked pose so that a close
+// match shows as an amber halo around the blue pose rather than hiding behind it.
+const CRYSTAL = "#f08c00";
+const RESIDUE = "#a7afbb";
+const COFACTOR = "#8e6cc8";
 
 function elementColours(carbon) {
   return { C: carbon, N: "#3b5bdb", O: "#e03131", S: "#e0a800", F: "#2f9e44", Cl: "#2f9e44", Br: "#a5541f", P: "#e8590c", H: "#dee2e6" };

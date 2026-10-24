@@ -182,6 +182,8 @@ table.list { border-collapse: collapse; width: 100%; font-size: 13px; table-layo
 .depict svg { display: block; width: 100%; height: auto; }
 #viewer { position: relative; flex: 1 1 260px; min-height: 240px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--viewer-bg); }
 .viewer-empty { display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); position: absolute; inset: 0; }
+.viewer-caption { margin: 0; font-size: 12.5px; color: var(--muted); }
+.viewer-caption b { color: var(--fg); font-weight: 600; }
 .viewer-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; font-size: 12px; color: var(--muted); }
 .swatches { display: flex; gap: 12px; flex-wrap: wrap; }
 .swatches span::before { content: ""; display: inline-block; width: 12px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: 2px; background: var(--c); }
@@ -340,16 +342,18 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
           <div class="depict" id="d-depict" aria-label="2D structure of the ligand"></div>
         </div>
         <div id="viewer"></div>
+        <p class="viewer-caption" id="viewer-caption"></p>
         <div class="viewer-bar" id="viewer-bar">
           <span class="swatches">
-            <span style="--c: var(--faint)">crystal</span>
+            <span style="--c: #f08c00">crystal pose</span>
             <span style="--c: var(--metric-1)">docked pose</span>
-            <span style="--c: #9aa3b2">pocket (8 Å)</span>
-            <span style="--c: #d1495b">protein (by chain)</span>
+            <span style="--c: #a7afbb">residues within 5 Å</span>
+            <span style="--c: #8e6cc8">cofactors</span>
+            <span style="--c: #d1495b">protein</span>
           </span>
           <span>
             <label for="t-crystal"><input id="t-crystal" type="checkbox" checked> Crystal</label>
-            <label for="t-pocket"><input id="t-pocket" type="checkbox" checked> Pocket</label>
+            <label for="t-pocket"><input id="t-pocket" type="checkbox" checked> Residues</label>
             <label for="t-protein"><input id="t-protein" type="checkbox" checked> Protein</label>
             <label for="t-surface"><input id="t-surface" type="checkbox" checked> Surface</label>
             <label for="t-closeup"><input id="t-closeup" type="checkbox"> Close-up</label>
