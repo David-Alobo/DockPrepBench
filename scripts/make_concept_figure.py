@@ -105,9 +105,11 @@ def arrow(x1, y1, x2, y2, color=MUTED, width=2.5):
 # Picture window in a card (versions 3 and 4): below the title, above the text.
 PIC_W, PIC_H, PIC_TOP = 196, 108, 60
 LIGAND_W = 210  # version 4 ligand drawing: the card's full width, less a small margin
+# Version 4 search-space window: the card's full width and the height between title and text.
+BOX_W, BOX_H, BOX_TOP = 210, 112, 60
 
 
-def png_data(path: Path) -> str:
+def png_data(path: Path, size: tuple[int, int] = (PIC_W, PIC_H), fit_to: str | None = None) -> str:
     """
     Crop a render to its drawing and return it as a PNG data URI.
 
@@ -116,6 +118,9 @@ def png_data(path: Path) -> str:
 
     Args:
         path (Path): Render from scripts/figure_renders/render.ps1.
+        size (tuple[int, int]): Window width and height in figure px.
+        fit_to (str | None): Hex colour to crop to instead of all the drawing, so an object
+            of that colour fills the window and anything around it runs off the edges.
 
     Returns:
         str: data:image/png;base64,... URI.
@@ -123,18 +128,24 @@ def png_data(path: Path) -> str:
     from PIL import Image, ImageChops
 
     image = Image.open(path).convert("RGB")
-    ink = ImageChops.difference(image, Image.new("RGB", image.size, "white"))
-    left, top, right, bottom = ink.point(lambda v: 255 if v > 12 else 0).getbbox()
+    ink = ImageChops.difference(image, Image.new("RGB", image.size, fit_to or "white"))
+    if fit_to:
+        # Pixels close to the colour: the difference from it is small in every channel.
+        mask = ink.convert("L").point(lambda v: 255 if v < 40 else 0)
+    else:
+        mask = ink.point(lambda v: 255 if v > 12 else 0)
+    left, top, right, bottom = mask.getbbox()
     # Grow the crop to the window's aspect ratio, centred on the drawing, with a margin.
+    pic_w, pic_h = size
     cx, cy, w, h = (left + right) / 2, (top + bottom) / 2, right - left, bottom - top
-    w, h = max(w, h * PIC_W / PIC_H) * 1.06, max(h, w * PIC_H / PIC_W) * 1.06
+    w, h = max(w, h * pic_w / pic_h) * 1.06, max(h, w * pic_h / pic_w) * 1.06
     box = (int(cx - w / 2), int(cy - h / 2), int(cx + w / 2), int(cy + h / 2))
     # Paste only the part inside the render, so any area beyond its edge stays white
     # (Image.crop would fill it black).
     canvas = Image.new("RGB", (box[2] - box[0], box[3] - box[1]), "white")
     inside = (max(box[0], 0), max(box[1], 0), min(box[2], image.width), min(box[3], image.height))
     canvas.paste(image.crop(inside), (inside[0] - box[0], inside[1] - box[1]))
-    canvas = canvas.resize((PIC_W * 3, PIC_H * 3), Image.LANCZOS)  # 3x for print
+    canvas = canvas.resize((pic_w * 3, pic_h * 3), Image.LANCZOS)  # 3x for print
     buffer = io.BytesIO()
     white_to_alpha(canvas).save(buffer, format="PNG", optimize=True)
     return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
@@ -289,17 +300,22 @@ def inline_svg(svg: str, x: float, y: float, w: float, h: float) -> None:
     add(" ".join(body.split()))
 
 
-def window(x: float, href: str) -> None:
+def window(
+    x: float, href: str, size: tuple[int, int] = (PIC_W, PIC_H), top: float = PIC_TOP
+) -> None:
     """
     Place a transparent picture in a card's icon area, directly on the card's tint.
 
     Args:
         x (float): Card's left edge.
         href (str): Data URI of the picture.
+        size (tuple[int, int]): Window width and height in figure px.
+        top (float): Window's top, below the card's top edge.
     """
-    left, top = x + (W - PIC_W) / 2, Y + PIC_TOP
+    width, height = size
+    left = x + (W - width) / 2
     add(
-        f'<image x="{left}" y="{top}" width="{PIC_W}" height="{PIC_H}" href="{href}" '
+        f'<image x="{left}" y="{Y + top}" width="{width}" height="{height}" href="{href}" '
         f'preserveAspectRatio="xMidYMid meet"/>'
     )
 
@@ -372,7 +388,12 @@ if ARGS.renders:
         xs, ["input", "receptor", None, "box", "engine", "evaluation"], strict=True
     ):
         if scene:
-            window(x, png_data(ARGS.renders / f"{scene}.png"))
+            if ARGS.v4 and scene == "box":
+                # Version 4: the box fills a larger window; the protein runs off its edges.
+                size = (BOX_W, BOX_H)
+                window(x, png_data(ARGS.renders / "box.png", size, BOX), size, BOX_TOP)
+            else:
+                window(x, png_data(ARGS.renders / f"{scene}.png"))
     if ARGS.v4:
         # Version 4: the ligand card shows the change the protonation arm makes.
         drawing, charge = ligand_states_svg_data(ARGS.complex)
