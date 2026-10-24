@@ -15,6 +15,8 @@ const params = new URLSearchParams(location.search);
 const ID = params.get("id") || "5SAK_ZRY";
 const SCENE = params.get("scene") || "input";
 const PADDING = Number(params.get("padding") || 4);
+// style=v4: decluttered for print (fewer poses, fainter residues, heavier box and ligand).
+const CLEAN = params.get("style") === "v4";
 // Same colours as the figure and the explorer. Everything is drawn opaque: headless WebGL with
 // a transparent background renders nothing when any object is semi-transparent, so "faint"
 // objects use light colours instead of opacity.
@@ -41,7 +43,8 @@ function draw(data) {
   };
   const pocket = () => {
     const m = viewer.addModel(data.pocket, "pdb");
-    viewer.setStyle({ model: m }, { stick: { radius: 0.1, colorscheme: { prop: "elem", map: ELEMENTS("#b9c0ca") } } });
+    const residue = CLEAN ? { radius: 0.07, color: "#d3d8df" } : { radius: 0.1, colorscheme: { prop: "elem", map: ELEMENTS("#b9c0ca") } };
+    viewer.setStyle({ model: m }, { stick: residue });
     viewer.setStyle({ model: m, atom: ["N", "C", "O"], hetflag: false }, {});
     return m;
   };
@@ -59,6 +62,7 @@ function draw(data) {
   } else if (SCENE === "box") {
     pocket();
     focus = crystal();
+    if (CLEAN) viewer.setStyle({ model: focus }, { stick: { radius: 0.34, color: CRYSTAL } });
     // The search box as docking uses it: the ligand's heavy-atom extent plus the padding.
     const xyz = focus.selectedAtoms({ elem: ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"] });
     const lo = ["x", "y", "z"].map((k) => Math.min(...xyz.map((a) => a[k])) - PADDING);
@@ -68,16 +72,20 @@ function draw(data) {
     for (let a = 0; a < 8; a++) {
       for (const bit of [1, 2, 4]) {
         if (a & bit) continue;
-        viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius: 0.12, color: BOX, fromCap: 1, toCap: 1 });
+        viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius: CLEAN ? 0.22 : 0.12, color: BOX, fromCap: 1, toCap: 1 });
       }
     }
     viewer.zoomTo({ model: focus });
     viewer.zoom(0.55);
   } else if (SCENE === "engine") {
     pocket();
-    for (const pose of poses) {
+    // v4: the four best-ranked poses in distinct shades of the docked colour, top pose darkest.
+    const SHADES = ["#1f5fae", "#4a8fd8", "#7fb0e6", "#b3cff0"];
+    for (const pose of CLEAN ? poses.filter((p) => p.rank <= 4) : poses) {
       const m = viewer.addModel(pose.block, "sdf");
-      viewer.setStyle({ model: m }, { stick: { radius: pose.rank === 1 ? 0.16 : 0.1, color: pose.rank === 1 ? DOCKED : "#a9c6ec" } });
+      viewer.setStyle({ model: m }, CLEAN
+        ? { stick: { radius: 0.2, color: SHADES[pose.rank - 1] } }
+        : { stick: { radius: pose.rank === 1 ? 0.16 : 0.1, color: pose.rank === 1 ? DOCKED : "#a9c6ec" } });
     }
     focus = viewer.addModel(data.crystal, "sdf");
     viewer.setStyle({ model: focus }, {});

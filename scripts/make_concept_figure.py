@@ -3,6 +3,7 @@
 Usage:
     python scripts/make_concept_figure.py [OUT.svg]                       # version 2
     python scripts/make_concept_figure.py --renders docs/figures/renders  # version 3
+    python scripts/make_concept_figure.py --renders docs/figures/renders_v4 --v4  # version 4
 
 Version 2 (docs/figures/concept_v2.svg) shows the study as run: the receptor is held fixed,
 and the arms vary the search box and the ligand; panel a uses drawn glyphs. Version 3
@@ -24,7 +25,13 @@ from pathlib import Path
 parser = argparse.ArgumentParser(description="Draw Figure 1 (study design) as SVG.")
 parser.add_argument("out", nargs="?", type=Path, help="Output SVG (default by version)")
 parser.add_argument("--renders", type=Path, help="Directory of 3D renders: makes version 3")
-parser.add_argument("--complex", default="5SAK_ZRY", help="Complex shown in version 3")
+parser.add_argument("--complex", default="5SAK_ZRY", help="Complex shown in versions 3 and 4")
+parser.add_argument(
+    "--v4",
+    action="store_true",
+    help="Version 4 (with --renders from render.ps1 -Style v4): the ligand card shows the "
+    "supplied and pH 7.4 states, and the evaluation picture is labelled with its RMSD",
+)
 ARGS = parser.parse_args()
 
 WIDTH, HEIGHT = 1600, 1040
@@ -188,6 +195,77 @@ def ligand_svg_data(complex_id: str) -> str:
     )
 
 
+def ligand_states_svg_data(complex_id: str) -> str:
+    """
+    Draw a ligand's dominant state at pH 7.4, highlighting the atoms protonation changes.
+
+    One molecule at full size reads better in a card than the two states side by side; the
+    legend names the change and the card text names both states. Uses the same protonation
+    code as the benchmark.
+
+    Args:
+        complex_id (str): PoseBusters complex id.
+
+    Returns:
+        str: data:image/svg+xml;base64,... URI.
+    """
+    from rdkit import Chem
+    from rdkit.Chem import rdDepictor
+    from rdkit.Chem.Draw import rdMolDraw2D
+
+    from dockprepbench.io import load_sdf_file
+    from dockprepbench.preparation.ligand import protonate_ligand
+
+    folder = Path("data/raw/posebusters/posebusters_benchmark_set") / complex_id
+    supplied = load_sdf_file(folder / f"{complex_id}_ligand_start_conf.sdf")[0]
+    # RemoveAllHs: RemoveHs keeps hydrogens that define double-bond stereo, so the two
+    # states could differ in atom count.
+    states = [Chem.RemoveAllHs(supplied), Chem.RemoveAllHs(protonate_ligand(supplied, 7.4))]
+    changed = [
+        i
+        for i, (a, b) in enumerate(zip(states[0].GetAtoms(), states[1].GetAtoms(), strict=True))
+        if a.GetFormalCharge() != b.GetFormalCharge()
+    ]
+    protonated = states[1]
+    rdDepictor.Compute2DCoords(protonated)
+    charge = Chem.GetFormalCharge(protonated) - Chem.GetFormalCharge(states[0])
+    drawer = rdMolDraw2D.MolDraw2DSVG(PIC_W * 2, PIC_H * 2)
+    opts = drawer.drawOptions()
+    opts.bondLineWidth = 2.5
+    opts.padding = 0.06
+    opts.legendFontSize = 28
+    opts.legendFraction = 0.2
+    opts.clearBackground = False
+    drawer.DrawMolecule(
+        protonated,
+        highlightAtoms=changed,
+        highlightAtomColors={i: (0.98, 0.72, 0.58) for i in changed},  # light ligand orange
+        highlightBonds=[],
+        legend=f"pH 7.4: charge {charge:+d}",
+    )
+    drawer.FinishDrawing()
+    return (
+        "data:image/svg+xml;base64," + base64.b64encode(drawer.GetDrawingText().encode()).decode()
+    )
+
+
+def top_pose_rmsd(complex_id: str) -> float:
+    """
+    Read the RMSD of Vina's top baseline pose from the explorer's pose file for a complex.
+
+    Args:
+        complex_id (str): PoseBusters complex id.
+
+    Returns:
+        float: Heavy-atom RMSD in Å.
+    """
+    import json
+
+    text = Path(f"explorer/poses/{complex_id}.js").read_text(encoding="utf-8")
+    payload = json.loads(text[text.index(",") + 1 : text.rindex(")")])
+    return next(p["rmsd"] for p in payload["poses"]["vina"]["baseline"] if p["rank"] == 1)
+
+
 def window(x: float, href: str) -> None:
     """
     Place a transparent picture in a card's icon area, directly on the card's tint.
@@ -240,6 +318,12 @@ cards = [
     ("Engine", ["AutoDock Vina", "Smina", "Gnina", "rDock"], ENGINE),
     ("Evaluation", ["RMSD &lt; 2 Å", "PoseBusters", "validity"], INK_2),
 ]
+if ARGS.v4:
+    # Version 4 states the shown pose's RMSD, so the success criterion is concrete.
+    rmsd = top_pose_rmsd(ARGS.complex)
+    verdict = "✓" if rmsd < 2 else "✗"
+    cards[5] = ("Evaluation", [f"RMSD {rmsd:.2f} Å {verdict}", "(success &lt; 2 Å)",
+                               "PoseBusters validity"], INK_2)  # fmt: skip
 for x, (title, bullets, accent) in zip(xs, cards, strict=True):
     card(x, Y, W, H, title, bullets, accent)
 for x in xs[:-1]:
@@ -256,7 +340,11 @@ if ARGS.renders:
     ):
         if scene:
             window(x, png_data(ARGS.renders / f"{scene}.png"))
-    window(xs[2], ligand_svg_data(ARGS.complex))
+    if ARGS.v4:
+        # Version 4: the ligand card shows the change the protonation arm makes.
+        window(xs[2], ligand_states_svg_data(ARGS.complex))
+    else:
+        window(xs[2], ligand_svg_data(ARGS.complex))
 else:
     protein(c[0], cy, MUTED, "#ececea")
     ligand(c[0] - 6, cy - 28, INK_2, "#ffffff", r=11)
@@ -410,7 +498,7 @@ text((AX0 + AX1) / 2, 940, "Docking success rate", BODY, INK_2, anchor="middle")
 
 add("</svg>")
 
-default = "concept_v3.svg" if ARGS.renders else "concept_v2.svg"
+default = "concept_v4.svg" if ARGS.v4 else "concept_v3.svg" if ARGS.renders else "concept_v2.svg"
 target = ARGS.out or Path("docs/figures") / default
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")  # same on every OS
