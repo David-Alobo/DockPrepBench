@@ -12,28 +12,31 @@
   "use strict";
 
   const BASE = "baseline";
-  const CLASSES = ["valid", "invalid", "scoring", "site", "mode"];
+  const CLASSES = ["valid", "invalid", "scoring", "site", "mode", "failed"];
   const CLASS_LABEL = {
     valid: "Valid success",
     invalid: "Correct, not PB-valid",
     scoring: "Scoring miss",
     site: "Wrong site",
     mode: "Wrong binding mode",
+    failed: "Failed to prepare or dock",
   };
-  const CLASS_SHORT = { valid: "Valid", invalid: "Not valid", scoring: "Scoring", site: "Site", mode: "Mode" };
+  const CLASS_SHORT = { valid: "Valid", invalid: "Not valid", scoring: "Scoring", site: "Site", mode: "Mode", failed: "Failed" };
   const SUCCESS_RMSD = 2; // Å
   const SITE_SHIFT = 4; // Å, heuristic split between wrong site and wrong binding mode
   const PAGE_SIZE = 10;
   const Z_95 = 1.959963984540054;
 
   /**
-   * Classify a top-1 outcome: valid, invalid (correct but not PB-valid), scoring miss,
-   * wrong site or wrong binding mode. The first matching rule wins.
-   * @param {{rmsd: number, best: number, valid: boolean, shift: number}} o
+   * Classify a top-1 outcome: failed (preparation or docking raised an error), valid,
+   * invalid (correct but not PB-valid), scoring miss, wrong site or wrong binding mode.
+   * The first matching rule wins.
+   * @param {{rmsd?: number, best?: number, valid?: boolean, shift?: number, error?: string}} o
    * @param {number} [siteShift] Centroid shift (Å) above which a miss is a wrong site.
    * @returns {string} One of CLASSES.
    */
   function classify(o, siteShift = SITE_SHIFT) {
+    if (o.error) return "failed";
     if (o.rmsd < SUCCESS_RMSD) return o.valid ? "valid" : "invalid";
     if (o.best < SUCCESS_RMSD) return "scoring";
     return o.shift > siteShift ? "site" : "mode";
@@ -41,12 +44,12 @@
 
   /**
    * Whether an outcome counts as a success under a metric.
-   * @param {{rmsd: number, valid: boolean}} o
+   * @param {{rmsd?: number, valid?: boolean, error?: string}} o A failed complex never succeeds.
    * @param {"top1"|"valid"} metric "top1": RMSD < 2 Å; "valid": also PB-valid.
    * @returns {boolean}
    */
   function succeeds(o, metric) {
-    return o.rmsd < SUCCESS_RMSD && (metric === "top1" || o.valid);
+    return !o.error && o.rmsd < SUCCESS_RMSD && (metric === "top1" || o.valid);
   }
 
   /**
@@ -183,6 +186,8 @@
   const signed = (x, digits = 1) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(digits)}`;
   /** p-value as "< 0.001" or 2 significant figures. */
   const fmtP = (p) => (p < 0.001 ? "< 0.001" : p.toPrecision(2));
+  /** A distance in Å to 2 decimals, or a dash when there is none (failed complexes). */
+  const fmtA = (x) => (typeof x === "number" && Number.isFinite(x) ? x.toFixed(2) : "–");
 
   return {
     BASE,
@@ -205,5 +210,6 @@
     pct,
     signed,
     fmtP,
+    fmtA,
   };
 });

@@ -23,6 +23,11 @@ describe("classify", () => {
     expect(L.classify(outcome({ rmsd: 2.0, best: 2.0 }))).not.toMatch(/valid/);
   });
 
+  it("classifies a complex that raised an error as failed, before any RMSD rule", () => {
+    expect(L.classify({ error: "RuntimeError: x" })).toBe("failed");
+    expect(L.classify(outcome({ rmsd: 1, error: "x" }))).toBe("failed");
+  });
+
   it("accepts a different site threshold", () => {
     expect(L.classify(outcome({ rmsd: 3, best: 3, shift: 3.5 }), 3)).toBe("site");
   });
@@ -34,6 +39,12 @@ describe("succeeds", () => {
     expect(L.succeeds(correctButInvalid, "top1")).toBe(true);
     expect(L.succeeds(correctButInvalid, "valid")).toBe(false);
     expect(L.succeeds(outcome({ rmsd: 2.5 }), "top1")).toBe(false);
+  });
+
+  it("never counts a failed complex as a success", () => {
+    // A failed complex has no RMSD; `null < 2` is true in JavaScript, so this must be explicit.
+    expect(L.succeeds({ error: "x", rmsd: null }, "top1")).toBe(false);
+    expect(L.succeeds({ error: "x" }, "valid")).toBe(false);
   });
 });
 
@@ -166,5 +177,11 @@ describe("formatting", () => {
     expect(L.signed(-1.4)).toBe("−1.4"); // typographic minus
     expect(L.fmtP(0.0004)).toBe("< 0.001");
     expect(L.fmtP(0.0312)).toBe("0.031");
+  });
+
+  it("formats distances, with a dash when a complex has none", () => {
+    expect(L.fmtA(1.234)).toBe("1.23");
+    expect(L.fmtA(undefined)).toBe("–");
+    expect(L.fmtA(null)).toBe("–");
   });
 });

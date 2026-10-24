@@ -150,6 +150,7 @@ table.list { border-collapse: collapse; width: 100%; font-size: 13px; }
 .g.scoring { color: var(--bad); } .g.scoring::before { content: "▲"; }
 .g.site { color: var(--bad); } .g.site::before { content: "✕"; }
 .g.mode { color: var(--bad); } .g.mode::before { content: "↻"; }
+.g.failed { color: var(--muted); } .g.failed::before { content: "∅"; }
 .chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px 1px 5px; font-size: 12px; background: var(--chip); }
 .strip { display: inline-flex; gap: 2px; }
 .strip .g { width: 18px; height: 18px; line-height: 18px; border-radius: 4px; background: var(--chip); }
@@ -312,7 +313,7 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
         </div>
         <div class="key" id="key"></div>
         <nav class="pager" aria-label="Table pages">
-          <span class="count">◆ real baseline poses</span>
+          <span class="count" id="real-key">◆ real baseline poses</span>
           <span class="pager-buttons">
             <button type="button" id="page-first" aria-label="First page">«</button>
             <button type="button" id="page-prev">‹ Prev</button>

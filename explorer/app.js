@@ -40,7 +40,8 @@ function strip(c) {
   const cells = ARMS.map((arm) => {
     const o = c.arms[arm.key];
     const k = L.classify(o);
-    return `<span class="g ${k}${arm.key === state.arm ? " sel" : ""}" title="${arm.label}: ${CLASS_LABEL[k]}, top-1 ${o.rmsd.toFixed(2)} Å"></span>`;
+    const detail = o.error ? "" : `, top-1 ${L.fmtA(o.rmsd)} Å`;
+    return `<span class="g ${k}${arm.key === state.arm ? " sel" : ""}" title="${arm.label}: ${CLASS_LABEL[k]}${detail}"></span>`;
   });
   const summary = ARMS.map((a) => `${a.label} ${CLASS_LABEL[L.classify(c.arms[a.key])]}`).join("; ");
   return `<span class="strip" role="img" aria-label="${summary}">${cells.join("")}</span>`;
@@ -237,6 +238,39 @@ function revealSelected() {
 
 let viewer = null;
 
+// Poses: demo data embeds them in DATA.real; built data keeps one script per complex under
+// DATA.poseDir, which calls window.ExplorerPoses when it loads. null marks a missing file.
+const poseCache = new Map(Object.entries(DATA.real || {}));
+const posePending = new Set();
+
+window.ExplorerPoses = (id, payload) => {
+  posePending.delete(id);
+  poseCache.set(id, payload);
+  if (id === state.selected) drawDetail();
+};
+
+function requestPoses(id) {
+  if (!DATA.poseDir || poseCache.has(id) || posePending.has(id)) return;
+  posePending.add(id);
+  const script = document.createElement("script");
+  script.src = `${DATA.poseDir}/${encodeURIComponent(id)}.js`;
+  script.onerror = () => window.ExplorerPoses(id, null);
+  document.head.appendChild(script);
+}
+
+/** The selected arm's poses from a payload (demo payloads hold one list for the baseline). */
+function armPoses(payload) {
+  if (!payload) return [];
+  return Array.isArray(payload.poses) ? payload.poses : payload.poses[state.arm] || [];
+}
+
+function showNoPoses(message, list) {
+  viewer = null;
+  $("viewer-bar").hidden = true;
+  $("viewer").innerHTML = `<div class="viewer-empty">${message}</div>`;
+  $("d-poses").innerHTML = `<span class="count">${list}</span>`;
+}
+
 function drawDetail() {
   const c = byId.get(state.selected);
   if (!c) return;
@@ -249,33 +283,44 @@ function drawDetail() {
     const o = c.arms[arm.key];
     return (
       `<div class="arm-cell${arm.key === state.arm ? " sel" : ""}"><div class="name">${arm.label}${o.real ? " ◆" : ""}</div>` +
-      `<div class="val">${glyph(L.classify(o))}<span>${o.rmsd.toFixed(2)} Å</span>` +
-      `<span class="best" title="Best RMSD among all returned poses">best ${o.best.toFixed(2)}</span></div></div>`
+      `<div class="val"${o.error ? ` title="${o.error.replace(/"/g, "&quot;")}"` : ""}>${glyph(L.classify(o))}<span>${L.fmtA(o.rmsd)} Å</span>` +
+      `<span class="best" title="Best RMSD among all returned poses">best ${L.fmtA(o.best)}</span></div></div>`
     );
   }).join("");
 
-  const real = DATA.real[c.id];
-  $("viewer-bar").hidden = !real;
-  if (!real) {
-    viewer = null;
-    $("viewer").innerHTML =
-      `<div class="viewer-empty">Docked poses for this complex will appear here after the full benchmark run.<br>Complexes marked ◆ have real poses now.</div>`;
-    $("d-poses").innerHTML = `<span class="count">No poses saved yet.</span>`;
+  if (!poseCache.has(c.id) && DATA.poseDir) {
+    requestPoses(c.id);
+    showNoPoses("Loading poses…", "Loading…");
     return;
   }
-  $("d-poses").innerHTML = real.poses
+  const real = poseCache.get(c.id);
+  const poses = armPoses(real);
+  if (!real || !poses.length) {
+    const o = c.arms[state.arm];
+    const message = o.error
+      ? `${armLabel(state.arm)} failed for this complex: ${o.error}`
+      : DATA.demo
+        ? "Docked poses for this complex will appear here after the full benchmark run.<br>Complexes marked ◆ have real poses now."
+        : real === null
+          ? "The pose file for this complex was not found. Rebuild the data with <code>scripts/explorer.sh</code>."
+          : `No poses were saved for ${armLabel(state.arm)}.`;
+    showNoPoses(message, "No poses.");
+    return;
+  }
+  $("viewer-bar").hidden = false;
+  $("d-poses").innerHTML = poses
     .map((p) => {
       const ok = p.rmsd < 2 ? ` <span class="ok">✓</span>` : "";
       return (
-        `<button type="button" data-rank="${p.rank}" aria-pressed="${p.rank === state.pose}" aria-label="Pose ${p.rank}, score ${p.score}, RMSD ${p.rmsd} Å">` +
+        `<button type="button" data-rank="${p.rank}" aria-pressed="${p.rank === state.pose}" aria-label="Pose ${p.rank}, score ${p.score}, RMSD ${L.fmtA(p.rmsd)} Å">` +
         `<span class="rank">#${p.rank}</span><span>${p.score.toFixed(1)}</span><span>${p.rmsd.toFixed(2)}${ok}</span></button>`
       );
     })
     .join("");
-  if (state.tab === "complexes") drawViewer(real);
+  if (state.tab === "complexes") drawViewer(real, poses);
 }
 
-function drawViewer(real) {
+function drawViewer(real, poses) {
   const el = $("viewer");
   if (typeof window.$3Dmol === "undefined") {
     el.innerHTML = `<div class="viewer-empty">The 3D viewer library did not load. Check your connection and reload.</div>`;
@@ -293,7 +338,7 @@ function drawViewer(real) {
   }
   const crystal = viewer.addModel(real.crystal, "sdf");
   viewer.setStyle({ model: crystal }, state.showCrystal ? { stick: { radius: 0.2, color: css("--faint"), opacity: 0.85 } } : {});
-  const pose = real.poses.find((p) => p.rank === state.pose) || real.poses[0];
+  const pose = poses.find((p) => p.rank === state.pose) || poses[0];
   const docked = viewer.addModel(pose.block, "sdf");
   viewer.setStyle({ model: docked }, { stick: { radius: 0.24, colorscheme: { prop: "elem", map: elementColours(css("--metric-1")) } } });
   viewer.resize();
@@ -365,11 +410,12 @@ function renderAll() {
 function init() {
   $("meta").textContent = `${DATA.dataset} · ${DATA.complexes.length} complexes · ${DATA.engine}`;
   $("badge").hidden = !DATA.demo;
+  $("real-key").hidden = !DATA.demo;
   $("key").innerHTML = CLASSES.map((k) => `<span>${glyph(k)} ${CLASS_LABEL[k]}</span>`).join("");
   $("footer").textContent =
     "Outcome classes follow the top-ranked pose: valid success (RMSD < 2 Å and PB-valid); correct but not PB-valid; " +
     `scoring miss (a pose under 2 Å exists below rank 1); wrong site (centroid more than ${SITE_SHIFT} Å away, a heuristic); ` +
-    "wrong binding mode (right site, wrong pose).";
+    "wrong binding mode (right site, wrong pose); failed (preparation or docking raised an error, counted as a miss).";
   $("arm-select").innerHTML = ARMS.filter((a) => a.key !== BASE)
     .map((a) => `<option value="${a.key}">${a.label}: ${a.detail}</option>`)
     .join("");

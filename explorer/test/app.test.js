@@ -73,7 +73,7 @@ describe("overview", () => {
 
   it("fills the transition matrix with counts that sum to the dataset", () => {
     const cells = [...document.querySelectorAll("#matrix td")];
-    expect(cells).toHaveLength(25);
+    expect(cells).toHaveLength(36); // six classes, failed included
     expect(cells.reduce((s, td) => s + Number(td.textContent), 0)).toBe(25);
     expect(document.querySelector('#matrix td[data-cell="scoring|valid"]').textContent).toBe("5");
   });
@@ -144,6 +144,65 @@ describe("complexes tab", () => {
     expect(document.querySelector('#rows tr[aria-selected="true"]').dataset.id).toBe("C03_LIG");
     expect($("d-arms").querySelectorAll(".arm-cell")).toHaveLength(3);
     expect($("viewer").textContent).toMatch(/will appear here/);
+  });
+});
+
+describe("built data: failures and poses loaded per complex", () => {
+  /** Boot with data as build_data.py writes it: no demo, a failed complex, a pose directory. */
+  function bootBuilt() {
+    boot();
+    const data = makeData();
+    data.demo = false;
+    data.poseDir = "poses/test";
+    data.complexes[24].arms.box_padding_2 = { error: "RuntimeError: receptor failed" };
+    window.EXPLORER_DATA = data;
+    document.body.innerHTML = body;
+    new Function(appSource)();
+    click($("tab-complexes"));
+  }
+  const payload = {
+    crystal: "",
+    pocket: "",
+    poses: {
+      baseline: [{ rank: 1, score: -7.1, rmsd: 0.8, block: "" }],
+      box_padding_2: [
+        { rank: 1, score: -8.2, rmsd: 3.4, block: "" },
+        { rank: 2, score: -8.0, rmsd: 1.1, block: "" },
+      ],
+    },
+  };
+
+  beforeEach(bootBuilt);
+
+  it("hides the prototype badge and the ◆ key", () => {
+    expect($("badge").hidden).toBe(true);
+    expect($("real-key").hidden).toBe(true);
+  });
+
+  it("shows a failed complex as failed, without a distance", () => {
+    click($("page-last"));
+    click(document.querySelector('#rows tr[data-id="C24_LIG"]'));
+    const cell = [...$("d-arms").querySelectorAll(".arm-cell")][1];
+    expect(cell.textContent).toMatch(/– Å/);
+    expect(document.querySelector('#matrix td[data-cell="mode|failed"]').textContent).toBe("1");
+  });
+
+  it("requests a complex's pose file once, then shows the selected arm's poses", () => {
+    const scripts = () => [...document.head.querySelectorAll('script[src^="poses/test/"]')];
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    expect(scripts().map((s) => s.getAttribute("src"))).toContain("poses/test/C03_LIG.js");
+    expect($("viewer").textContent).toMatch(/Loading/);
+
+    window.ExplorerPoses("C03_LIG", payload);
+    expect($("d-poses").querySelectorAll("button[data-rank]")).toHaveLength(2); // box_padding_2
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    expect(scripts().filter((s) => s.getAttribute("src") === "poses/test/C03_LIG.js")).toHaveLength(1);
+  });
+
+  it("explains a missing pose file", () => {
+    click(document.querySelector('#rows tr[data-id="C04_LIG"]'));
+    window.ExplorerPoses("C04_LIG", null);
+    expect($("viewer").textContent).toMatch(/not found/);
   });
 });
 

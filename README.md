@@ -74,6 +74,19 @@ uv run dockprepbench compare results/vina/baseline results/vina/box_padding_2
 pairs two runs on their shared complexes, reports an exact McNemar test and lists the
 complexes whose outcome changed. Use `--limit N` on `run` for a quick check.
 
+### Results explorer
+
+Browse the results in a web page: success by arm, how outcomes moved between the baseline
+and an arm, and every complex with its docked poses in 3D.
+
+```bash
+scripts/explorer.sh                  # Vina; then open http://localhost:8000/
+scripts/explorer.sh --engine gnina --open
+```
+
+The script builds the page's data from `results/` and serves it locally. See
+[explorer/README.md](explorer/README.md).
+
 ## Project layout
 
 ```
