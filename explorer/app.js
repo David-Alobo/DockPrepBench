@@ -22,6 +22,9 @@ const state = {
   pose: 1,
   showCrystal: true,
   showPocket: true,
+  showProtein: true,
+  showSurface: true,
+  closeUp: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -34,7 +37,7 @@ const filters = () => ({ ...state });
 // ---------------------------------------------------------------- glyphs
 
 const glyph = (k, extra = "") => `<span class="g ${k}${extra}" aria-hidden="true"></span>`;
-const chip = (k) => `<span class="chip">${glyph(k)}${CLASS_LABEL[k]}</span>`;
+const chip = (k) => `<span class="chip" title="${CLASS_LABEL[k]}">${glyph(k)}${CLASS_LABEL[k]}</span>`;
 
 function strip(c) {
   const cells = ARMS.map((arm) => {
@@ -308,6 +311,7 @@ function drawDetail() {
     return;
   }
   $("viewer-bar").hidden = false;
+  $("poses-head").textContent = `${armLabel(Array.isArray(real.poses) ? BASE : state.arm)} poses · score · RMSD (Å)`;
   $("d-poses").innerHTML = poses
     .map((p) => {
       const ok = p.rmsd < 2 ? ` <span class="ok">✓</span>` : "";
@@ -320,6 +324,19 @@ function drawDetail() {
   if (state.tab === "complexes") drawViewer(real, poses);
 }
 
+// Protein chains: muted hues, none blue, so the docked pose (blue carbons) stands out.
+const CHAIN_COLOURS = ["#d1495b", "#b5b44a", "#3f9c8f", "#9a6cc8", "#e0883d", "#c76b98"];
+
+/** Colour per chain ID, in order of first appearance in the PDB text. */
+function chainColours(pdb) {
+  const ids = [...new Set(pdb.split("\n").filter((l) => l.startsWith("ATOM")).map((l) => l[21]))];
+  return Object.fromEntries(ids.map((id, i) => [id, CHAIN_COLOURS[i % CHAIN_COLOURS.length]]));
+}
+
+// The protein layers (cartoon, surface, pocket) are rebuilt only when the complex or a layer
+// toggle changes; switching poses or arms swaps just the ligands, so the surface is computed once.
+let scene = { key: null, ligands: [] };
+
 function drawViewer(real, poses) {
   const el = $("viewer");
   if (typeof window.$3Dmol === "undefined") {
@@ -329,21 +346,52 @@ function drawViewer(real, poses) {
   if (!viewer) {
     el.innerHTML = "";
     viewer = window.$3Dmol.createViewer(el, { backgroundColor: css("--viewer-bg"), antialias: true });
+    scene = { key: null, ligands: [] };
   }
-  viewer.setBackgroundColor(css("--viewer-bg"));
-  viewer.clear();
-  if (state.showPocket) {
-    const pocket = viewer.addModel(real.pocket, "pdb");
-    viewer.setStyle({ model: pocket }, { stick: { radius: 0.08, colorscheme: { prop: "elem", map: elementColours("#9aa3b2") } } });
+  const withProtein = state.showProtein && Boolean(real.protein);
+  const key = [state.selected, withProtein, state.showSurface, state.showPocket, state.closeUp, css("--viewer-bg")].join("|");
+  const rebuild = scene.key !== key;
+  if (rebuild) {
+    viewer.setBackgroundColor(css("--viewer-bg"));
+    viewer.removeAllSurfaces();
+    viewer.clear();
+    scene = { key, ligands: [], protein: null };
+    if (withProtein) {
+      const map = chainColours(real.protein);
+      scene.protein = viewer.addModel(real.protein, "pdb");
+      viewer.setStyle({ model: scene.protein }, { cartoon: { colorscheme: { prop: "chain", map }, opacity: 0.95 } });
+      if (state.showSurface) {
+        // One surface per chain: 3Dmol colours a surface from `color`, not from a chain map.
+        for (const [chain, color] of Object.entries(map)) {
+          const done = viewer.addSurface(window.$3Dmol.SurfaceType.MS, { opacity: 0.2, color }, { model: scene.protein, chain });
+          if (done && typeof done.then === "function") done.then(() => viewer.render());
+        }
+      }
+    }
+    if (state.showPocket) {
+      const pocket = viewer.addModel(real.pocket, "pdb");
+      viewer.setStyle({ model: pocket }, { stick: { radius: 0.12, colorscheme: { prop: "elem", map: elementColours("#9aa3b2") } } });
+      // With the cartoon shown, keep only side chains (anchored at CA); cofactors stay whole.
+      if (withProtein) viewer.setStyle({ model: pocket, atom: ["N", "C", "O"], hetflag: false }, {});
+    }
+  } else {
+    scene.ligands.forEach((m) => viewer.removeModel(m));
   }
   const crystal = viewer.addModel(real.crystal, "sdf");
   viewer.setStyle({ model: crystal }, state.showCrystal ? { stick: { radius: 0.2, color: css("--faint"), opacity: 0.85 } } : {});
   const pose = poses.find((p) => p.rank === state.pose) || poses[0];
   const docked = viewer.addModel(pose.block, "sdf");
   viewer.setStyle({ model: docked }, { stick: { radius: 0.24, colorscheme: { prop: "elem", map: elementColours(css("--metric-1")) } } });
+  scene.ligands = [crystal, docked];
   viewer.resize();
-  viewer.zoomTo({ model: crystal });
-  viewer.zoom(0.8);
+  if (rebuild) {
+    // Whole protein by default, as in a structure figure; close-up frames the ligand.
+    if (scene.protein && !state.closeUp) viewer.zoomTo({ model: scene.protein });
+    else {
+      viewer.zoomTo({ model: crystal });
+      viewer.zoom(0.7);
+    }
+  }
   viewer.render();
 }
 
@@ -466,6 +514,9 @@ function init() {
   });
   $("t-crystal").addEventListener("change", (e) => { state.showCrystal = e.target.checked; drawDetail(); });
   $("t-pocket").addEventListener("change", (e) => { state.showPocket = e.target.checked; drawDetail(); });
+  $("t-protein").addEventListener("change", (e) => { state.showProtein = e.target.checked; drawDetail(); });
+  $("t-surface").addEventListener("change", (e) => { state.showSurface = e.target.checked; drawDetail(); });
+  $("t-closeup").addEventListener("change", (e) => { state.closeUp = e.target.checked; drawDetail(); });
   $("copy-link").addEventListener("click", copyLink);
 
   const redraw = () => { drawChart(); drawMatrix(); drawDetail(); };

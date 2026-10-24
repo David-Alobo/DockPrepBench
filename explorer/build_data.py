@@ -1,8 +1,8 @@
 """Build the explorer's data from benchmark results.
 
 Writes `data.js` (complexes, ligand properties and every arm's per-complex outcome for one
-engine) and one `poses/<engine>/<id>.js` per complex (crystal ligand, binding pocket and the
-docked poses of every arm), which the page loads when a complex is opened.
+engine) and one `poses/<engine>/<id>.js` per complex (crystal ligand, protein,
+binding pocket and the docked poses of every arm), which the page loads when a complex is opened.
 
 Usage:
     python explorer/build_data.py [--results DIR] [--engine vina] [--out explorer]
@@ -192,6 +192,26 @@ def pocket(protein: Path, ligand: Chem.Mol) -> str:
     return "\n".join(ln for ln in atoms if ln[17:27] in near) + "\nEND\n"
 
 
+def chains(protein: Path) -> str:
+    """
+    Keep the protein's heavy atoms, from which the page draws a cartoon and a surface.
+
+    Args:
+        protein (Path): Protein PDB as distributed with the dataset.
+
+    Returns:
+        str: Heavy-atom ATOM records, trimmed after the coordinates to save space.
+    """
+    lines = [
+        ln[:54]
+        for ln in protein.read_text().splitlines()
+        if ln.startswith("ATOM")
+        and ln[76:78].strip() != "H"
+        and not ln[12:16].strip().startswith("H")
+    ]
+    return "\n".join(lines) + "\nEND\n"
+
+
 def poses(sdf: Path) -> list[dict]:
     """
     Read one complex's saved poses.
@@ -269,6 +289,7 @@ def main() -> None:
         payload = {
             "crystal": Chem.MolToMolBlock(lig),
             "pocket": pocket(c.protein, lig),
+            "protein": chains(c.protein),
             "poses": {arm: poses(engine_dir / arm / "poses" / f"{c.id}.sdf") for arm in arms},
         }
         (pose_dir / f"{c.id}.js").write_text(

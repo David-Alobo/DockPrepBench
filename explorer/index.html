@@ -130,9 +130,12 @@ select, input[type="search"] {
 .checks label { display: flex; align-items: center; gap: 6px; }
 .active-filter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
 .active-filter button { font: inherit; font-size: 12px; border: 1px solid var(--metric-1); color: var(--fg); background: var(--hover); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
-.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; flex: 1 1 auto; }
-table.list { border-collapse: collapse; width: 100%; font-size: 13px; }
-.list th, .list td { padding: 0 10px; height: 40px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.table-wrap { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; flex: 1 1 auto; }
+table.list { border-collapse: collapse; width: 100%; font-size: 13px; table-layout: fixed; }
+/* Fixed columns so the table fits its panel; long labels are cut with an ellipsis. */
+.list col.c-id { width: 19%; } .list col.c-atoms { width: 10%; } .list col.c-rot { width: 8%; }
+.list col.c-strip { width: 27%; } .list col.c-arm { width: 21%; } .list col.c-change { width: 15%; }
+.list th, .list td { padding: 0 8px; height: 40px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .list tbody tr:last-child td { border-bottom: none; }
 .list th { height: 36px; font-weight: 500; color: var(--muted); font-size: 12px; }
 .list th button { all: unset; cursor: pointer; }
@@ -151,11 +154,11 @@ table.list { border-collapse: collapse; width: 100%; font-size: 13px; }
 .g.site { color: var(--bad); } .g.site::before { content: "✕"; }
 .g.mode { color: var(--bad); } .g.mode::before { content: "↻"; }
 .g.failed { color: var(--muted); } .g.failed::before { content: "∅"; }
-.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px 1px 5px; font-size: 12px; background: var(--chip); }
+.chip { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; border-radius: 999px; padding: 1px 8px 1px 5px; font-size: 12px; background: var(--chip); }
 .strip { display: inline-flex; gap: 2px; }
-.strip .g { width: 18px; height: 18px; line-height: 18px; border-radius: 4px; background: var(--chip); }
+.strip .g { width: 15px; height: 18px; line-height: 18px; border-radius: 4px; background: var(--chip); }
 .strip .g.sel { box-shadow: inset 0 0 0 1.5px var(--metric-1); }
-.strip .g:first-child { margin-right: 5px; }
+.strip .g:first-child { margin-right: 4px; }
 .delta { font-size: 12px; font-weight: 500; }
 .delta.up { color: var(--good); } .delta.down { color: var(--bad); } .delta.same { color: var(--faint); }
 .key { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
@@ -298,6 +301,7 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
         <div class="active-filter" id="active-filter" hidden></div>
         <div class="table-wrap">
           <table class="list">
+            <colgroup><col class="c-id"><col class="c-atoms"><col class="c-rot"><col class="c-strip"><col class="c-arm"><col class="c-change"></colgroup>
             <thead>
               <tr>
                 <th><button data-sort="id">Complex</button></th>
@@ -341,14 +345,18 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
             <span style="--c: var(--faint)">crystal</span>
             <span style="--c: var(--metric-1)">docked pose</span>
             <span style="--c: #9aa3b2">pocket (8 Å)</span>
+            <span style="--c: #d1495b">protein (by chain)</span>
           </span>
           <span>
             <label for="t-crystal"><input id="t-crystal" type="checkbox" checked> Crystal</label>
             <label for="t-pocket"><input id="t-pocket" type="checkbox" checked> Pocket</label>
+            <label for="t-protein"><input id="t-protein" type="checkbox" checked> Protein</label>
+            <label for="t-surface"><input id="t-surface" type="checkbox" checked> Surface</label>
+            <label for="t-closeup"><input id="t-closeup" type="checkbox"> Close-up</label>
           </span>
         </div>
         <div>
-          <div class="eyebrow" style="margin-bottom:6px">Baseline poses · score · RMSD (Å)</div>
+          <div class="eyebrow" style="margin-bottom:6px" id="poses-head">Baseline poses · score · RMSD (Å)</div>
           <div class="pose-list" id="d-poses"></div>
         </div>
         <div>

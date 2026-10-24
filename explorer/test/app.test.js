@@ -195,6 +195,7 @@ describe("built data: failures and poses loaded per complex", () => {
 
     window.ExplorerPoses("C03_LIG", payload);
     expect($("d-poses").querySelectorAll("button[data-rank]")).toHaveLength(2); // box_padding_2
+    expect(text("poses-head")).toMatch(/^Box 2 Å poses/);
     click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
     expect(scripts().filter((s) => s.getAttribute("src") === "poses/test/C03_LIG.js")).toHaveLength(1);
   });
