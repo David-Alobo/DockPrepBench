@@ -40,3 +40,6 @@ node_modules/
 
 # LaTeX build output
 paper/build/
+
+# Engines and caches installed by scripts/setup.sh
+/tools/
