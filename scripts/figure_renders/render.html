@@ -1,0 +1,161 @@
+<!doctype html>
+<!-- Renders one 3D scene of a complex for the concept figure. Serve from the explorer
+     directory (scripts/figure_renders/render.sh copies this page there), then open
+     render.html?id=5SAK_ZRY&scene=input. Scenes: input, receptor, box, engine, evaluation. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { margin: 0; background: transparent; } #v { width: 900px; height: 560px; position: relative; }</style>
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
+</head>
+<body>
+<div id="v"></div>
+<script>
+const params = new URLSearchParams(location.search);
+const ID = params.get("id") || "5SAK_ZRY";
+const SCENE = params.get("scene") || "input";
+const PADDING = Number(params.get("padding") || 4);
+// style=v4: decluttered for print (fewer poses, fainter residues, heavier box and ligand).
+const CLEAN = params.get("style") === "v4";
+// Same colours as the figure and the explorer. Everything is drawn opaque: headless WebGL with
+// a transparent background renders nothing when any object is semi-transparent, so "faint"
+// objects use light colours instead of opacity.
+const CHAIN = "#d1495b", FIXED = "#9aa3b2", CRYSTAL = "#f08c00", DOCKED = "#2a78d6", BOX = "#1baf7a";
+const ELEMENTS = (carbon) => ({ C: carbon, N: "#3b5bdb", O: "#e03131", S: "#e0a800", F: "#2f9e44", Cl: "#2f9e44", Br: "#a5541f", P: "#e8590c", H: "#dee2e6" });
+
+window.ExplorerPoses = (id, data) => draw(data);
+const s = document.createElement("script");
+s.src = `poses/${ID}.js`;
+document.head.appendChild(s);
+
+function draw(data) {
+  $3Dmol.setSyncSurface(true);
+  const viewer = $3Dmol.createViewer(document.getElementById("v"), { backgroundColor: "white", backgroundAlpha: 0, antialias: true });
+  // v4: a thin dark outline around every object, for a crisp illustrative look at small size.
+  if (CLEAN) viewer.setViewStyle({ style: "outline", color: "black", width: 0.035 });
+  const crystal = () => {
+    const m = viewer.addModel(data.crystal, "sdf");
+    viewer.setStyle({ model: m }, { stick: { radius: 0.28, color: CRYSTAL } });
+    return m;
+  };
+  const protein = (color, opacity = 1) => {
+    const m = viewer.addModel(data.protein, "pdb");
+    viewer.setStyle({ model: m }, { cartoon: { color, opacity } });
+    return m;
+  };
+  const pocket = () => {
+    const m = viewer.addModel(data.pocket, "pdb");
+    const residue = CLEAN ? { radius: 0.07, color: "#d3d8df" } : { radius: 0.1, colorscheme: { prop: "elem", map: ELEMENTS("#b9c0ca") } };
+    viewer.setStyle({ model: m }, { stick: residue });
+    viewer.setStyle({ model: m, atom: ["N", "C", "O"], hetflag: false }, {});
+    return m;
+  };
+  // The protein around a ligand only (residues within 10 Å), as pale ribbons: it fits inside
+  // the frame instead of being cut off at its edges, and fewer ribbons pass in front.
+  // Residues are chosen by distance here; 3Dmol's `within` selector ignored the ligand model.
+  const pocketRibbons = (ligandModel, color = "#e3d6bd") => {
+    const shell = viewer.addModel(data.protein, "pdb");
+    viewer.setStyle({ model: shell }, {});  // a new model is drawn as lines by default
+    const lig = ligandModel.selectedAtoms({});
+    const near = new Set(
+      shell.selectedAtoms({}).filter((a) => lig.some((b) =>
+        (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2 < 10 * 10)).map((a) => `${a.chain}:${a.resi}`),
+    );
+    for (const key of near) {
+      const [chain, resi] = key.split(":");
+      viewer.setStyle({ model: shell, chain, resi: Number(resi) }, { cartoon: { color } });
+    }
+    return shell;
+  };
+  // The search box as docking uses it: the ligand's heavy-atom extent plus the padding.
+  const searchBox = (ligandModel, radius, color) => {
+    const xyz = ligandModel.selectedAtoms({ elem: ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"] });
+    const lo = ["x", "y", "z"].map((k) => Math.min(...xyz.map((a) => a[k])) - PADDING);
+    const hi = ["x", "y", "z"].map((k) => Math.max(...xyz.map((a) => a[k])) + PADDING);
+    // The 12 edges as thin cylinders: WebGL ignores line widths, so a wireframe is hairline.
+    const corner = (i) => ({ x: [lo[0], hi[0]][i & 1], y: [lo[1], hi[1]][(i >> 1) & 1], z: [lo[2], hi[2]][(i >> 2) & 1] });
+    for (let a = 0; a < 8; a++) {
+      for (const bit of [1, 2, 4]) {
+        if (a & bit) continue;
+        viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius, color, fromCap: 1, toCap: 1 });
+      }
+    }
+  };
+  const poses = (data.poses.vina || {}).baseline || [];
+  let focus;
+  if (SCENE === "input") {
+    const p = protein(CHAIN);
+    focus = crystal();
+    // Space-filling, so the ligand shows through the ribbons at figure size.
+    viewer.setStyle({ model: focus }, { sphere: { scale: 0.95, color: CRYSTAL } });
+    viewer.zoomTo({ model: p });
+  } else if (SCENE === "receptor") {
+    const p = protein(FIXED);
+    viewer.zoomTo({ model: p });
+  } else if (SCENE === "box") {
+    // v4: the protein as a light cartoon for context and the ligand as spheres filling the
+    // site, so the picture shows where the box sits on the protein.
+    if (!CLEAN) pocket();
+    focus = crystal();
+    if (CLEAN) {
+      viewer.setStyle({ model: focus }, { sphere: { scale: 0.85, color: CRYSTAL } });
+      pocketRibbons(focus);
+    }
+    searchBox(focus, CLEAN ? 0.45 : 0.12, BOX);
+    // v4: tilt the view so the box reads as 3D, and let it fill the picture; residues
+    // outside it fall off the edge.
+    if (CLEAN) {
+      viewer.rotate(20, "y");
+      viewer.rotate(-12, "x");
+    }
+    if (CLEAN) {
+      // v4: centre on the box and let it fill most of the frame, with the protein around it
+      // running off the edges (a whole-protein view makes the box too small in a card).
+      viewer.zoomTo({ model: focus });
+      viewer.zoom(0.45);  // the box nearly fills the frame
+    } else {
+      viewer.zoomTo({ model: focus });
+      viewer.zoom(0.55);
+    }
+  } else if (SCENE === "engine") {
+    // v4: the poses alone, filling the picture, in the style of the evaluation picture.
+    // Pocket ribbons broke into fragments at card size and crossed the poses, and in the
+    // search box the poses were too small to read.
+    if (!CLEAN) pocket();
+    // v4: the four best-ranked poses in distinct shades of the docked colour, top pose darkest.
+    const SHADES = ["#1f5fae", "#4a8fd8", "#7fb0e6", "#b3cff0"];
+    for (const pose of CLEAN ? poses.filter((p) => p.rank <= 4) : poses) {
+      const m = viewer.addModel(pose.block, "sdf");
+      viewer.setStyle({ model: m }, CLEAN
+        ? { stick: { radius: 0.3, color: SHADES[pose.rank - 1] } }
+        : { stick: { radius: pose.rank === 1 ? 0.16 : 0.1, color: pose.rank === 1 ? DOCKED : "#a9c6ec" } });
+    }
+    focus = viewer.addModel(data.crystal, "sdf");
+    viewer.setStyle({ model: focus }, {});
+    viewer.zoomTo({ model: focus });
+    viewer.zoom(CLEAN ? 0.9 : 0.7);
+  } else {
+    focus = crystal();
+    viewer.setStyle({ model: focus }, { stick: { radius: 0.36, color: "#f7c57a" } });  // pale amber halo
+    const top = poses.find((p) => p.rank === 1);
+    const m = viewer.addModel(top.block, "sdf");
+    viewer.setStyle({ model: m }, { stick: { radius: 0.2, colorscheme: { prop: "elem", map: ELEMENTS(DOCKED) } } });
+    viewer.zoomTo({ model: focus });
+    viewer.zoom(0.9);
+  }
+  viewer.render();
+  // Export the canvas itself (transparent background) into the page, so a headless browser's
+  // --dump-dom returns the image; screenshots of WebGL canvases come out blank headless.
+  setTimeout(() => {
+    viewer.render();
+    const out = document.createElement("pre");
+    out.id = "png";
+    out.textContent = viewer.pngURI();
+    console.log(`SCENE ${SCENE}: ${viewer.getModel ? viewer.selectedAtoms({}).length : "?"} atoms, ${out.textContent.length} chars`);
+    document.body.appendChild(out);
+    document.title = "ready";
+  }, 1500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180mm" height="117.0mm" viewBox="0 0 1600 1040">
+<defs><marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#898781"/></marker></defs>
+<rect width="1600" height="1040" fill="#ffffff"/>
+<text x="30.0" y="40.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">a</text>
+<text x="70.0" y="40.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Docking pipeline and the preparation choices it exposes</text>
+<rect x="30.0" y="70" width="222" height="310" rx="14" fill="#f4f4f2" stroke="#52514e" stroke-width="2"/>
+<rect x="30.0" y="70" width="222" height="8" rx="4" fill="#52514e"/>
+<text x="141.0" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Input</text>
+<text x="141.0" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">PoseBusters set</text>
+<text x="141.0" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">428 complexes</text>
+<text x="141.0" y="326.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Crystal pose</text>
+<rect x="295.6" y="70" width="222" height="310" rx="14" fill="#f4f4f2" stroke="#52514e" stroke-width="2"/>
+<rect x="295.6" y="70" width="222" height="8" rx="4" fill="#52514e"/>
+<text x="406.6" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Receptor</text>
+<text x="406.6" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">pH 7.4</text>
+<text x="406.6" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Cofactors removed</text>
+<text x="406.6" y="326.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">No waters in set</text>
+<text x="406.6" y="356.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Held fixed</text>
+<rect x="561.2" y="70" width="222" height="310" rx="14" fill="#fdf0ea" stroke="#eb6834" stroke-width="2"/>
+<rect x="561.2" y="70" width="222" height="8" rx="4" fill="#eb6834"/>
+<text x="672.2" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Ligand</text>
+<text x="672.2" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Protonation</text>
+<text x="672.2" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">(supplied or pH 7.4)</text>
+<text x="672.2" y="326.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Start conformer</text>
+<rect x="826.8000000000001" y="70" width="222" height="310" rx="14" fill="#e9f7f1" stroke="#1baf7a" stroke-width="2"/>
+<rect x="826.8000000000001" y="70" width="222" height="8" rx="4" fill="#1baf7a"/>
+<text x="937.8" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Search space</text>
+<text x="937.8" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Box padding</text>
+<text x="937.8" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">2 / 4 / 6 / 8 Å</text>
+<rect x="1092.4" y="70" width="222" height="310" rx="14" fill="#efedfb" stroke="#6250d6" stroke-width="2"/>
+<rect x="1092.4" y="70" width="222" height="8" rx="4" fill="#6250d6"/>
+<text x="1203.4" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Engine</text>
+<text x="1203.4" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">AutoDock Vina</text>
+<text x="1203.4" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Smina</text>
+<text x="1203.4" y="326.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Gnina</text>
+<text x="1203.4" y="356.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">rDock</text>
+<rect x="1358.0" y="70" width="222" height="310" rx="14" fill="#f4f4f2" stroke="#52514e" stroke-width="2"/>
+<rect x="1358.0" y="70" width="222" height="8" rx="4" fill="#52514e"/>
+<text x="1469.0" y="114.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="middle">Evaluation</text>
+<text x="1469.0" y="266.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">RMSD &lt; 2 Å</text>
+<text x="1469.0" y="296.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">PoseBusters</text>
+<text x="1469.0" y="326.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">validity</text>
+<line x1="256.0" y1="195" x2="289.6" y2="195" stroke="#898781" stroke-width="2.5" marker-end="url(#head)"/>
+<line x1="521.6" y1="195" x2="555.2" y2="195" stroke="#898781" stroke-width="2.5" marker-end="url(#head)"/>
+<line x1="787.2" y1="195" x2="820.8000000000001" y2="195" stroke="#898781" stroke-width="2.5" marker-end="url(#head)"/>
+<line x1="1052.8000000000002" y1="195" x2="1086.4" y2="195" stroke="#898781" stroke-width="2.5" marker-end="url(#head)"/>
+<line x1="1318.4" y1="195" x2="1352.0" y2="195" stroke="#898781" stroke-width="2.5" marker-end="url(#head)"/>
+<path d="M79.0,198 C79.0,160 107.0,150 121.0,152 L125.0,176 Q141.0,188 157.0,176 L161.0,152 C183.0,150 203.0,166 203.0,196 C203.0,226 171.0,232 141.0,230 C105.0,232 79.0,224 79.0,198 Z" fill="#ececea" stroke="#898781" stroke-width="2.5"/>
+<polygon points="146.0,162.0 140.5,171.5 129.5,171.5 124.0,162.0 129.5,152.5 140.5,152.5" fill="#ffffff" stroke="#52514e" stroke-width="2.5"/>
+<polyline points="146.0,162.0 158.0,154.0 170.0,162.0" fill="none" stroke="#52514e" stroke-width="2.5"/>
+<path d="M344.6,198 C344.6,160 372.6,150 386.6,152 L390.6,176 Q406.6,188 422.6,176 L426.6,152 C448.6,150 468.6,166 468.6,196 C468.6,226 436.6,232 406.6,230 C370.6,232 344.6,224 344.6,198 Z" fill="#ffffff" stroke="#898781" stroke-width="2.5"/>
+<circle cx="362.6" cy="168" r="5" fill="#898781"/>
+<circle cx="356.6" cy="208" r="5" fill="#898781"/>
+<circle cx="446.6" cy="164" r="5" fill="#898781"/>
+<circle cx="456.6" cy="204" r="5" fill="#898781"/>
+<circle cx="398.6" cy="220" r="5" fill="#898781"/>
+<circle cx="430.6" cy="222" r="5" fill="#898781"/>
+<text x="406.6" y="196.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#898781" text-anchor="middle">+H</text>
+<polygon points="680.2,190.0 669.2,209.1 647.2,209.1 636.2,190.0 647.2,170.9 669.2,170.9" fill="#ffffff" stroke="#eb6834" stroke-width="2.5"/>
+<polyline points="680.2,190.0 692.2,182.0 704.2,190.0" fill="none" stroke="#eb6834" stroke-width="2.5"/>
+<circle cx="712.2" cy="168" r="12" fill="#ffffff" stroke="#eb6834" stroke-width="2.5"/>
+<text x="712.2" y="175.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#eb6834" text-anchor="middle">±</text>
+<rect x="875.8000000000001" y="142" width="124" height="96" fill="none" stroke="#1baf7a" stroke-width="2.5" stroke-dasharray="7 5"/>
+<rect x="905.8000000000001" y="170" width="64" height="40" fill="#ffffff" stroke="#1baf7a" stroke-width="2"/>
+<polygon points="933.8,190.0 928.8,198.7 918.8,198.7 913.8,190.0 918.8,181.3 928.8,181.3" fill="none" stroke="#52514e" stroke-width="2.5"/>
+<polyline points="933.8,190.0 945.8,182.0 957.8,190.0" fill="none" stroke="#52514e" stroke-width="2.5"/>
+<line x1="971.8000000000001" y1="190" x2="995.8000000000001" y2="190" stroke="#1baf7a" stroke-width="2" marker-end="url(#head)"/>
+<path d="M1141.4,212 C1141.4,174 1169.4,164 1183.4,166 L1187.4,190 Q1203.4,202 1219.4,190 L1223.4,166 C1245.4,164 1265.4,180 1265.4,210 C1265.4,240 1233.4,246 1203.4,244 C1167.4,246 1141.4,238 1141.4,212 Z" fill="#ffffff" stroke="#6250d6" stroke-width="2.5"/>
+<polygon points="1206.4,176.0 1200.9,185.5 1189.9,185.5 1184.4,176.0 1189.9,166.5 1200.9,166.5" fill="#ffffff" stroke="#6250d6" stroke-width="2.5"/>
+<polyline points="1206.4,176.0 1218.4,168.0 1230.4,176.0" fill="none" stroke="#6250d6" stroke-width="2.5"/>
+<path d="M1145.4,160 Q1167.4,136 1189.4,150" fill="none" stroke="#6250d6" stroke-width="2.5" marker-end="url(#head)"/>
+<polygon points="1477.0,184.0 1467.0,201.3 1447.0,201.3 1437.0,184.0 1447.0,166.7 1467.0,166.7" fill="none" stroke="#898781" stroke-width="2.5" stroke-dasharray="5 4"/>
+<polyline points="1477.0,184.0 1489.0,176.0 1501.0,184.0" fill="none" stroke="#898781" stroke-width="2.5" stroke-dasharray="5 4"/>
+<polygon points="1485.0,194.0 1475.0,211.3 1455.0,211.3 1445.0,194.0 1455.0,176.7 1475.0,176.7" fill="none" stroke="#0b0b0b" stroke-width="2.5"/>
+<polyline points="1485.0,194.0 1497.0,186.0 1509.0,194.0" fill="none" stroke="#0b0b0b" stroke-width="2.5"/>
+<path d="M301.6,402 v12 H511.6 v-12" fill="none" stroke="#898781" stroke-width="2"/>
+<text x="406.6" y="444.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#898781" text-anchor="middle">Held fixed</text>
+<path d="M567.2,402 v12 H1042.8000000000002 v-12" fill="none" stroke="#52514e" stroke-width="2"/>
+<text x="805.0" y="444.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#52514e" text-anchor="middle">Varied one at a time</text>
+<path d="M1098.4,402 v12 H1308.4 v-12" fill="none" stroke="#6250d6" stroke-width="2"/>
+<text x="1203.4" y="444.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">Engine</text>
+<text x="30.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">b</text>
+<text x="70.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">One factor at a time, paired by complex</text>
+<text x="319.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">Vina</text>
+<text x="389.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">Smina</text>
+<text x="459.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">Gnina</text>
+<text x="529.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">rDock</text>
+<rect x="40" y="599" width="8" height="16" rx="2" fill="#52514e"/>
+<text x="58.0" y="615.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Baseline (4 Å box)</text>
+<rect x="290" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
+<rect x="360" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
+<rect x="430" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
+<rect x="500" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
+<rect x="40" y="645" width="8" height="16" rx="2" fill="#1baf7a"/>
+<text x="58.0" y="661.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Box padding 2 Å</text>
+<rect x="290" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="360" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="430" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="500" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="40" y="691" width="8" height="16" rx="2" fill="#1baf7a"/>
+<text x="58.0" y="707.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Box padding 6 Å</text>
+<rect x="290" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="360" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="430" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="500" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="40" y="737" width="8" height="16" rx="2" fill="#1baf7a"/>
+<text x="58.0" y="753.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Box padding 8 Å</text>
+<rect x="290" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="360" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="430" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="500" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="40" y="783" width="8" height="16" rx="2" fill="#eb6834"/>
+<text x="58.0" y="799.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Ligand protonation</text>
+<rect x="290" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="360" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="430" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="500" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="40" y="829" width="8" height="16" rx="2" fill="#eb6834"/>
+<text x="58.0" y="845.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Start conformer</text>
+<rect x="290" y="820" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="360" y="820" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="430" y="820" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="500" y="820" width="58" height="34" rx="5" fill="#e1e0d9"/>
+<rect x="287" y="587" width="64" height="40" rx="7" fill="none" stroke="#eb6834" stroke-width="3"/>
+<rect x="287" y="771" width="64" height="40" rx="7" fill="none" stroke="#eb6834" stroke-width="3"/>
+<rect x="40" y="892" width="30" height="20" rx="4" fill="#e1e0d9"/>
+<text x="80.0" y="909.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">one run: 428 complexes</text>
+<text x="650.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#52514e" text-anchor="middle">Base</text>
+<text x="740.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#eb6834" text-anchor="middle">Arm</text>
+<line x1="661" y1="620" x2="729" y2="620" stroke="#e1e0d9" stroke-width="2"/>
+<circle cx="650" cy="620" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="620" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<line x1="661" y1="656" x2="729" y2="656" stroke="#eb6834" stroke-width="3"/>
+<circle cx="650" cy="656" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="656" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<line x1="661" y1="692" x2="729" y2="692" stroke="#e1e0d9" stroke-width="2"/>
+<circle cx="650" cy="692" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="692" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<line x1="661" y1="728" x2="729" y2="728" stroke="#e1e0d9" stroke-width="2"/>
+<circle cx="650" cy="728" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="728" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<line x1="661" y1="764" x2="729" y2="764" stroke="#eb6834" stroke-width="3"/>
+<circle cx="650" cy="764" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="764" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<line x1="661" y1="800" x2="729" y2="800" stroke="#e1e0d9" stroke-width="2"/>
+<circle cx="650" cy="800" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="800" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<line x1="661" y1="836" x2="729" y2="836" stroke="#e1e0d9" stroke-width="2"/>
+<circle cx="650" cy="836" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="836" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<line x1="661" y1="872" x2="729" y2="872" stroke="#eb6834" stroke-width="3"/>
+<circle cx="650" cy="872" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<circle cx="740" cy="872" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<circle cx="625" cy="902" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<text x="650.0" y="909.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">success</text>
+<circle cx="625" cy="936" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<text x="650.0" y="943.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">miss</text>
+<line x1="610" y1="970" x2="640" y2="970" stroke="#eb6834" stroke-width="3"/>
+<text x="650.0" y="977.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">outcome changed</text>
+<text x="840.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">c</text>
+<text x="880.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Which matters more: preparation or engine?</text>
+<text x="900.0" y="604.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Engines, at a fixed preparation</text>
+<line x1="900" y1="650" x2="1550" y2="650" stroke="#e1e0d9" stroke-width="2"/>
+<circle cx="1080" cy="650" r="11" fill="#6250d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="1160" cy="650" r="11" fill="#6250d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="1215" cy="650" r="11" fill="#6250d6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="1290" cy="650" r="11" fill="#6250d6" stroke="#ffffff" stroke-width="2"/>
+<path d="M1080,672 v10 H1290 v-10" fill="none" stroke="#6250d6" stroke-width="2"/>
+<text x="1185.0" y="710.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">Δ engine</text>
+<text x="900.0" y="754.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Preparation choices, at a fixed engine</text>
+<line x1="900" y1="800" x2="1550" y2="800" stroke="#e1e0d9" stroke-width="2"/>
+<circle cx="1040" cy="800" r="11" fill="#1baf7a" stroke="#ffffff" stroke-width="2"/>
+<circle cx="1120" cy="800" r="11" fill="#1baf7a" stroke="#ffffff" stroke-width="2"/>
+<circle cx="1190" cy="800" r="11" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="1260" cy="800" r="11" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<circle cx="1330" cy="800" r="11" fill="#1baf7a" stroke="#ffffff" stroke-width="2"/>
+<path d="M1040,822 v10 H1330 v-10" fill="none" stroke="#52514e" stroke-width="2"/>
+<text x="1185.0" y="860.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#52514e" text-anchor="middle">Δ preparation</text>
+<line x1="900" y1="905" x2="1550" y2="905" stroke="#898781" stroke-width="2.5" marker-end="url(#head)"/>
+<text x="1225.0" y="940.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="middle">Docking success rate</text>
+</svg>

@@ -13,15 +13,21 @@ are run on the same complexes and compared with paired statistics
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\textwidth]{concept.pdf}
-  \caption{Study design. \textbf{(a)}~Redocking pipeline: each complex passes through
-    receptor preparation, ligand preparation, search-space definition and docking; the
-    top-ranked pose is scored by heavy-atom RMSD to the crystal ligand (success below
-    \SI{2}{\angstrom}) and by the PoseBusters checks. \textbf{(b)}~Each arm changes one
-    preparation choice from the baseline and is compared with it complex by complex.
-    \textbf{(c)}~The question addressed: is the spread in success across preparation choices
-    comparable to the spread across engines? Positions in (c) are schematic.
-    \todo{Update panels to the arms and engines actually run: four engines, six arms.}}
+  \includegraphics[width=\textwidth]{concept_v4.pdf}
+  \caption{Study design. \textbf{(a)}~Redocking pipeline, shown for complex 5SAK\_ZRY: each
+    complex passes through receptor preparation (held fixed: pH 7.4, cofactors removed; the
+    dataset contains no waters), ligand preparation (here protonation at pH 7.4 adds a
+    positive charge, highlighted) and search-space definition (the box around the crystal
+    ligand), then docking with each of four engines (the four top-ranked Vina poses are
+    shown). The top-ranked pose is scored by heavy-atom RMSD to the crystal ligand (success
+    below \SI{2}{\angstrom}; \SI{0.43}{\angstrom} here) and by the PoseBusters checks.
+    \textbf{(b)}~Each of the five arms changes one choice from the baseline
+    (\SI{4}{\angstrom} box padding, supplied ligand) and is run with every engine; an arm
+    is compared with the baseline of the same engine complex by complex (right: filled
+    circles mark successes, orange lines complexes whose outcome changed). The outcomes
+    shown are illustrative. \textbf{(c)}~The question addressed: is the spread in success
+    across preparation choices comparable to the spread across engines? Positions in (c)
+    are schematic, not results.}
   \label{fig:design}
 \end{figure}
 
