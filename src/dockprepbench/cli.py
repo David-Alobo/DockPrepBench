@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 RESULTS_FILE = "results.csv"
 CHECKPOINT_FILE = "results.partial.jsonl"  # per-complex results of an unfinished run
+DEFAULT_SEED = 42  # matches VinaEngine's default, so unseeded runs stay comparable
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -59,6 +60,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--limit", type=int, help="Dock only the first N complexes.")
     run.add_argument("--workers", type=int, default=1, help="Complexes docked in parallel.")
     run.add_argument("--exhaustiveness", type=int, default=8)
+    run.add_argument(
+        "--seed",
+        type=int,
+        help=f"Docking seed (default {DEFAULT_SEED}). An explicit seed adds _seed<N> to the "
+        "default run directory, so repeat runs for measuring noise never overwrite each other.",
+    )
 
     summarize = commands.add_parser("summarize", help="Success rates of one run.")
     summarize.add_argument("run", type=Path, help="Run directory or results CSV.")
@@ -109,9 +116,13 @@ def run_command(args: argparse.Namespace) -> int:
 
     complexes = load_complexes(download(args.data_dir))[: args.limit]
     # One Vina thread per complex when complexes already run in parallel.
-    engine = VinaEngine(exhaustiveness=args.exhaustiveness, cpu=1 if args.workers > 1 else 0)
+    seed = DEFAULT_SEED if args.seed is None else args.seed
+    suffix = "" if args.seed is None else f"_seed{args.seed}"
+    engine = VinaEngine(
+        exhaustiveness=args.exhaustiveness, seed=seed, cpu=1 if args.workers > 1 else 0
+    )
     for i, config in enumerate(configs, 1):
-        out = args.out or Path("results") / args.engine / config.name
+        out = args.out or Path("results") / args.engine / f"{config.name}{suffix}"
         if (out / RESULTS_FILE).is_file() and not args.force:
             logger.info("[%d/%d] %s: results exist, skipping", i, len(configs), config.name)
             continue

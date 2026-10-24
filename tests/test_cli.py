@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from dockprepbench import __version__
@@ -162,3 +164,28 @@ def test_compare_several_arms_reports_holm(tmp_path, capsys):
     out = capsys.readouterr().out
     assert out.count("Holm-adjusted p") == 2
     assert "(2 comparisons)" in out
+
+
+def test_run_with_seed_writes_a_separate_run_directory(tmp_path, monkeypatch, fake_pipeline):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "baseline.toml").write_text("", encoding="utf-8")
+
+    main(["run", "--config", "baseline.toml", "--seed", "7"])
+
+    run_dir = tmp_path / "results" / "vina" / "baseline_seed7"
+    assert (run_dir / "results.csv").is_file()
+    assert (
+        json.loads((run_dir / "run.json").read_text(encoding="utf-8"))["engine_settings"]["seed"]
+        == 7
+    )
+    assert not (tmp_path / "results" / "vina" / "baseline").exists()
+
+
+def test_run_without_seed_keeps_default_directory_and_seed(tmp_path, monkeypatch, fake_pipeline):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "baseline.toml").write_text("", encoding="utf-8")
+
+    main(["run", "--config", "baseline.toml"])
+
+    run_json = tmp_path / "results" / "vina" / "baseline" / "run.json"
+    assert json.loads(run_json.read_text(encoding="utf-8"))["engine_settings"]["seed"] == 42
