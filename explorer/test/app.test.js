@@ -73,7 +73,7 @@ describe("overview", () => {
 
   it("fills the transition matrix with counts that sum to the dataset", () => {
     const cells = [...document.querySelectorAll("#matrix td")];
-    expect(cells).toHaveLength(25);
+    expect(cells).toHaveLength(36); // six classes, failed included
     expect(cells.reduce((s, td) => s + Number(td.textContent), 0)).toBe(25);
     expect(document.querySelector('#matrix td[data-cell="scoring|valid"]').textContent).toBe("5");
   });
@@ -144,6 +144,166 @@ describe("complexes tab", () => {
     expect(document.querySelector('#rows tr[aria-selected="true"]').dataset.id).toBe("C03_LIG");
     expect($("d-arms").querySelectorAll(".arm-cell")).toHaveLength(3);
     expect($("viewer").textContent).toMatch(/will appear here/);
+  });
+});
+
+describe("built data: failures and poses loaded per complex", () => {
+  /** Boot with data as build_data.py writes it: no demo, a failed complex, a pose directory. */
+  function bootBuilt() {
+    document.head.querySelectorAll('script[src^="poses/"]').forEach((s) => s.remove()); // from earlier tests
+    boot();
+    const data = makeData();
+    data.demo = false;
+    data.poseDir = "poses/test";
+    data.complexes[24].arms.box_padding_2 = { error: "RuntimeError: receptor failed" };
+    Object.assign(data.complexes[3], { charge: -1, chains: 2, residues: 300 });
+    window.EXPLORER_DATA = data;
+    document.body.innerHTML = body;
+    new Function(appSource)();
+    click($("tab-complexes"));
+  }
+  const payload = {
+    crystal: "",
+    pocket: "",
+    poses: {
+      baseline: [{ rank: 1, score: -7.1, rmsd: 0.8, block: "" }],
+      box_padding_2: [
+        { rank: 1, score: -8.2, rmsd: 3.4, block: "" },
+        { rank: 2, score: -8.0, rmsd: 1.1, block: "" },
+      ],
+    },
+  };
+
+  beforeEach(bootBuilt);
+
+  it("shows the ligand SMILES, charge, protein size and RCSB links", () => {
+    window.EXPLORER_DATA.complexes[3].smiles = "CC(=O)O";
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    expect(text("d-smiles")).toBe("CC(=O)O");
+    expect($("d-smiles-row").hidden).toBe(false);
+    expect(text("d-props")).toMatch(/Charge -1/);
+    expect(text("d-protein")).toMatch(/2 chains, 300 residues/);
+    const links = [...$("d-protein").querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(links).toEqual(["https://www.rcsb.org/structure/C03", "https://www.rcsb.org/ligand/LIG"]);
+  });
+
+  it("enlarges the 2D structure with its SMILES on click", () => {
+    window.EXPLORER_DATA.complexes[3].smiles = "CC(=O)O";
+    window.EXPLORER_DATA.complexes[3].svg = "<svg id='big'></svg>";
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    click($("d-depict"));
+    expect($("depict-dialog").hasAttribute("open")).toBe(true);
+    expect(text("depict-title")).toBe("C03_LIG");
+    expect($("depict-large").querySelector("#big")).not.toBeNull();
+    expect(text("depict-smiles")).toBe("CC(=O)O");
+  });
+
+  it("hides the prototype badge and the ◆ key", () => {
+    expect($("badge").hidden).toBe(true);
+    expect($("real-key").hidden).toBe(true);
+  });
+
+  it("shows a failed complex as failed, without a distance", () => {
+    click($("page-last"));
+    click(document.querySelector('#rows tr[data-id="C24_LIG"]'));
+    const cell = [...$("d-arms").querySelectorAll(".arm-cell")][1];
+    expect(cell.textContent).toMatch(/– Å/);
+    expect(document.querySelector('#matrix td[data-cell="mode|failed"]').textContent).toBe("1");
+  });
+
+  it("requests a complex's pose file once, then shows the selected arm's poses", () => {
+    const scripts = () => [...document.head.querySelectorAll('script[src^="poses/test/"]')];
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    expect(scripts().map((s) => s.getAttribute("src"))).toContain("poses/test/C03_LIG.js");
+    expect($("viewer").textContent).toMatch(/Loading/);
+
+    window.ExplorerPoses("C03_LIG", payload);
+    expect($("d-poses").querySelectorAll("button[data-rank]")).toHaveLength(2); // box_padding_2
+    expect(text("poses-head")).toMatch(/^Box 2 Å poses/);
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    expect(scripts().filter((s) => s.getAttribute("src") === "poses/test/C03_LIG.js")).toHaveLength(1);
+  });
+
+  it("explains a missing pose file", () => {
+    click(document.querySelector('#rows tr[data-id="C04_LIG"]'));
+    window.ExplorerPoses("C04_LIG", null);
+    expect($("viewer").textContent).toMatch(/not found/);
+  });
+});
+
+describe("several engines", () => {
+  /** Two engines: A is the fixture; B has only box_padding_2, identical to its baseline. */
+  function bootEngines(search = "") {
+    document.head.querySelectorAll('script[src^="poses/"]').forEach((s) => s.remove());
+    document.body.innerHTML = body;
+    window.history.replaceState(null, "", `/${search}`);
+    const data = makeData();
+    const armsB = data.arms.slice(0, 2);
+    data.engines = [
+      { key: "a", label: "Engine A", arms: data.arms },
+      { key: "b", label: "Engine B", arms: armsB },
+    ];
+    for (const c of data.complexes) {
+      c.byEngine = { a: c.arms, b: { baseline: c.arms.baseline, box_padding_2: c.arms.baseline } };
+      delete c.arms;
+    }
+    data.demo = false;
+    data.poseDir = "poses";
+    delete data.arms;
+    window.EXPLORER_DATA = data;
+    window.ExplorerLib = require("../lib.js");
+    delete window.$3Dmol;
+    window.matchMedia = () => ({ matches: false, addEventListener() {} });
+    new Function(appSource)();
+  }
+  const pick = (value) => {
+    $("engine-select").value = value;
+    $("engine-select").dispatchEvent(new Event("change"));
+  };
+
+  it("starts on the first engine and lists every engine", () => {
+    bootEngines();
+    expect($("engine-field").hidden).toBe(false);
+    expect([...$("engine-select").options].map((o) => o.textContent)).toEqual(["Engine A", "Engine B"]);
+    expect(text("meta")).toMatch(/Engine A$/);
+    expect(text("t-changed")).toBe("6");
+  });
+
+  it("switches outcomes, arms and the header with the engine", () => {
+    bootEngines();
+    pick("b");
+    expect(text("meta")).toMatch(/Engine B$/);
+    expect(text("t-changed")).toBe("0");
+    expect([...$("arm-select").options].map((o) => o.value)).toEqual(["box_padding_2"]);
+    expect(window.location.search).toBe("?engine=b");
+  });
+
+  it("falls back to a default arm when the new engine lacks the selected one", () => {
+    bootEngines();
+    $("arm-select").value = "ligand_dimorphite";
+    $("arm-select").dispatchEvent(new Event("change"));
+    pick("b");
+    expect($("arm-select").value).toBe("box_padding_2");
+  });
+
+  it("opens the engine named in the link", () => {
+    bootEngines("?engine=b");
+    expect($("engine-select").value).toBe("b");
+    expect(text("meta")).toMatch(/Engine B$/);
+  });
+
+  it("shows the selected engine's poses", () => {
+    bootEngines();
+    click($("tab-complexes"));
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    const pose = (rank, rmsd) => ({ rank, score: -7, rmsd, block: "" });
+    window.ExplorerPoses("C03_LIG", {
+      crystal: "", pocket: "",
+      poses: { a: { box_padding_2: [pose(1, 1), pose(2, 3)] }, b: { box_padding_2: [pose(1, 5)] } },
+    });
+    expect($("d-poses").querySelectorAll("button[data-rank]")).toHaveLength(2);
+    pick("b");
+    expect($("d-poses").querySelectorAll("button[data-rank]")).toHaveLength(1);
   });
 });
 

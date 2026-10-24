@@ -4,12 +4,29 @@
 // in lib.js (window.ExplorerLib).
 const L = window.ExplorerLib;
 const DATA = window.EXPLORER_DATA;
-const ARMS = DATA.arms;
 const { BASE, CLASSES, CLASS_LABEL, CLASS_SHORT, SITE_SHIFT, PAGE_SIZE } = L;
+
+// Built data holds several engines, each with its own arms, and per-complex outcomes in
+// c.byEngine; demo and test data hold one engine, with outcomes already in c.arms.
+// useEngine() points ARMS and every c.arms at one engine, so the rest of the page is unchanged.
+const ENGINES = DATA.engines || null;
+let ARMS = DATA.arms;
+const defaultArm = (arms) =>
+  arms.some((a) => a.key === "box_padding_2") ? "box_padding_2" : (arms.find((a) => a.key !== BASE) || arms[0]).key;
+
+function useEngine(key) {
+  const engine = ENGINES.find((e) => e.key === key) || ENGINES[0];
+  ARMS = engine.arms;
+  DATA.engine = engine.label;
+  for (const c of DATA.complexes) c.arms = c.byEngine[engine.key];
+  return engine.key;
+}
 
 const state = {
   tab: "overview",
-  arm: ARMS.some((a) => a.key === "box_padding_2") ? "box_padding_2" : ARMS.find((a) => a.key !== BASE).key,
+  engine: ENGINES ? useEngine(new URLSearchParams(location.search).get("engine")) : null,
+  arm: null, // set below, once ARMS is known
+
   metric: "top1",
   search: "",
   klass: "",
@@ -22,7 +39,11 @@ const state = {
   pose: 1,
   showCrystal: true,
   showPocket: true,
+  showProtein: true,
+  showSurface: true,
+  closeUp: false,
 };
+state.arm = defaultArm(ARMS);
 
 const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -34,13 +55,14 @@ const filters = () => ({ ...state });
 // ---------------------------------------------------------------- glyphs
 
 const glyph = (k, extra = "") => `<span class="g ${k}${extra}" aria-hidden="true"></span>`;
-const chip = (k) => `<span class="chip">${glyph(k)}${CLASS_LABEL[k]}</span>`;
+const chip = (k) => `<span class="chip" title="${CLASS_LABEL[k]}">${glyph(k)}${CLASS_LABEL[k]}</span>`;
 
 function strip(c) {
   const cells = ARMS.map((arm) => {
     const o = c.arms[arm.key];
     const k = L.classify(o);
-    return `<span class="g ${k}${arm.key === state.arm ? " sel" : ""}" title="${arm.label}: ${CLASS_LABEL[k]}, top-1 ${o.rmsd.toFixed(2)} Å"></span>`;
+    const detail = o.error ? "" : `, top-1 ${L.fmtA(o.rmsd)} Å`;
+    return `<span class="g ${k}${arm.key === state.arm ? " sel" : ""}" title="${arm.label}: ${CLASS_LABEL[k]}${detail}"></span>`;
   });
   const summary = ARMS.map((a) => `${a.label} ${CLASS_LABEL[L.classify(c.arms[a.key])]}`).join("; ");
   return `<span class="strip" role="img" aria-label="${summary}">${cells.join("")}</span>`;
@@ -237,6 +259,42 @@ function revealSelected() {
 
 let viewer = null;
 
+// Poses: demo data embeds them in DATA.real; built data keeps one script per complex under
+// DATA.poseDir, which calls window.ExplorerPoses when it loads. null marks a missing file.
+const poseCache = new Map(Object.entries(DATA.real || {}));
+const posePending = new Set();
+
+window.ExplorerPoses = (id, payload) => {
+  posePending.delete(id);
+  poseCache.set(id, payload);
+  if (id === state.selected) drawDetail();
+};
+
+function requestPoses(id) {
+  if (!DATA.poseDir || poseCache.has(id) || posePending.has(id)) return;
+  posePending.add(id);
+  const script = document.createElement("script");
+  script.src = `${DATA.poseDir}/${encodeURIComponent(id)}.js`;
+  script.onerror = () => window.ExplorerPoses(id, null);
+  document.head.appendChild(script);
+}
+
+/** The selected arm's poses from a payload (demo payloads hold one list for the baseline). */
+function armPoses(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload.poses)) return payload.poses;
+  const byArm = ENGINES ? payload.poses[state.engine] || {} : payload.poses;
+  return byArm[state.arm] || [];
+}
+
+function showNoPoses(message, list) {
+  viewer = null;
+  $("viewer-bar").hidden = true;
+  $("viewer-caption").textContent = "";
+  $("viewer").innerHTML = `<div class="viewer-empty">${message}</div>`;
+  $("d-poses").innerHTML = `<span class="count">${list}</span>`;
+}
+
 function drawDetail() {
   const c = byId.get(state.selected);
   if (!c) return;
@@ -244,38 +302,76 @@ function drawDetail() {
   $("d-depict").innerHTML = c.svg || "";
   $("d-props").innerHTML =
     `<span>Heavy atoms <b>${c.heavy}</b></span><span>Rot. bonds <b>${c.rotb}</b></span>` +
-    `<span>MW <b>${c.mw}</b></span><span>Cofactors <b>${c.cofactors.length ? c.cofactors.join(", ") : "none"}</b></span>`;
+    `<span>MW <b>${c.mw}</b></span>` +
+    (c.charge === undefined ? "" : `<span>Charge <b>${c.charge > 0 ? "+" : ""}${c.charge}</b></span>`) +
+    `<span>Cofactors <b>${c.cofactors.length ? c.cofactors.join(", ") : "none"}</b></span>`;
+  // IDs are <PDB code>_<ligand CCD code>; both have pages at the RCSB.
+  const [pdb, ...rest] = c.id.split("_");
+  const ccd = rest.join("_");
+  const link = (href, text, title) => `<a href="${href}" target="_blank" rel="noopener" title="${title}">${text} ↗</a>`;
+  $("d-protein").innerHTML =
+    (c.residues ? `<span>Protein <b>${c.chains} chain${c.chains === 1 ? "" : "s"}, ${c.residues} residues</b></span>` : "") +
+    `<span>${link(`https://www.rcsb.org/structure/${pdb}`, `PDB ${pdb}`, "Structure entry at the RCSB PDB")}</span>` +
+    `<span>${link(`https://www.rcsb.org/ligand/${ccd}`, `Ligand ${ccd}`, "Ligand page at the RCSB PDB")}</span>`;
+  $("d-smiles-row").hidden = !c.smiles;
+  $("d-smiles").textContent = c.smiles || "";
+  $("d-smiles").title = c.smiles || "";
   $("d-arms").innerHTML = ARMS.map((arm) => {
     const o = c.arms[arm.key];
     return (
       `<div class="arm-cell${arm.key === state.arm ? " sel" : ""}"><div class="name">${arm.label}${o.real ? " ◆" : ""}</div>` +
-      `<div class="val">${glyph(L.classify(o))}<span>${o.rmsd.toFixed(2)} Å</span>` +
-      `<span class="best" title="Best RMSD among all returned poses">best ${o.best.toFixed(2)}</span></div></div>`
+      `<div class="val"${o.error ? ` title="${o.error.replace(/"/g, "&quot;")}"` : ""}>${glyph(L.classify(o))}<span>${L.fmtA(o.rmsd)} Å</span>` +
+      `<span class="best" title="Best RMSD among all returned poses">best ${L.fmtA(o.best)}</span></div></div>`
     );
   }).join("");
 
-  const real = DATA.real[c.id];
-  $("viewer-bar").hidden = !real;
-  if (!real) {
-    viewer = null;
-    $("viewer").innerHTML =
-      `<div class="viewer-empty">Docked poses for this complex will appear here after the full benchmark run.<br>Complexes marked ◆ have real poses now.</div>`;
-    $("d-poses").innerHTML = `<span class="count">No poses saved yet.</span>`;
+  if (!poseCache.has(c.id) && DATA.poseDir) {
+    requestPoses(c.id);
+    showNoPoses("Loading poses…", "Loading…");
     return;
   }
-  $("d-poses").innerHTML = real.poses
+  const real = poseCache.get(c.id);
+  const poses = armPoses(real);
+  if (!real || !poses.length) {
+    const o = c.arms[state.arm];
+    const message = o.error
+      ? `${armLabel(state.arm)} failed for this complex: ${o.error}`
+      : DATA.demo
+        ? "Docked poses for this complex will appear here after the full benchmark run.<br>Complexes marked ◆ have real poses now."
+        : real === null
+          ? "The pose file for this complex was not found. Rebuild the data with <code>scripts/explorer.sh</code>."
+          : `No poses were saved for ${armLabel(state.arm)}.`;
+    showNoPoses(message, "No poses.");
+    return;
+  }
+  $("viewer-bar").hidden = false;
+  $("poses-head").textContent = `${armLabel(Array.isArray(real.poses) ? BASE : state.arm)} poses · score · RMSD (Å)`;
+  $("d-poses").innerHTML = poses
     .map((p) => {
       const ok = p.rmsd < 2 ? ` <span class="ok">✓</span>` : "";
       return (
-        `<button type="button" data-rank="${p.rank}" aria-pressed="${p.rank === state.pose}" aria-label="Pose ${p.rank}, score ${p.score}, RMSD ${p.rmsd} Å">` +
+        `<button type="button" data-rank="${p.rank}" aria-pressed="${p.rank === state.pose}" aria-label="Pose ${p.rank}, score ${p.score}, RMSD ${L.fmtA(p.rmsd)} Å">` +
         `<span class="rank">#${p.rank}</span><span>${p.score.toFixed(1)}</span><span>${p.rmsd.toFixed(2)}${ok}</span></button>`
       );
     })
     .join("");
-  if (state.tab === "complexes") drawViewer(real);
+  if (state.tab === "complexes") drawViewer(real, poses);
 }
 
-function drawViewer(real) {
+// Protein chains: muted hues, none blue, so the docked pose (blue carbons) stands out.
+const CHAIN_COLOURS = ["#d1495b", "#b5b44a", "#3f9c8f", "#9a6cc8", "#e0883d", "#c76b98"];
+
+/** Colour per chain ID, in order of first appearance in the PDB text. */
+function chainColours(pdb) {
+  const ids = [...new Set(pdb.split("\n").filter((l) => l.startsWith("ATOM")).map((l) => l[21]))];
+  return Object.fromEntries(ids.map((id, i) => [id, CHAIN_COLOURS[i % CHAIN_COLOURS.length]]));
+}
+
+// The protein layers (cartoon, surface, pocket) are rebuilt only when the complex or a layer
+// toggle changes; switching poses or arms swaps just the ligands, so the surface is computed once.
+let scene = { key: null, ligands: [] };
+
+function drawViewer(real, poses) {
   const el = $("viewer");
   if (typeof window.$3Dmol === "undefined") {
     el.innerHTML = `<div class="viewer-empty">The 3D viewer library did not load. Check your connection and reload.</div>`;
@@ -284,23 +380,75 @@ function drawViewer(real) {
   if (!viewer) {
     el.innerHTML = "";
     viewer = window.$3Dmol.createViewer(el, { backgroundColor: css("--viewer-bg"), antialias: true });
+    scene = { key: null, ligands: [] };
   }
-  viewer.setBackgroundColor(css("--viewer-bg"));
-  viewer.clear();
-  if (state.showPocket) {
-    const pocket = viewer.addModel(real.pocket, "pdb");
-    viewer.setStyle({ model: pocket }, { stick: { radius: 0.08, colorscheme: { prop: "elem", map: elementColours("#9aa3b2") } } });
+  const withProtein = state.showProtein && Boolean(real.protein);
+  const key = [state.selected, withProtein, state.showSurface, state.showPocket, state.closeUp, css("--viewer-bg")].join("|");
+  const rebuild = scene.key !== key;
+  if (rebuild) {
+    viewer.setBackgroundColor(css("--viewer-bg"));
+    viewer.removeAllSurfaces();
+    viewer.clear();
+    scene = { key, ligands: [], protein: null };
+    if (withProtein) {
+      const map = chainColours(real.protein);
+      scene.protein = viewer.addModel(real.protein, "pdb");
+      // Opacity below 1 puts the cartoon in 3Dmol's transparent pass, where a surface hides it.
+      // So: opaque cartoon inside the surface for the whole protein; in close-up, where the
+      // cartoon sits in front of the ligand, a see-through cartoon and no surface.
+      viewer.setStyle({ model: scene.protein }, { cartoon: { colorscheme: { prop: "chain", map }, opacity: state.closeUp ? 0.5 : 1 } });
+      if (state.showSurface && !state.closeUp) {
+        // One surface per chain: 3Dmol colours a surface from `color`, not from a chain map.
+        for (const [chain, color] of Object.entries(map)) {
+          const done = viewer.addSurface(window.$3Dmol.SurfaceType.MS, { opacity: 0.35, color }, { model: scene.protein, chain });
+          if (done && typeof done.then === "function") done.then(() => viewer.render());
+        }
+      }
+    }
+    if (state.showPocket) {
+      const pocket = viewer.addModel(real.pocket, "pdb");
+      // Residues: thin and faded, so the two ligands stay in front. Cofactors: violet, whole.
+      viewer.setStyle({ model: pocket }, { stick: { radius: 0.09, opacity: 0.75, colorscheme: { prop: "elem", map: elementColours(RESIDUE) } } });
+      if (withProtein) viewer.setStyle({ model: pocket, atom: ["N", "C", "O"], hetflag: false }, {}); // backbone is in the cartoon
+      viewer.setStyle({ model: pocket, hetflag: true }, { stick: { radius: 0.16, colorscheme: { prop: "elem", map: elementColours(COFACTOR) } } });
+    }
+  } else {
+    scene.ligands.forEach((m) => viewer.removeModel(m));
   }
   const crystal = viewer.addModel(real.crystal, "sdf");
-  viewer.setStyle({ model: crystal }, state.showCrystal ? { stick: { radius: 0.2, color: css("--faint"), opacity: 0.85 } } : {});
-  const pose = real.poses.find((p) => p.rank === state.pose) || real.poses[0];
+  viewer.setStyle({ model: crystal }, state.showCrystal ? { stick: { radius: 0.36, color: CRYSTAL, opacity: 0.7 } } : {});
+  const pose = poses.find((p) => p.rank === state.pose) || poses[0];
   const docked = viewer.addModel(pose.block, "sdf");
-  viewer.setStyle({ model: docked }, { stick: { radius: 0.24, colorscheme: { prop: "elem", map: elementColours(css("--metric-1")) } } });
+  viewer.setStyle({ model: docked }, { stick: { radius: 0.18, colorscheme: { prop: "elem", map: elementColours(css("--metric-1")) } } });
+  scene.ligands = [crystal, docked];
   viewer.resize();
-  viewer.zoomTo({ model: crystal });
-  viewer.zoom(0.8);
+  if (rebuild) {
+    // Whole protein by default, as in a structure figure. Close-up keeps the protein's depth
+    // range (so the cartoon is not clipped away) and moves in on the ligand.
+    if (scene.protein) {
+      viewer.zoomTo({ model: scene.protein });
+      if (!state.closeUp) viewer.zoom(1.3); // zoomTo leaves a wide margin
+      if (state.closeUp) {
+        viewer.center({ model: crystal });
+        viewer.zoom(3.5);
+      }
+    } else {
+      viewer.zoomTo({ model: crystal });
+      viewer.zoom(0.7);
+    }
+  }
   viewer.render();
+  const ok = pose.rmsd < 2;
+  $("viewer-caption").innerHTML =
+    `<b>Blue</b>: docked pose #${pose.rank} (${armLabel(Array.isArray(real.poses) ? BASE : state.arm)}). <b>Amber</b>: crystal pose, the right answer. ` +
+    `They are ${L.fmtA(pose.rmsd)} Å apart (RMSD), ${ok ? "under 2 Å: <span class=\"delta up\">a success</span>" : "over 2 Å: <span class=\"delta down\">a miss</span>"}.`;
 }
+
+// The reference pose: one solid colour, drawn thicker than the docked pose so that a close
+// match shows as an amber halo around the blue pose rather than hiding behind it.
+const CRYSTAL = "#f08c00";
+const RESIDUE = "#a7afbb";
+const COFACTOR = "#8e6cc8";
 
 function elementColours(carbon) {
   return { C: carbon, N: "#3b5bdb", O: "#e03131", S: "#e0a800", F: "#2f9e44", Cl: "#2f9e44", Br: "#a5541f", P: "#e8590c", H: "#dee2e6" };
@@ -319,17 +467,58 @@ function select(id) {
   drawDetail();
 }
 
-async function copyLink() {
-  const base = DATA.shareUrl || `${location.origin}${location.pathname}`;
-  const link = `${base}#${state.selected}`;
-  const button = $("copy-link");
+/** Copy text to the clipboard, confirming on the button; shows the text if copying is refused. */
+async function copyText(button, text, label) {
   try {
-    await navigator.clipboard.writeText(link);
+    await navigator.clipboard.writeText(text);
     button.textContent = "Copied";
   } catch {
-    button.textContent = link;
+    button.textContent = text;
   }
-  setTimeout(() => { button.textContent = "Copy link"; }, 2500);
+  setTimeout(() => { button.textContent = label; }, 2500);
+}
+
+/** Show the selected ligand's 2D structure large, with its full SMILES. */
+function openDepiction() {
+  const c = byId.get(state.selected);
+  if (!c || !c.svg) return;
+  $("depict-title").textContent = c.id;
+  $("depict-large").innerHTML = c.svg;
+  $("depict-smiles").textContent = c.smiles || "";
+  const dialog = $("depict-dialog");
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", ""); // older browsers and jsdom
+}
+
+function copyLink() {
+  const base = DATA.shareUrl || `${location.origin}${location.pathname}`;
+  const engine = ENGINES ? `?engine=${state.engine}` : "";
+  return copyText($("copy-link"), `${base}${engine}#${state.selected}`, "Copy link");
+}
+
+function fillArmSelect() {
+  $("arm-select").innerHTML = ARMS.filter((a) => a.key !== BASE)
+    .map((a) => `<option value="${a.key}">${a.label}: ${a.detail}</option>`)
+    .join("");
+  $("arm-select").value = state.arm;
+}
+
+function showMeta() {
+  $("meta").textContent = `${DATA.dataset} · ${DATA.complexes.length} complexes · ${DATA.engine}`;
+}
+
+function setEngine(key) {
+  state.engine = useEngine(key);
+  if (!ARMS.some((a) => a.key === state.arm)) state.arm = defaultArm(ARMS);
+  state.page = 1;
+  fillArmSelect();
+  showMeta();
+  try {
+    history.replaceState(null, "", `?engine=${state.engine}${location.hash}`);
+  } catch {
+    /* sandboxed frames may refuse */
+  }
+  renderAll();
 }
 
 // ---------------------------------------------------------------- wiring
@@ -363,17 +552,21 @@ function renderAll() {
 }
 
 function init() {
-  $("meta").textContent = `${DATA.dataset} · ${DATA.complexes.length} complexes · ${DATA.engine}`;
+  showMeta();
+  $("engine-field").hidden = !ENGINES;
+  if (ENGINES) {
+    $("engine-select").innerHTML = ENGINES.map((e) => `<option value="${e.key}">${e.label}</option>`).join("");
+    $("engine-select").value = state.engine;
+    $("engine-select").addEventListener("change", (e) => setEngine(e.target.value));
+  }
   $("badge").hidden = !DATA.demo;
+  $("real-key").hidden = !DATA.demo;
   $("key").innerHTML = CLASSES.map((k) => `<span>${glyph(k)} ${CLASS_LABEL[k]}</span>`).join("");
   $("footer").textContent =
     "Outcome classes follow the top-ranked pose: valid success (RMSD < 2 Å and PB-valid); correct but not PB-valid; " +
     `scoring miss (a pose under 2 Å exists below rank 1); wrong site (centroid more than ${SITE_SHIFT} Å away, a heuristic); ` +
-    "wrong binding mode (right site, wrong pose).";
-  $("arm-select").innerHTML = ARMS.filter((a) => a.key !== BASE)
-    .map((a) => `<option value="${a.key}">${a.label}: ${a.detail}</option>`)
-    .join("");
-  $("arm-select").value = state.arm;
+    "wrong binding mode (right site, wrong pose); failed (preparation or docking raised an error, counted as a miss).";
+  fillArmSelect();
 
   $("tab-overview").addEventListener("click", () => showTab("overview"));
   $("tab-complexes").addEventListener("click", () => showTab("complexes"));
@@ -420,7 +613,20 @@ function init() {
   });
   $("t-crystal").addEventListener("change", (e) => { state.showCrystal = e.target.checked; drawDetail(); });
   $("t-pocket").addEventListener("change", (e) => { state.showPocket = e.target.checked; drawDetail(); });
+  $("t-protein").addEventListener("change", (e) => { state.showProtein = e.target.checked; drawDetail(); });
+  $("t-surface").addEventListener("change", (e) => { state.showSurface = e.target.checked; drawDetail(); });
+  $("t-closeup").addEventListener("change", (e) => {
+    state.closeUp = e.target.checked;
+    $("t-surface").disabled = state.closeUp; // no surface in close-up: it would hide the ligand
+    drawDetail();
+  });
   $("copy-link").addEventListener("click", copyLink);
+  $("d-depict").addEventListener("click", openDepiction);
+  $("depict-close").addEventListener("click", () => $("depict-dialog").close());
+  $("depict-dialog").addEventListener("click", (e) => {
+    if (e.target === $("depict-dialog")) $("depict-dialog").close(); // click on the backdrop
+  });
+  $("copy-smiles").addEventListener("click", () => copyText($("copy-smiles"), byId.get(state.selected).smiles, "Copy"));
 
   const redraw = () => { drawChart(); drawMatrix(); drawDetail(); };
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);

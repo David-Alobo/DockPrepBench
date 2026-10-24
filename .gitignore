@@ -34,6 +34,7 @@ Thumbs.db
 
 # Generated explorer data
 explorer/data.js
+explorer/poses/
 
 # Node (explorer tests)
 node_modules/
