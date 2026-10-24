@@ -17,6 +17,8 @@ lack Meeko templates; trial runs already show top poses placed in a cofactor's s
 the PoseBusters checks then reject. Waters cannot be studied because the dataset's protein
 files contain none. A small number of complexes fail receptor conversion because atoms in
 the deposited structure lie close enough for a spurious bond to be perceived; they are not
-repaired, since that would move experimental atoms, and as they fail in every arm they do
-not bias the paired comparisons. \result{Number of such complexes.} Results so far cover one
-engine and one dataset. \todo{Update as engines and datasets are added.}
+repaired, since that would move experimental atoms. This affects 16 complexes for Vina
+(15 with \SI{2}{\angstrom} padding, where one problem residue falls outside Meeko's
+cutoff); they fail in the baseline and in each arm alike, so they barely affect the paired
+comparisons, and the other engines, which do not use Meeko, dock them. Results cover four
+engines but one dataset. \todo{Update if further datasets are added.}
