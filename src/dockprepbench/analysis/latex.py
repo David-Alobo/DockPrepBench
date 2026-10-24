@@ -252,6 +252,6 @@ def write_latex(tables: Path) -> list[Path]:
         except FileNotFoundError:
             continue
         path = tables / f"{name}.tex"
-        path.write_text(body, encoding="utf-8")
+        path.write_text(body, encoding="utf-8", newline="\n")  # identical on every OS
         written.append(path)
     return written

@@ -322,7 +322,8 @@ def write_report(
     written = []
     for name, table in tables.items():
         path = out / f"{name}.csv"
-        table.to_csv(path, index=False, float_format="%.6g")
+        # Unix line endings on every OS, so regenerated tables are byte-identical.
+        table.to_csv(path, index=False, float_format="%.6g", lineterminator="\n")
         written.append(path)
     # LaTeX fragments for the supplementary information, from the CSVs just written.
     from dockprepbench.analysis.latex import write_latex
