@@ -8,7 +8,13 @@ from tempfile import TemporaryDirectory
 from rdkit import Chem
 
 from dockprepbench.engines.base import Box, DockingEngine, DockingResult
-from dockprepbench.engines.external import read_poses, resolve_command, run, write_ligand
+from dockprepbench.engines.external import (
+    EngineError,
+    read_poses,
+    resolve_command,
+    run,
+    write_ligand,
+)
 
 # rDock's standard docking protocol, shipped with rDock.
 DOCKING_PROTOCOL = "dock.prm"
@@ -66,6 +72,32 @@ def cavity_parameters(receptor_mol2: str, box: Box) -> str:
         "    WEIGHT 1.0\n"
         "END_SECTION\n"
     )
+
+
+def restore_chemistry(pose: Chem.Mol, ligand: Chem.Mol) -> Chem.Mol | None:
+    """
+    Put an rDock pose's coordinates onto the input ligand.
+
+    rDock writes poses without formal charges, so charged groups (nitro, quaternary N) come
+    back with impossible valences. It keeps the input atom order, so the input ligand with
+    the pose's conformer is the same pose with the right chemistry.
+
+    Args:
+        pose (Chem.Mol): Unsanitized pose read from rDock's output.
+        ligand (Chem.Mol): The ligand as passed to rDock.
+
+    Returns:
+        Chem.Mol | None: The ligand in the pose's coordinates, with the pose's properties;
+            None if the atoms do not match the input in order.
+    """
+    if [a.GetAtomicNum() for a in pose.GetAtoms()] != [a.GetAtomicNum() for a in ligand.GetAtoms()]:
+        return None
+    mol = Chem.Mol(ligand)
+    mol.RemoveAllConformers()
+    mol.AddConformer(Chem.Conformer(pose.GetConformer()), assignId=True)
+    for key, value in pose.GetPropsAsDict(includePrivate=False).items():
+        mol.SetProp(key, str(value))
+    return mol
 
 
 class RDockEngine(DockingEngine):
@@ -150,7 +182,10 @@ class RDockEngine(DockingEngine):
                 "-p", DOCKING_PROTOCOL, "-n", str(self.n_runs), "-s", str(self.seed),
             ]  # fmt: skip
             run(rbdock, cwd=work, env=env)
-            poses = read_poses(work / "poses.sd")
+            poses = read_poses(work / "poses.sd", sanitize=False)
+        poses = [p for p in (restore_chemistry(p, ligand) for p in poses) if p is not None]
+        if not poses:
+            raise EngineError("rDock poses do not match the input ligand's atoms")
         poses.sort(key=lambda p: float(p.GetProp("SCORE")))
         poses = poses[: self.n_poses]
         return DockingResult(poses=poses, scores=[float(p.GetProp("SCORE")) for p in poses])

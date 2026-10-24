@@ -9,7 +9,7 @@ from rdkit.Chem import AllChem
 
 from dockprepbench.engines.base import Box
 from dockprepbench.engines.external import EngineError, resolve_command
-from dockprepbench.engines.rdock import RDockEngine, cavity_parameters
+from dockprepbench.engines.rdock import RDockEngine, cavity_parameters, restore_chemistry
 from dockprepbench.engines.smina import GninaEngine, SminaEngine
 
 FAKE = [sys.executable, str(Path(__file__).with_name("fake_engine.py"))]
@@ -113,6 +113,37 @@ def test_rdock_maps_the_cavity_from_the_reference_ligand(peptide_pdb, ligand, ca
     assert "REF_MOL reference.sdf" in prm
     assert "RADIUS 4.000" in prm  # the box padding
     assert "CENTER" not in prm
+
+
+def test_rdock_pose_gets_the_input_ligands_charges_back():
+    ligand = Chem.AddHs(Chem.MolFromSmiles("c1ccccc1[N+](=O)[O-]"))  # nitrobenzene
+    AllChem.EmbedMolecule(ligand, randomSeed=1)
+    # rDock's output: same atoms in order, moved, no formal charges, so N has valence 4.
+    pose = Chem.RWMol(ligand)
+    for atom in pose.GetAtoms():
+        atom.SetFormalCharge(0)
+    conf = pose.GetConformer()
+    for i in range(pose.GetNumAtoms()):
+        p = conf.GetAtomPosition(i)
+        conf.SetAtomPosition(i, (p.x + 5, p.y, p.z))
+    pose.SetProp("SCORE", "-12.5")
+
+    restored = restore_chemistry(pose.GetMol(), ligand)
+
+    assert Chem.MolToSmiles(Chem.RemoveHs(restored)) == Chem.MolToSmiles(Chem.RemoveHs(ligand))
+    assert restored.GetConformer().GetAtomPosition(0).x == pytest.approx(
+        ligand.GetConformer().GetAtomPosition(0).x + 5
+    )
+    assert restored.GetProp("SCORE") == "-12.5"
+
+
+def test_rdock_pose_with_other_atoms_is_rejected():
+    ligand = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(ligand, randomSeed=1)
+    other = Chem.AddHs(Chem.MolFromSmiles("CCN"))
+    AllChem.EmbedMolecule(other, randomSeed=1)
+
+    assert restore_chemistry(other, ligand) is None
 
 
 def test_rdock_cavity_sphere_encloses_the_box():
