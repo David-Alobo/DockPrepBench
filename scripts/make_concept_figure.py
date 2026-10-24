@@ -407,11 +407,9 @@ if ARGS.renders:
                 size = (BOX_W, BOX_H)
                 window(x, png_data(ARGS.renders / "box.png", size, BOX), size, BOX_TOP)
             elif ARGS.v4 and scene == "engine":
-                # Version 4: the same window, cropped around the poses (a mid shade of the
-                # docked blue) with room for the pocket around them.
+                # Version 4: the same window as the search space, so the poses fill it.
                 size = (BOX_W, BOX_H)
-                href = png_data(ARGS.renders / "engine.png", size, "#4a8fd8", margin=1.7)
-                window(x, href, size, BOX_TOP)
+                window(x, png_data(ARGS.renders / "engine.png", size), size, BOX_TOP)
             else:
                 window(x, png_data(ARGS.renders / f"{scene}.png"))
     if ARGS.v4:

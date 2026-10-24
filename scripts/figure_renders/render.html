@@ -67,6 +67,20 @@ function draw(data) {
     }
     return shell;
   };
+  // The search box as docking uses it: the ligand's heavy-atom extent plus the padding.
+  const searchBox = (ligandModel, radius, color) => {
+    const xyz = ligandModel.selectedAtoms({ elem: ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"] });
+    const lo = ["x", "y", "z"].map((k) => Math.min(...xyz.map((a) => a[k])) - PADDING);
+    const hi = ["x", "y", "z"].map((k) => Math.max(...xyz.map((a) => a[k])) + PADDING);
+    // The 12 edges as thin cylinders: WebGL ignores line widths, so a wireframe is hairline.
+    const corner = (i) => ({ x: [lo[0], hi[0]][i & 1], y: [lo[1], hi[1]][(i >> 1) & 1], z: [lo[2], hi[2]][(i >> 2) & 1] });
+    for (let a = 0; a < 8; a++) {
+      for (const bit of [1, 2, 4]) {
+        if (a & bit) continue;
+        viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius, color, fromCap: 1, toCap: 1 });
+      }
+    }
+  };
   const poses = (data.poses.vina || {}).baseline || [];
   let focus;
   if (SCENE === "input") {
@@ -87,18 +101,7 @@ function draw(data) {
       viewer.setStyle({ model: focus }, { sphere: { scale: 0.85, color: CRYSTAL } });
       pocketRibbons(focus);
     }
-    // The search box as docking uses it: the ligand's heavy-atom extent plus the padding.
-    const xyz = focus.selectedAtoms({ elem: ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"] });
-    const lo = ["x", "y", "z"].map((k) => Math.min(...xyz.map((a) => a[k])) - PADDING);
-    const hi = ["x", "y", "z"].map((k) => Math.max(...xyz.map((a) => a[k])) + PADDING);
-    // The 12 edges as thin cylinders: WebGL ignores line widths, so a wireframe is hairline.
-    const corner = (i) => ({ x: [lo[0], hi[0]][i & 1], y: [lo[1], hi[1]][(i >> 1) & 1], z: [lo[2], hi[2]][(i >> 2) & 1] });
-    for (let a = 0; a < 8; a++) {
-      for (const bit of [1, 2, 4]) {
-        if (a & bit) continue;
-        viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius: CLEAN ? 0.45 : 0.12, color: BOX, fromCap: 1, toCap: 1 });
-      }
-    }
+    searchBox(focus, CLEAN ? 0.45 : 0.12, BOX);
     // v4: tilt the view so the box reads as 3D, and let it fill the picture; residues
     // outside it fall off the edge.
     if (CLEAN) {
@@ -115,26 +118,22 @@ function draw(data) {
       viewer.zoom(0.55);
     }
   } else if (SCENE === "engine") {
-    if (CLEAN) {
-      // v4: the same pocket ribbons as the search-space picture, so the cards read as a series.
-      const site = viewer.addModel(data.crystal, "sdf");
-      viewer.setStyle({ model: site }, {});
-      pocketRibbons(site);
-    } else {
-      pocket();
-    }
+    // v4: the poses alone, filling the picture, in the style of the evaluation picture.
+    // Pocket ribbons broke into fragments at card size and crossed the poses, and in the
+    // search box the poses were too small to read.
+    if (!CLEAN) pocket();
     // v4: the four best-ranked poses in distinct shades of the docked colour, top pose darkest.
     const SHADES = ["#1f5fae", "#4a8fd8", "#7fb0e6", "#b3cff0"];
     for (const pose of CLEAN ? poses.filter((p) => p.rank <= 4) : poses) {
       const m = viewer.addModel(pose.block, "sdf");
       viewer.setStyle({ model: m }, CLEAN
-        ? { stick: { radius: 0.2, color: SHADES[pose.rank - 1] } }
+        ? { stick: { radius: 0.3, color: SHADES[pose.rank - 1] } }
         : { stick: { radius: pose.rank === 1 ? 0.16 : 0.1, color: pose.rank === 1 ? DOCKED : "#a9c6ec" } });
     }
     focus = viewer.addModel(data.crystal, "sdf");
     viewer.setStyle({ model: focus }, {});
     viewer.zoomTo({ model: focus });
-    viewer.zoom(CLEAN ? 0.48 : 0.7);  // v4: the pocket around the poses, not just the poses
+    viewer.zoom(CLEAN ? 0.9 : 0.7);
   } else {
     focus = crystal();
     viewer.setStyle({ model: focus }, { stick: { radius: 0.36, color: "#f7c57a" } });  // pale amber halo
