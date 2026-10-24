@@ -60,9 +60,12 @@ function draw(data) {
     const p = protein(FIXED);
     viewer.zoomTo({ model: p });
   } else if (SCENE === "box") {
-    pocket();
+    // v4: the protein as a light cartoon for context and the ligand as spheres filling the
+    // site, so the picture shows where the box sits on the protein.
+    if (CLEAN) protein("#efe6d3");  // pale, so the box and ligand stand out
+    else pocket();
     focus = crystal();
-    if (CLEAN) viewer.setStyle({ model: focus }, { stick: { radius: 0.34, color: CRYSTAL } });
+    if (CLEAN) viewer.setStyle({ model: focus }, { sphere: { scale: 0.85, color: CRYSTAL } });
     // The search box as docking uses it: the ligand's heavy-atom extent plus the padding.
     const xyz = focus.selectedAtoms({ elem: ["C", "N", "O", "S", "P", "F", "Cl", "Br", "I"] });
     const lo = ["x", "y", "z"].map((k) => Math.min(...xyz.map((a) => a[k])) - PADDING);
@@ -72,7 +75,7 @@ function draw(data) {
     for (let a = 0; a < 8; a++) {
       for (const bit of [1, 2, 4]) {
         if (a & bit) continue;
-        viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius: CLEAN ? 0.22 : 0.12, color: BOX, fromCap: 1, toCap: 1 });
+        viewer.addCylinder({ start: corner(a), end: corner(a | bit), radius: CLEAN ? 0.45 : 0.12, color: BOX, fromCap: 1, toCap: 1 });
       }
     }
     // v4: tilt the view so the box reads as 3D, and let it fill the picture; residues
@@ -81,8 +84,15 @@ function draw(data) {
       viewer.rotate(20, "y");
       viewer.rotate(-12, "x");
     }
-    viewer.zoomTo({ model: focus });
-    viewer.zoom(CLEAN ? 0.5 : 0.55);
+    if (CLEAN) {
+      // v4: centre on the box and let it fill most of the frame, with the protein around it
+      // running off the edges (a whole-protein view makes the box too small in a card).
+      viewer.zoomTo({ model: focus });
+      viewer.zoom(0.42);
+    } else {
+      viewer.zoomTo({ model: focus });
+      viewer.zoom(0.55);
+    }
   } else if (SCENE === "engine") {
     pocket();
     // v4: the four best-ranked poses in distinct shades of the docked colour, top pose darkest.
