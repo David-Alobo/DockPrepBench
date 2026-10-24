@@ -91,37 +91,37 @@
 <text x="389.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">Smina</text>
 <text x="459.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">Gnina</text>
 <text x="529.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" font-style="normal" fill="#6250d6" text-anchor="middle">rDock</text>
-<rect x="40" y="599" width="8" height="16" rx="2" fill="#52514e"/>
+<rect x="38" y="600" width="14" height="14" fill="#52514e" shape-rendering="crispEdges"/>
 <text x="58.0" y="615.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Baseline (4 Å box)</text>
 <rect x="290" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
 <rect x="360" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
 <rect x="430" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
 <rect x="500" y="590" width="58" height="34" rx="5" fill="#c3c2b7"/>
-<rect x="40" y="645" width="8" height="16" rx="2" fill="#1baf7a"/>
+<rect x="38" y="646" width="14" height="14" fill="#1baf7a" shape-rendering="crispEdges"/>
 <text x="58.0" y="661.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Box padding 2 Å</text>
 <rect x="290" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="360" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="430" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="500" y="636" width="58" height="34" rx="5" fill="#e1e0d9"/>
-<rect x="40" y="691" width="8" height="16" rx="2" fill="#1baf7a"/>
+<rect x="38" y="692" width="14" height="14" fill="#1baf7a" shape-rendering="crispEdges"/>
 <text x="58.0" y="707.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Box padding 6 Å</text>
 <rect x="290" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="360" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="430" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="500" y="682" width="58" height="34" rx="5" fill="#e1e0d9"/>
-<rect x="40" y="737" width="8" height="16" rx="2" fill="#1baf7a"/>
+<rect x="38" y="738" width="14" height="14" fill="#1baf7a" shape-rendering="crispEdges"/>
 <text x="58.0" y="753.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Box padding 8 Å</text>
 <rect x="290" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="360" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="430" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="500" y="728" width="58" height="34" rx="5" fill="#e1e0d9"/>
-<rect x="40" y="783" width="8" height="16" rx="2" fill="#eb6834"/>
+<rect x="38" y="784" width="14" height="14" fill="#eb6834" shape-rendering="crispEdges"/>
 <text x="58.0" y="799.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Ligand protonation</text>
 <rect x="290" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="360" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="430" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="500" y="774" width="58" height="34" rx="5" fill="#e1e0d9"/>
-<rect x="40" y="829" width="8" height="16" rx="2" fill="#eb6834"/>
+<rect x="38" y="830" width="14" height="14" fill="#eb6834" shape-rendering="crispEdges"/>
 <text x="58.0" y="845.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Start conformer</text>
 <rect x="290" y="820" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="360" y="820" width="58" height="34" rx="5" fill="#e1e0d9"/>

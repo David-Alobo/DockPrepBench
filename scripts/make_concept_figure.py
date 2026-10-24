@@ -494,7 +494,11 @@ for j, name in enumerate(engines):
     text(MX + j * PITCH_X + CW / 2, MY - 14, name, 20, ENGINE, "bold", "middle")  # 6.4 pt; fits
 for i, (arm, color) in enumerate(arms):
     y = MY + i * PITCH_Y
-    add(f'<rect x="40" y="{y + 9}" width="8" height="16" rx="2" fill="{color}"/>')
+    # A sharp square key in the arm's colour, centred on the label's line.
+    add(
+        f'<rect x="38" y="{y + 10}" width="14" height="14" fill="{color}" '
+        f'shape-rendering="crispEdges"/>'
+    )
     text(58, y + 25, arm, BODY, INK if i == 0 else INK_2, "bold" if i == 0 else "normal")
     for j in range(len(engines)):
         fill = "#c3c2b7" if i == 0 else GRID
