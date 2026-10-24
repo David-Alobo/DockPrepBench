@@ -40,7 +40,14 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command")
 
     run = commands.add_parser("run", help="Redock the PoseBusters set with one engine.")
-    run.add_argument("--engine", choices=["vina"], default="vina")
+    run.add_argument("--engine", choices=["vina", "smina", "gnina", "rdock"], default="vina")
+    run.add_argument(
+        "--gpus",
+        default="",
+        help="Comma-separated GPU indices for gnina, spread across workers (e.g. 0,1,2). "
+        "Empty runs gnina on the CPU.",
+    )
+    run.add_argument("--runs", type=int, default=50, help="rDock docking runs per ligand.")
     run.add_argument(
         "--config",
         type=Path,
@@ -104,7 +111,6 @@ def run_command(args: argparse.Namespace) -> int:
         int: Process exit code.
     """
     from dockprepbench.datasets.posebusters import download, load_complexes
-    from dockprepbench.engines.vina import VinaEngine
     from dockprepbench.preparation.config import PrepConfig, load_config
 
     configs = [load_config(path) for path in args.config] if args.config else [PrepConfig()]
@@ -118,9 +124,7 @@ def run_command(args: argparse.Namespace) -> int:
     # One Vina thread per complex when complexes already run in parallel.
     seed = DEFAULT_SEED if args.seed is None else args.seed
     suffix = "" if args.seed is None else f"_seed{args.seed}"
-    engine = VinaEngine(
-        exhaustiveness=args.exhaustiveness, seed=seed, cpu=1 if args.workers > 1 else 0
-    )
+    engine = _make_engine(args, seed)
     for i, config in enumerate(configs, 1):
         out = args.out or Path("results") / args.engine / f"{config.name}{suffix}"
         if (out / RESULTS_FILE).is_file() and not args.force:
@@ -132,6 +136,41 @@ def run_command(args: argparse.Namespace) -> int:
         _run_one(complexes, engine, config, out, args)
         print(_format_summary(out / RESULTS_FILE))
     return 0
+
+
+def _make_engine(args: argparse.Namespace, seed: int) -> DockingEngine:
+    """
+    Build the docking engine selected on the command line.
+
+    With several workers each docking run gets one thread, since complexes already run
+    in parallel.
+
+    Args:
+        args (argparse.Namespace): Parsed `run` arguments.
+        seed (int): Docking seed.
+
+    Returns:
+        DockingEngine: The configured engine.
+    """
+    threads = 1 if args.workers > 1 else 0
+    if args.engine == "vina":
+        from dockprepbench.engines.vina import VinaEngine
+
+        return VinaEngine(exhaustiveness=args.exhaustiveness, seed=seed, cpu=threads)
+    if args.engine == "smina":
+        from dockprepbench.engines.smina import SminaEngine
+
+        return SminaEngine(exhaustiveness=args.exhaustiveness, seed=seed, cpu=max(threads, 1))
+    if args.engine == "gnina":
+        from dockprepbench.engines.smina import GninaEngine
+
+        gpus = [int(g) for g in args.gpus.split(",") if g.strip()]
+        return GninaEngine(
+            exhaustiveness=args.exhaustiveness, seed=seed, cpu=max(threads, 1), gpus=gpus
+        )
+    from dockprepbench.engines.rdock import RDockEngine
+
+    return RDockEngine(n_runs=args.runs, seed=seed)
 
 
 def _run_one(
