@@ -150,11 +150,13 @@ describe("complexes tab", () => {
 describe("built data: failures and poses loaded per complex", () => {
   /** Boot with data as build_data.py writes it: no demo, a failed complex, a pose directory. */
   function bootBuilt() {
+    document.head.querySelectorAll('script[src^="poses/"]').forEach((s) => s.remove()); // from earlier tests
     boot();
     const data = makeData();
     data.demo = false;
     data.poseDir = "poses/test";
     data.complexes[24].arms.box_padding_2 = { error: "RuntimeError: receptor failed" };
+    Object.assign(data.complexes[3], { charge: -1, chains: 2, residues: 300 });
     window.EXPLORER_DATA = data;
     document.body.innerHTML = body;
     new Function(appSource)();
@@ -173,6 +175,17 @@ describe("built data: failures and poses loaded per complex", () => {
   };
 
   beforeEach(bootBuilt);
+
+  it("shows the ligand SMILES, charge, protein size and RCSB links", () => {
+    window.EXPLORER_DATA.complexes[3].smiles = "CC(=O)O";
+    click(document.querySelector('#rows tr[data-id="C03_LIG"]'));
+    expect(text("d-smiles")).toBe("CC(=O)O");
+    expect($("d-smiles-row").hidden).toBe(false);
+    expect(text("d-props")).toMatch(/Charge -1/);
+    expect(text("d-protein")).toMatch(/2 chains, 300 residues/);
+    const links = [...$("d-protein").querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(links).toEqual(["https://www.rcsb.org/structure/C03", "https://www.rcsb.org/ligand/LIG"]);
+  });
 
   it("hides the prototype badge and the ◆ key", () => {
     expect($("badge").hidden).toBe(true);

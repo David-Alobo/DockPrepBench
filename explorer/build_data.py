@@ -268,11 +268,9 @@ def main() -> None:
         if c.id not in runs["baseline"].index:
             continue
         lig = next(Chem.SDMolSupplier(str(c.crystal_ligand)))
-        hets = {
-            ln[17:20].strip()
-            for ln in c.protein.read_text().splitlines()
-            if ln.startswith("HETATM")
-        }
+        records = c.protein.read_text().splitlines()
+        hets = {ln[17:20].strip() for ln in records if ln.startswith("HETATM")}
+        residues = {ln[21:27] for ln in records if ln.startswith("ATOM")}  # chain, number, icode
         # Other copies of the ligand of interest (its CCD code ends the ID) are not cofactors.
         cofactors = sorted(hets - ADDITIVES - {c.id.split("_")[-1]})
         rows.append(
@@ -283,6 +281,10 @@ def main() -> None:
                 "mw": round(Descriptors.MolWt(lig), 1),
                 "cofactors": cofactors[:4],
                 "svg": depiction(lig),
+                "smiles": Chem.MolToSmiles(Chem.RemoveHs(lig)),
+                "charge": Chem.GetFormalCharge(lig),
+                "chains": len({r[0] for r in residues}),
+                "residues": len(residues),
                 "arms": {arm: outcome(run.loc[c.id]) for arm, run in runs.items()},
             }
         )

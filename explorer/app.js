@@ -282,7 +282,20 @@ function drawDetail() {
   $("d-depict").innerHTML = c.svg || "";
   $("d-props").innerHTML =
     `<span>Heavy atoms <b>${c.heavy}</b></span><span>Rot. bonds <b>${c.rotb}</b></span>` +
-    `<span>MW <b>${c.mw}</b></span><span>Cofactors <b>${c.cofactors.length ? c.cofactors.join(", ") : "none"}</b></span>`;
+    `<span>MW <b>${c.mw}</b></span>` +
+    (c.charge === undefined ? "" : `<span>Charge <b>${c.charge > 0 ? "+" : ""}${c.charge}</b></span>`) +
+    `<span>Cofactors <b>${c.cofactors.length ? c.cofactors.join(", ") : "none"}</b></span>`;
+  // IDs are <PDB code>_<ligand CCD code>; both have pages at the RCSB.
+  const [pdb, ...rest] = c.id.split("_");
+  const ccd = rest.join("_");
+  const link = (href, text, title) => `<a href="${href}" target="_blank" rel="noopener" title="${title}">${text} ↗</a>`;
+  $("d-protein").innerHTML =
+    (c.residues ? `<span>Protein <b>${c.chains} chain${c.chains === 1 ? "" : "s"}, ${c.residues} residues</b></span>` : "") +
+    `<span>${link(`https://www.rcsb.org/structure/${pdb}`, `PDB ${pdb}`, "Structure entry at the RCSB PDB")}</span>` +
+    `<span>${link(`https://www.rcsb.org/ligand/${ccd}`, `Ligand ${ccd}`, "Ligand page at the RCSB PDB")}</span>`;
+  $("d-smiles-row").hidden = !c.smiles;
+  $("d-smiles").textContent = c.smiles || "";
+  $("d-smiles").title = c.smiles || "";
   $("d-arms").innerHTML = ARMS.map((arm) => {
     const o = c.arms[arm.key];
     return (
@@ -434,17 +447,20 @@ function select(id) {
   drawDetail();
 }
 
-async function copyLink() {
-  const base = DATA.shareUrl || `${location.origin}${location.pathname}`;
-  const link = `${base}#${state.selected}`;
-  const button = $("copy-link");
+/** Copy text to the clipboard, confirming on the button; shows the text if copying is refused. */
+async function copyText(button, text, label) {
   try {
-    await navigator.clipboard.writeText(link);
+    await navigator.clipboard.writeText(text);
     button.textContent = "Copied";
   } catch {
-    button.textContent = link;
+    button.textContent = text;
   }
-  setTimeout(() => { button.textContent = "Copy link"; }, 2500);
+  setTimeout(() => { button.textContent = label; }, 2500);
+}
+
+function copyLink() {
+  const base = DATA.shareUrl || `${location.origin}${location.pathname}`;
+  return copyText($("copy-link"), `${base}#${state.selected}`, "Copy link");
 }
 
 // ---------------------------------------------------------------- wiring
@@ -544,6 +560,7 @@ function init() {
     drawDetail();
   });
   $("copy-link").addEventListener("click", copyLink);
+  $("copy-smiles").addEventListener("click", () => copyText($("copy-smiles"), byId.get(state.selected).smiles, "Copy"));
 
   const redraw = () => { drawChart(); drawMatrix(); drawDetail(); };
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
