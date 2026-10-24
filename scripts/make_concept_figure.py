@@ -104,8 +104,7 @@ def arrow(x1, y1, x2, y2, color=MUTED, width=2.5):
 
 # Picture window in a card (versions 3 and 4): below the title, above the text.
 PIC_W, PIC_H, PIC_TOP = 196, 108, 60
-LIGAND_H = PIC_H - 34  # version 4 ligand drawing: a margin above it and a line for its label
-LIGAND_TOP = 8  # gap between the card title and the drawing
+LIGAND_W = 210  # version 4 ligand drawing: the card's full width, less a small margin
 
 
 def png_data(path: Path) -> str:
@@ -227,12 +226,14 @@ def ligand_states_svg_data(complex_id: str) -> str:
     rdDepictor.Compute2DCoords(protonated)
     charge = Chem.GetFormalCharge(protonated) - Chem.GetFormalCharge(states[0])
     # Drawn at the size it is shown (1 unit = 1 figure px), so label sizes are print sizes:
-    # 18 px is 5.8 pt at 180 mm. The legend is set in the figure's own font, outside.
-    drawer = rdMolDraw2D.MolDraw2DSVG(PIC_W, LIGAND_H)
+    # 15 px is 4.8 pt at 180 mm, small enough to keep the atom labels clear of the bonds.
+    # The charge label is set in the figure's own font, outside.
+    drawer = rdMolDraw2D.MolDraw2DSVG(LIGAND_W, PIC_H)
     opts = drawer.drawOptions()
     opts.bondLineWidth = 1.6
     opts.padding = 0.03
-    opts.minFontSize = 18
+    opts.minFontSize = 15
+    opts.maxFontSize = 15
     opts.clearBackground = False
     drawer.DrawMolecule(
         protonated,
@@ -346,6 +347,8 @@ if ARGS.v4:
     verdict = "✓" if rmsd < 2 else "✗"
     cards[5] = ("Evaluation", [f"RMSD {rmsd:.2f} Å {verdict}", "(success &lt; 2 Å)",
                                "PoseBusters validity"], INK_2)  # fmt: skip
+    # The first line is left for the charge label, drawn in the ligand colour below.
+    cards[2] = ("Ligand", ["", "Protonation", "(supplied or pH 7.4)", "Start conformer"], LIGAND)
 for i, (x, (title, bullets, accent)) in enumerate(zip(xs, cards, strict=True), 1):
     card(x, Y, W, H, title, bullets, accent)
     if ARGS.v4:
@@ -373,10 +376,9 @@ if ARGS.renders:
     if ARGS.v4:
         # Version 4: the ligand card shows the change the protonation arm makes.
         drawing, charge = ligand_states_svg_data(ARGS.complex)
-        left = xs[2] + (W - PIC_W) / 2
-        inline_svg(drawing, left, Y + PIC_TOP + LIGAND_TOP, PIC_W, LIGAND_H)
-        label = f"{charge:+d} at pH 7.4"
-        text(xs[2] + W / 2, Y + PIC_TOP + PIC_H, label, 20, LIGAND, "bold", "middle")
+        inline_svg(drawing, xs[2] + (W - LIGAND_W) / 2, Y + PIC_TOP, LIGAND_W, PIC_H)
+        # The charge is the first text line, so the card's lines match the receptor card's.
+        text(xs[2] + W / 2, Y + 196, f"{charge:+d} at pH 7.4", BODY, LIGAND, "bold", "middle")
     else:
         inline_svg(
             ligand_svg_data(ARGS.complex), xs[2] + (W - PIC_W) / 2, Y + PIC_TOP, PIC_W, PIC_H
