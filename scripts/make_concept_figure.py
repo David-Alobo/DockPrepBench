@@ -34,7 +34,7 @@ parser.add_argument(
 )
 ARGS = parser.parse_args()
 
-WIDTH, HEIGHT = 1600, 1040
+WIDTH, HEIGHT = 1600, 1000
 FONT = "Arial, Helvetica, sans-serif"
 
 # Light-mode palette: ink for text, categorical slots for the stages (same as analysis/figures).
@@ -509,9 +509,7 @@ for i in (0, 4):
         f'fill="none" stroke="{LIGAND}" stroke-width="3"/>'
     )
 # Below both the arm list and the 8 paired-outcome rows drawn next to it (36 px apart).
-legend_y = max(MY + len(arms) * PITCH_Y, MY + 30 + 7 * 36 + 10) + 30
-add(f'<rect x="40" y="{legend_y - 20}" width="30" height="20" rx="4" fill="{GRID}"/>')
-text(80, legend_y - 3, "one run: 428 complexes", BODY, INK_2)
+legend_y = max(MY + len(arms) * PITCH_Y, MY + 30 + 7 * 36 + 10) + 45
 
 # Paired outcomes for the highlighted comparison.
 PX0, PX1, DY0 = 650, 740, MY + 30
@@ -528,20 +526,26 @@ for k, (a, b) in enumerate(outcomes):
     for x, hit in ((PX0, a), (PX1, b)):
         fill = INK_2 if hit else "#ffffff"
         add(f'<circle cx="{x}" cy="{y}" r="10" fill="{fill}" stroke="{INK_2}" stroke-width="2"/>')
-# Legend: symbols centred on one column, labels starting on another.
-KEY_X, LABEL_X, ROW = 625, 650, 34
-key_rows = [
-    (f'<circle cx="{KEY_X}" cy="{{y}}" r="10" fill="{INK_2}" stroke="{INK_2}" stroke-width="2"/>',
-     "success"),
-    (f'<circle cx="{KEY_X}" cy="{{y}}" r="10" fill="#ffffff" stroke="{INK_2}" stroke-width="2"/>',
-     "miss"),
-    (f'<line x1="{KEY_X - 15}" y1="{{y}}" x2="{KEY_X + 15}" y2="{{y}}" stroke="{LIGAND}" '
-     f'stroke-width="3"/>', "outcome changed"),
-]  # fmt: skip
-for k, (symbol, label) in enumerate(key_rows):
-    y = legend_y - 10 + k * ROW
-    add(symbol.format(y=y))
-    text(LABEL_X, y + 7, label, BODY, INK_2)
+# Legend in two rows across the panel: the grid's symbols, then the paired outcomes'.
+# Symbols are centred on each row; the columns of symbols and labels line up.
+COL1, COL2, COL3 = 55, 375, 520  # symbol centres; labels start 25 px to the right
+y = legend_y - 10
+add(f'<rect x="{COL1 - 15}" y="{y - 10}" width="30" height="20" rx="4" fill="{GRID}"/>')
+text(COL1 + 25, y + 7, "one run: 428 complexes", BODY, INK_2)
+add(
+    f'<rect x="{COL2 - 15}" y="{y - 10}" width="30" height="20" rx="5" fill="none" '
+    f'stroke="{LIGAND}" stroke-width="3"/>'
+)
+text(COL2 + 25, y + 7, "comparison shown at right", BODY, INK_2)
+y += 40
+for x, fill, label in ((COL1, INK_2, "success"), (COL2, "#ffffff", "miss")):
+    add(f'<circle cx="{x}" cy="{y}" r="10" fill="{fill}" stroke="{INK_2}" stroke-width="2"/>')
+    text(x + 25, y + 7, label, BODY, INK_2)
+add(
+    f'<line x1="{COL3 - 15}" y1="{y}" x2="{COL3 + 15}" y2="{y}" stroke="{LIGAND}" '
+    f'stroke-width="3"/>'
+)
+text(COL3 + 25, y + 7, "outcome changed", BODY, INK_2)
 
 # ---------------------------------------------------------------- panel c: question
 CX0 = 880

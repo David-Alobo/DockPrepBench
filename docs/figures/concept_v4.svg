@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="180mm" height="117.0mm" viewBox="0 0 1600 1040">
+<svg xmlns="http://www.w3.org/2000/svg" width="180mm" height="112.5mm" viewBox="0 0 1600 1000">
 <defs><marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#898781"/></marker></defs>
-<rect width="1600" height="1040" fill="#ffffff"/>
+<rect width="1600" height="1000" fill="#ffffff"/>
 <text x="30.0" y="40.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">a</text>
 <text x="70.0" y="40.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Docking pipeline and the preparation choices it exposes</text>
 <clipPath id="card-30-70"><rect x="30.0" y="70" width="222" height="310" rx="14"/></clipPath>
@@ -129,8 +129,6 @@
 <rect x="500" y="820" width="58" height="34" rx="5" fill="#e1e0d9"/>
 <rect x="287" y="587" width="64" height="40" rx="7" fill="none" stroke="#eb6834" stroke-width="3"/>
 <rect x="287" y="771" width="64" height="40" rx="7" fill="none" stroke="#eb6834" stroke-width="3"/>
-<rect x="40" y="892" width="30" height="20" rx="4" fill="#e1e0d9"/>
-<text x="80.0" y="909.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">one run: 428 complexes</text>
 <text x="650.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#52514e" text-anchor="middle">Base</text>
 <text x="740.0" y="576.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" font-style="normal" fill="#eb6834" text-anchor="middle">Arm</text>
 <line x1="661" y1="620" x2="729" y2="620" stroke="#e1e0d9" stroke-width="2"/>
@@ -157,12 +155,16 @@
 <line x1="661" y1="872" x2="729" y2="872" stroke="#eb6834" stroke-width="3"/>
 <circle cx="650" cy="872" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
 <circle cx="740" cy="872" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
-<circle cx="625" cy="902" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
-<text x="650.0" y="909.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">success</text>
-<circle cx="625" cy="936" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
-<text x="650.0" y="943.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">miss</text>
-<line x1="610" y1="970" x2="640" y2="970" stroke="#eb6834" stroke-width="3"/>
-<text x="650.0" y="977.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">outcome changed</text>
+<rect x="40" y="907" width="30" height="20" rx="4" fill="#e1e0d9"/>
+<text x="80.0" y="924.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">one run: 428 complexes</text>
+<rect x="360" y="907" width="30" height="20" rx="5" fill="none" stroke="#eb6834" stroke-width="3"/>
+<text x="400.0" y="924.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">comparison shown at right</text>
+<circle cx="55" cy="957" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
+<text x="80.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">success</text>
+<circle cx="375" cy="957" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<text x="400.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">miss</text>
+<line x1="505" y1="957" x2="535" y2="957" stroke="#eb6834" stroke-width="3"/>
+<text x="545.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">outcome changed</text>
 <text x="840.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">c</text>
 <text x="880.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Which matters more: preparation or engine?</text>
 <text x="900.0" y="604.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Engines, at a fixed preparation</text>
