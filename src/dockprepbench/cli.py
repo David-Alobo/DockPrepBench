@@ -88,6 +88,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--pb-valid", action="store_true", help="Require PB-valid poses for success."
     )
 
+    report = commands.add_parser(
+        "report", help="Regenerate every results table (all engines and arms) as CSV files."
+    )
+    report.add_argument("--results", type=Path, default=Path("results"), help="Results root.")
+    report.add_argument("--out", type=Path, default=Path("paper/tables"), help="Output directory.")
+
     figures = commands.add_parser("figures", help="Figures and summary table for runs.")
     figures.add_argument(
         "runs", type=Path, nargs="+", help="Run directories or CSVs; the first is the reference."
@@ -287,6 +293,23 @@ def compare_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def report_command(args: argparse.Namespace) -> int:
+    """
+    Execute the `report` subcommand: write every results table as a CSV file.
+
+    Args:
+        args (argparse.Namespace): Parsed `report` arguments.
+
+    Returns:
+        int: Process exit code.
+    """
+    from dockprepbench.analysis.report import write_report
+
+    for path in write_report(args.results, args.out):
+        print(path)
+    return 0
+
+
 def figures_command(args: argparse.Namespace) -> int:
     """
     Execute the `figures` subcommand: success-rate forest plot, RMSD curves and table.
@@ -383,6 +406,7 @@ def main(argv: list[str] | None = None) -> int:
         "summarize": summarize_command,
         "compare": compare_command,
         "figures": figures_command,
+        "report": report_command,
     }
     if args.command in commands:
         return commands[args.command](args)
