@@ -161,10 +161,10 @@
 <text x="400.0" y="924.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">comparison shown at right</text>
 <circle cx="55" cy="957" r="10" fill="#52514e" stroke="#52514e" stroke-width="2"/>
 <text x="80.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">success</text>
-<circle cx="375" cy="957" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
-<text x="400.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">miss</text>
-<line x1="505" y1="957" x2="535" y2="957" stroke="#eb6834" stroke-width="3"/>
-<text x="545.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">outcome changed</text>
+<circle cx="200" cy="957" r="10" fill="#ffffff" stroke="#52514e" stroke-width="2"/>
+<text x="225.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">miss</text>
+<line x1="300" y1="957" x2="330" y2="957" stroke="#eb6834" stroke-width="3"/>
+<text x="340.0" y="964.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">outcome changed</text>
 <text x="840.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">c</text>
 <text x="880.0" y="520.0" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" font-style="normal" fill="#0b0b0b" text-anchor="start">Which matters more: preparation or engine?</text>
 <text x="900.0" y="604.0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="normal" font-style="normal" fill="#52514e" text-anchor="start">Engines, at a fixed preparation</text>

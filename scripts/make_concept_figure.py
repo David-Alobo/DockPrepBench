@@ -527,8 +527,9 @@ for k, (a, b) in enumerate(outcomes):
         fill = INK_2 if hit else "#ffffff"
         add(f'<circle cx="{x}" cy="{y}" r="10" fill="{fill}" stroke="{INK_2}" stroke-width="2"/>')
 # Legend in two rows across the panel: the grid's symbols, then the paired outcomes'.
-# Symbols are centred on each row; the columns of symbols and labels line up.
-COL1, COL2, COL3 = 55, 375, 520  # symbol centres; labels start 25 px to the right
+# Symbols are centred on each row, labels start 25 px to their right; the outcome row is
+# packed tighter, as its labels are short.
+COL1, COL2 = 55, 375
 y = legend_y - 10
 add(f'<rect x="{COL1 - 15}" y="{y - 10}" width="30" height="20" rx="4" fill="{GRID}"/>')
 text(COL1 + 25, y + 7, "one run: 428 complexes", BODY, INK_2)
@@ -538,14 +539,11 @@ add(
 )
 text(COL2 + 25, y + 7, "comparison shown at right", BODY, INK_2)
 y += 40
-for x, fill, label in ((COL1, INK_2, "success"), (COL2, "#ffffff", "miss")):
+for x, fill, label in ((COL1, INK_2, "success"), (200, "#ffffff", "miss")):
     add(f'<circle cx="{x}" cy="{y}" r="10" fill="{fill}" stroke="{INK_2}" stroke-width="2"/>')
     text(x + 25, y + 7, label, BODY, INK_2)
-add(
-    f'<line x1="{COL3 - 15}" y1="{y}" x2="{COL3 + 15}" y2="{y}" stroke="{LIGAND}" '
-    f'stroke-width="3"/>'
-)
-text(COL3 + 25, y + 7, "outcome changed", BODY, INK_2)
+add(f'<line x1="300" y1="{y}" x2="330" y2="{y}" stroke="{LIGAND}" stroke-width="3"/>')
+text(340, y + 7, "outcome changed", BODY, INK_2)
 
 # ---------------------------------------------------------------- panel c: question
 CX0 = 880
