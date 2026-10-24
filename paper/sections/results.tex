@@ -37,11 +37,11 @@ judging whether an arm changes more outcomes than chance.
 
 \begin{figure}[t]
   \centering
-  % \includegraphics[width=\textwidth]{success_rates.pdf}
-  \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering\result{Figure: success by arm and
-    engine with 95\% intervals (dockprepbench figures), once all engines finish}}}
-  \caption{Top-1 and \pbvalid{} success for each experiment arm, with 95\% Wilson
-    intervals. The dashed line marks the baseline top-1 success.}
+  \includegraphics[width=0.92\textwidth]{engine_arms.pdf}
+  \caption{Top-1 success (heavy-atom RMSD below \SI{2}{\angstrom}) for each preparation
+    arm and engine on all 428 complexes, with 95\% Wilson intervals; preparation failures
+    count as failures. Faint vertical lines mark each engine's baseline success. Drawn by
+    \texttt{dockprepbench report --figures}. \result{Add rDock once its rerun finishes.}}
   \label{fig:success}
 \end{figure}
 

@@ -99,6 +99,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data/raw/posebusters"),
         help="Extracted PoseBusters set, for the sensitivity tables; skipped if absent.",
     )
+    report.add_argument(
+        "--figures", type=Path, help="Also draw the engine-by-arm figure into this directory."
+    )
 
     figures = commands.add_parser("figures", help="Figures and summary table for runs.")
     figures.add_argument(
@@ -317,6 +320,14 @@ def report_command(args: argparse.Namespace) -> int:
         print(f"No dataset at {args.dataset}; skipping the sensitivity tables.")
     for path in write_report(args.results, args.out, dataset=dataset):
         print(path)
+    if args.figures:
+        import pandas as pd
+
+        from dockprepbench.analysis.figures import plot_engine_arms
+
+        summary = pd.read_csv(args.out / "summary.csv")
+        for path in plot_engine_arms(summary, args.figures / "engine_arms"):
+            print(path)
     return 0
 
 

@@ -6,6 +6,7 @@ import pytest
 from dockprepbench.analysis.figures import (
     SERIES,
     _spread,
+    plot_engine_arms,
     plot_rmsd_cdf,
     plot_success_rates,
     summary_table,
@@ -73,3 +74,26 @@ def test_spread_keeps_order_and_minimum_gap():
 
 def test_spread_leaves_separated_labels_alone():
     assert _spread([10.0, 50.0], min_gap=5.0) == [(10.0, 10.0), (50.0, 50.0)]
+
+
+def engine_summary(engines, runs=("baseline", "box_padding_2", "baseline_seed1")):
+    rows = [
+        {"engine": e, "run": r, "top1": 0.5, "top1_low": 0.4, "top1_high": 0.6}
+        for e in engines
+        for r in runs
+    ]
+    return pd.DataFrame(rows)
+
+
+def test_engine_arms_figure_writes_every_format(tmp_path):
+    written = plot_engine_arms(engine_summary(["vina", "gnina"]), tmp_path / "engines")
+
+    assert sorted(p.name for p in written) == ["engines.pdf", "engines.png"]
+    assert all(p.stat().st_size > 0 for p in written)
+
+
+def test_engine_arms_figure_refuses_more_engines_than_colours(tmp_path):
+    many = engine_summary([f"e{i}" for i in range(len(SERIES) + 1)])
+
+    with pytest.raises(ValueError, match="colour slots"):
+        plot_engine_arms(many, tmp_path / "engines")
