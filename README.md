@@ -14,9 +14,7 @@ all 428 complexes of the PoseBusters Benchmark set with each of four engines, an
 arm with its baseline complex by complex.
 
 ![Study design: the docking pipeline, the one-factor-at-a-time arms run with every engine, and the question asked](docs/figures/concept_v4.png)
-
 **[Browse every complex, engine and pose in 3D in the results explorer →](https://david-alobo.github.io/DockPrepBench/)**
-
 
 **Key findings** (Vina, Smina and Gnina; rDock is being added):
 
