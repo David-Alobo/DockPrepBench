@@ -38,6 +38,12 @@ ARMS = {
     "box_padding_8": ("Box 8 Å", "Box padding 8 Å"),
     "ligand_dimorphite": ("Protonated ligand", "Ligand protonated at pH 7.4"),
     "ligand_rdkit_conformer": ("RDKit conformer", "Start conformer regenerated"),
+    # Follow-up arms (Vina only): protonation combined with each padding, and a box sized to the
+    # ligand.
+    "ligand_dimorphite_box_2": ("Protonated + 2 Å", "Ligand protonated at pH 7.4, box padding 2 Å"),
+    "ligand_dimorphite_box_6": ("Protonated + 6 Å", "Ligand protonated at pH 7.4, box padding 6 Å"),
+    "ligand_dimorphite_box_8": ("Protonated + 8 Å", "Ligand protonated at pH 7.4, box padding 8 Å"),
+    "box_gyration": ("Box from Rg", "Cube 2.857 times the ligand's radius of gyration"),
 }
 ENGINES = {
     "vina": "AutoDock Vina 1.2.7",
