@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use DockPrepBench, please cite it as below."
-title: "DockPrepBench: How much does preparation matter in classical docking?"
+title: "DockPrepBench: How much does preparation matter in molecular docking?"
 authors:
   - family-names: Alobo
     given-names: David Obeh

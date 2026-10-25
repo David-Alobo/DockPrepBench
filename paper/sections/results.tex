@@ -18,26 +18,27 @@ the crystal ligand for 46.3\% [41.6, 51.0] of complexes, and 41.8\% [37.2, 46.5]
 
 The PoseBusters authors also docked these 428 complexes with Vina and released their
 per-complex results with the dataset \citep{posebusters2023data}. Their run reached 52.3\%
-[47.6, 57.0] top-1 success and 51.2\% \pbvalid{} success, 6.0 points above our baseline
+[47.6, 57.0] top-1 success and 51.2\% \pbvalid{} success, 6.1 points above our baseline
 (their run succeeded on 49 complexes where ours failed, ours on 23 where theirs failed;
 exact McNemar $p = 0.003$). The two runs agreed on 356 of the 428 complexes. Our
 preparation failures account for little of the difference: their run solved 5 of those 16
 complexes, and on the 412 we docked the gap was 5.1 points (53.2\% against 48.1\%,
 $p = 0.014$). The protocols differ in several of the choices studied here. Theirs used Vina
 1.2.3 with exhaustiveness 32 and 40 poses, a cubic search box of side \SI{25}{\angstrom}
-centred on the crystal ligand, and receptors protonated with Reduce and converted with
-ADFR \citep{buttenschoen2024posebusters}, against exhaustiveness 8, nine poses, a box
+centred on the crystal ligand, and receptors protonated with Reduce \citep{word1999reduce}
+and converted with the prepare\_receptor script of ADFR \citep{ravindranath2015autodockfr}
+(\citealp{buttenschoen2024posebusters}, ESI section S1), against exhaustiveness 8, nine
+poses, a box
 padded by \SI{4}{\angstrom} around the ligand and PDBFixer/OpenMM preparation here. Our
-\SI{2}{\angstrom}-padding arm reached 53.0\%, indistinguishable from their result
+\SI{2}{\angstrom}-padding arm reached 53.0\%, not significantly different from their result
 ($p = 0.82$). A difference of six points between two careful Vina protocols on the same
 complexes is itself comparable to the preparation effects reported below.
-\todo{Confirm the exhaustiveness, pose count and receptor tools against the journal
-version's supplementary information (checked in the preprint versions).}
 
-Search was rarely the main limitation at the baseline padding. A pose within
+At the baseline padding, scoring and search limited success about equally. A pose within
 \SI{2}{\angstrom} was among the nine returned for 303 complexes (70.8\%), but ranked first
-for only 198. Of the 230 complexes without a top-1 success, 105 were scoring failures, 89
-were in the right site in the wrong binding mode, 20 were in the wrong site and 16 failed
+for only 198. Of the 230 complexes without a top-1 success, 105 were scoring failures (a
+correct pose returned but not ranked first), while 109 had no correct pose among those
+returned: 89 in the right site in the wrong binding mode and 20 in the wrong site; 16 failed
 preparation; a further 19 top poses were correct but not \pbvalid{}.
 
 \subsection{Run-to-run variation}
@@ -47,8 +48,8 @@ Repeating the Vina baseline with four docking seeds gave top-1 success of 46.3\%
 aggregate rate is therefore stable to within one point. Individual outcomes are less stable:
 two seeds disagree on 17.5 complexes on average (16--19 across the six pairs). Over the
 four replicates, 183 complexes always succeeded, 212 always failed and 33 (7.7\%) changed
-outcome with the seed alone. We use 17.5 changed complexes as the reference level when
-judging whether an arm changes more outcomes than chance.
+outcome with the seed alone. We use 17.5 changed complexes as a reference level for how
+many outcomes an arm changes; it is a yardstick, not a significance threshold.
 
 \subsection{Effect of each preparation choice}
 
@@ -102,8 +103,9 @@ $p = 0.20$).
   \end{tabular}
 \end{table}
 
-Every arm changed the outcome of more complexes than a change of seed did
-(Table~\ref{tab:comparisons}, last column). The clearest case is the start conformer: it
+Every Vina arm changed the outcome of more complexes than a change of seed did
+(Table~\ref{tab:comparisons}, last column), though for the \SI{6}{\angstrom} box only just
+(28 against 16--19 between pairs of seeds). The clearest case is the start conformer: it
 changed 85 outcomes, 4.9 times the seed level, although its net effect was only +4.4
 points. Most of these changes cancel, so a small net difference hides a large reshuffling of
 which complexes succeed. Net success rates alone therefore understate how much a preparation
@@ -116,7 +118,7 @@ The tight box worked mainly by improving search. Moving from \SI{4}{\angstrom} t
 \SI{2}{\angstrom} from 303 to 338, and wrong-site top poses fell from 20 to 3. The largest
 movements were wrong binding modes that became scoring failures (30 complexes, now with a
 good pose that was not ranked first), scoring failures that became successes (28) and
-wrong-site poses that moved into the site (12). Larger boxes did the reverse: wrong-site top
+wrong-site poses that moved into the site (17, 12 of them into a wrong binding mode). Larger boxes did the reverse: wrong-site top
 poses rose to 45 at \SI{6}{\angstrom} and 64 at \SI{8}{\angstrom}, and complexes with any
 good pose fell to 282 and 278. At \SI{8}{\angstrom}, 23 wrong-mode and 19 scoring failures
 became wrong-site failures. Within the same scoring function, enlarging the box lets the
@@ -150,7 +152,7 @@ changed Gnina's success significantly. The \SI{2}{\angstrom} box gave +3.0 point
 $-3.3$ points and the RDKit conformer +0.7 points.
 
 rDock, whose search and scoring share nothing with the Vina family, reached 29.4\% [25.3,
-33.9] at baseline, 16.9 points below Vina (33 complexes gained, 105 lost;
+33.9] at baseline, 16.8 points below Vina (33 complexes gained, 105 lost;
 $p = 6.1 \times 10^{-10}$) and 33.2 points below Gnina. It was by far the most sensitive to
 the search space. The \SI{2}{\angstrom} box raised its success to 41.1\% [36.6, 45.8]
 (+11.7 points; 62 gained, 12 lost; Holm $p = 1.1 \times 10^{-8}$), and larger boxes lowered
@@ -168,14 +170,14 @@ all, of the wrong-site errors that a larger box invites, while rDock, whose cavi
 with the box, is the most exposed to them: the tight box raised the number of complexes for
 which any of its poses lay within \SI{2}{\angstrom} of the crystal ligand from 186 to 271.
 
-The spread of top-1 success over the six preparation arms was 8.9 points for Vina
+The spread of top-1 success over the six protocols (baseline and five arms) was 8.9 points for Vina
 (44.2--53.0\%), 10.5 points for Smina (44.2--54.7\%), 7.0 points for Gnina
 (58.6--65.7\%) and 23.8 points for rDock (17.3--41.1\%). At the baseline protocol the
 engines spanned 33.2 points, from rDock to Gnina, and Gnina led Vina by 16.4. For the Vina
 family, choosing a re-scoring engine thus mattered about twice as much as any single
 preparation choice, yet the best preparation arm closed about 40\% of the gap between Vina
 and Gnina (6.8 of 16.4 points). For rDock, the box alone moved success by more than its
-16.9-point gap to Vina.
+16.8-point gap to Vina.
 
 \begin{table}[h]
   \centering
@@ -205,11 +207,13 @@ and Gnina (6.8 of 16.4 points). For rDock, the box alone moved success by more t
 \subsection{Robustness on the 308-complex subset}
 
 Restricting every comparison to the 308 complexes on which the journal version of
-PoseBusters reports results (structures without the crystal contacts its authors flagged)
-raised all absolute rates and left the conclusions unchanged. Baseline top-1 success was
+PoseBusters reports results (those whose ligand has no crystal contact, that is, no atom
+within \SI{5}{\angstrom} of a symmetry-related copy of the protein)
+raised the absolute rates of the Vina-family engines and left the top-1 conclusions
+unchanged. Baseline top-1 success was
 52.9\% [47.3, 58.4] for Vina, 53.9\% [48.3, 59.4] for Smina and 68.8\% [63.5, 73.7] for
 Gnina, between 6 and 7 points higher than on all 428 complexes, so the excluded complexes
-were harder for every engine. Gnina's lead over Vina was 15.9 points
+were harder for these engines. Gnina's lead over Vina was 15.9 points
 ($p = 1.4 \times 10^{-6}$). The \SI{2}{\angstrom} box remained the only significant arm
 for Vina (+5.5 points; 25 gained, 8 lost; Holm $p = 0.023$) and Smina (+6.2 points; Holm
 $p = 0.017$), and no arm was significant for Gnina. The one notable shift was Gnina's
@@ -217,7 +221,10 @@ protonation arm, which lowered success by 6.2 points on this subset (19 gained, 
 Holm $p = 0.08$) against 3.3 points on all 428. rDock's baseline was 29.5\% on the
 subset, close to its rate on all 428, and its box effects were as large: +13.3 points with
 the \SI{2}{\angstrom} box and $-9.4$ and $-12.3$ points at 6 and \SI{8}{\angstrom} (Holm
-$p \le 7.3 \times 10^{-6}$), with neither ligand choice significant.
+$p \le 7.3 \times 10^{-6}$), with neither ligand choice significant for top-1 success.
+For \pbvalid{} success, the subset changed two conclusions: the \SI{2}{\angstrom} box was no
+longer significant for Vina (Holm $p = 0.083$) or Smina ($0.65$), and the RDKit conformer
+lowered rDock's \pbvalid{} success significantly ($-5.5$ points; Holm $p = 0.027$).
 
 \subsection{Which complexes are sensitive to preparation}
 
@@ -227,8 +234,10 @@ arm's flips (odds ratios 10.5--37; Holm $p < 10^{-8}$ for every arm): with the
 \SI{2}{\angstrom} box, 58\% of them flipped against 9\% of the other complexes. But they
 account for a minority of most arms' flips (Table~\ref{tab:stable-flips}). The RDKit start
 conformer changed the outcome of 63 complexes that never changed with the seed, the
-\SI{2}{\angstrom} box 34 and protonation 24. These are effects of the preparation choice
-itself, on complexes whose outcome is otherwise reproducible.
+\SI{2}{\angstrom} box 34 and protonation 24. These complexes did not change across four
+seeds, so most of these flips are likely effects of the preparation choice itself, although
+four replicates cannot rule out that some of them have a small chance of flipping by
+chance.
 
 \begin{table}[h]
   \centering
@@ -249,16 +258,14 @@ itself, on complexes whose outcome is otherwise reproducible.
   \end{tabular}
 \end{table}
 
-Ligand properties explained little. The clearest association was with the
-\SI{2}{\angstrom} box, whose flips concentrated on larger and more flexible ligands: for
-Smina, flipped complexes had a median of 10 rotatable bonds against 6 (rank-biserial
-$r = 0.31$, Holm $p = 0.001$), and for Vina a median of 29 heavy atoms against 24
-($r = 0.21$, Holm $p = 0.057$). For Vina the tight box mostly helped such ligands: the 41
-complexes it gained had a median of 29 heavy atoms and 8 rotatable bonds, the 12 it lost
-22 and 4. Protonation flips leaned towards ligands whose charge it changed, consistently
-across engines (Vina: 80\% of flipped against 62\% of unflipped complexes, odds ratio
-2.5, $p = 0.024$; Gnina 1.7; Smina 1.6), but no engine's association survived correction
-(Holm $p \ge 0.12$). Flips from the RDKit conformer showed no association with ligand size
+Ligand properties explained little. The one association that survived correction was with
+the \SI{2}{\angstrom} box for Smina, whose flips concentrated on more flexible ligands: a
+median of 10 rotatable bonds against 6 (rank-biserial $r = 0.31$, Holm $p = 0.001$). Vina
+showed the same tendency without reaching significance (median 29 heavy atoms against 24,
+$r = 0.21$, Holm $p = 0.057$). Protonation flips leaned towards ligands whose charge it
+changed for the three Vina-family engines (Vina: 80\% of flipped against 62\% of unflipped
+complexes, odds ratio 2.5, $p = 0.024$; Gnina 1.7; Smina 1.6) but not for rDock (0.87),
+and no engine's association survived correction (Holm $p \ge 0.12$). Flips from the RDKit conformer showed no association with ligand size
 or flexibility in any engine, and no arm's flips were associated with the presence of a
 cofactor. All but 10 of the supplied ligands are neutral, so the formal charge of the
 supplied ligand itself could not be tested meaningfully.
@@ -270,14 +277,15 @@ Because each arm changes one choice from the baseline, the effects above are mea
 the baseline setting of the others. Two further sets of Vina runs tested that assumption.
 First, protonation at pH 7.4 was repeated at each box padding (Table~\ref{tab:interaction}).
 Its effect declined steadily as the box grew, from +4.2 points at \SI{2}{\angstrom} (30
-complexes gained, 12 lost; Holm $p = 0.032$ over the four paddings) to +2.8, +1.4 and
+complexes gained, 12 lost; Holm $p = 0.032$ over the four paddings, a correction family
+separate from the five primary arms) to +2.8, +1.4 and
 $-0.5$ points at 4, 6 and \SI{8}{\angstrom}. Compared complex by complex with the effect at
 the baseline padding, the change was not significant at any single padding (sign test on
 the difference in effect, Holm $p \ge 0.46$), so the trend is consistent but not
 established. It is what would be expected if a large box lets wrong-site poses dominate,
 whatever the ligand's charge state, while in a tight box the charge state decides between
 nearby poses. Combining the two best choices gave the best Vina protocol in this study:
-\SI{2}{\angstrom} padding with protonation at pH 7.4 reached 57.2\% [52.5, 61.8], 10.9
+\SI{2}{\angstrom} padding with protonation at pH 7.4 reached 57.2\% [52.5, 61.8], 11.0
 points above the baseline (60 complexes gained, 13 lost; exact McNemar
 $p = 2.3 \times 10^{-8}$) and two thirds of the way to Gnina's baseline (62.6\%).
 
@@ -305,7 +313,7 @@ the radius of gyration of the docked conformer, centred on the crystal ligand, t
 optimum \citet{feinstein2015boxsize} found for Vina. These boxes were smaller than the
 baseline box for 427 complexes (median volume 0.31 times) and smaller than the
 \SI{2}{\angstrom} box for 331 (0.75 times), and for 207 complexes part of the crystal
-ligand lay outside the box. Success was 50.2\% [45.5, 54.9], above the baseline (+3.9
+ligand lay outside the box. Success was 50.2\% [45.5, 54.9], above the baseline (+4.0
 points; 46 gained, 29 lost; exact McNemar $p = 0.064$) but not above the
 \SI{2}{\angstrom} box (53.0\%; $p = 0.21$). The result split cleanly on whether the
 crystal ligand fitted (an exploratory, post hoc split): for the 221 complexes whose

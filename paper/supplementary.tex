@@ -10,7 +10,7 @@
 \renewcommand{\thesection}{S\arabic{section}}
 
 \title{Supplementary information\\
-  \large How much does preparation matter in classical molecular docking?}
+  \large How much does preparation matter in molecular docking?}
 \author{David Obeh Alobo}
 \date{}
 
@@ -21,7 +21,7 @@ All tables except Table~\ref{tab:si-protocols} are generated from the per-comple
 by \texttt{dockprepbench report}; the subset tables by the same command with
 \texttt{--subset} \nolinkurl{configs/subsets/posebusters_308.txt}. Success is top-1 heavy-atom RMSD
 below \SI{2}{\angstrom}; \pbvalid{} success also requires the top pose to pass every
-PoseBusters check. Preparation failures count as failures. $\Delta$ is the change from the
+PoseBusters redocking check other than its own RMSD check. Preparation failures count as failures. $\Delta$ is the change from the
 same engine's baseline; gained and lost count complexes that succeed only in the arm or
 only in the baseline; $p$ is the exact McNemar test, Holm-adjusted over the five arms of
 each engine and metric.
@@ -60,7 +60,8 @@ each engine and metric.
 \section{The 308-complex subset}
 
 The journal version of the PoseBusters study reports results on 308 of the 428 complexes,
-leaving out structures with crystal contacts. Tables~\ref{tab:si-308-top1}
+leaving out those whose ligand lies within \SI{5}{\angstrom} of a symmetry-related copy of
+the protein (a crystal contact; Methods). Tables~\ref{tab:si-308-top1}
 and~\ref{tab:si-308-pbvalid} repeat Tables~\ref{tab:si-top1} and~\ref{tab:si-pbvalid} on
 that subset; Holm adjustment is recomputed within the subset.
 
@@ -88,8 +89,8 @@ that subset; Holm adjustment is recomputed within the subset.
   \caption{Vina protocols of the PoseBusters study \citep{buttenschoen2024posebusters} and
     of this work's baseline, on the same 428 complexes. Per-complex results of the
     PoseBusters run are from its Zenodo record \citep{posebusters2023data}; the comparison
-    is reproduced by \texttt{scripts/compare\_posebusters\_vina.py}.
-    \todo{Confirm the PoseBusters settings against the journal SI.}}
+    is reproduced by \texttt{scripts/compare\_posebusters\_vina.py}. PoseBusters settings
+    are from section S1 of that study's electronic supplementary information.}
   \label{tab:si-protocols}
   \small
   \begin{tabular}{lll}

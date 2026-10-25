@@ -4,14 +4,15 @@
 The choice of docking engine was the largest single factor in this study, but preparation
 was large enough to change how engines compare. Gnina's re-scoring of the same search
 placed it 16.4 points above Vina at the baseline protocol, and the four engines spanned
-33.2 points, while across the six arms top-1 success varied by 7.0 to 10.5 points within
-each Vina-family engine and by 23.8 points for rDock. Gnina led under every
-preparation choice, yet Vina and Smina, whose baseline success differed by less than a
-point, swapped places depending on how the inputs were prepared. Only one choice, the size
+33.2 points, while across the six protocols (baseline and five arms) top-1 success varied
+by 7.0 to 10.5 points within each Vina-family engine and by 23.8 points for rDock. Gnina
+led under every preparation choice, while Vina and Smina, whose baseline success differed
+by less than a point, changed order between arms by at most 1.7 points, a difference no
+test here resolves. Among the primary arms, only one choice, the size
 of the search box, shifted success beyond what multiple testing allows, and it did so for
 Vina, Smina and rDock. The best single choice for Vina closed about 40\% of its gap to Gnina;
-combining it with protonation, which helped most in a tight box
-(Section~\ref{sec:interaction}), closed two thirds, and this combined protocol (57.2\%)
+combining it with protonation, whose effect was largest in a tight box although the trend
+was not established (Section~\ref{sec:interaction}), closed two thirds, and this combined protocol (57.2\%)
 came within 1.4 points of Gnina's worst arm (58.6\%), although Gnina itself was not run
 with the combination. rDock, an engine outside the Vina family, followed the same pattern
 more strongly: its success moved by 23.8 points across the arms, almost all of it through
@@ -20,9 +21,10 @@ much as the choice of engine. For anyone comparing engines, these numbers set a 
 between engines of a few points, measured under a single preparation protocol, are within
 the range that preparation alone produces.
 
-Net success rates hide most of what preparation does. Every arm changed the outcome of more
-complexes than a change of docking seed did, up to 4.9 times as many, and most of these
-changes fell on complexes whose outcome was otherwise reproducible: the regenerated start
+Net success rates hide most of what preparation does. For Vina, the one engine with seed
+replicates, every arm changed the outcome of more complexes than a change of docking seed
+did, up to 4.9 times as many, and most of these changes fell on complexes whose outcome
+did not change across four seeds: the regenerated start
 conformer changed 63 such complexes while moving the success rate by only 4.4 points,
 because gains and losses nearly cancelled. A study that docks a particular ligand series,
 or that reports which complexes an engine solves, inherits this sensitivity even when
@@ -44,7 +46,8 @@ start conformer, in contrast, changed which basin the search ended in, in both d
 and its effect was not related to ligand size or flexibility: it behaves like a
 reproducible perturbation of a stochastic search rather than a better or worse input.
 Protonation at pH 7.4 had small effects that leaned towards the ligands whose charge it
-changed, and no effect survived correction.
+changed, and no effect survived correction among the primary arms; in the follow-up runs
+its effect was significant only in combination with the \SI{2}{\angstrom} box.
 
 These results suggest four practices for docking benchmarks and applications. First,
 report the search space exactly (centre, size and how it was derived), since it is the
@@ -75,20 +78,23 @@ adopts around that ligand, so induced fit is built into the input rather than te
 a preparation step that moved side chains could favour one engine over another in ways
 this design cannot show. This is the most favourable setting for docking; in
 cross-docking, or when the site must be predicted, both the absolute rates and the size of
-preparation effects may differ.
+preparation effects may differ. Repeating the same arms on a cross-docking benchmark, with
+each ligand docked into a structure solved with a different ligand or into an apo or
+predicted structure, would test whether these effects hold, or grow, when the receptor was
+not shaped by the ligand being docked; the pipeline supports this without change once such
+pairs are defined.
 
-The design changes one choice at a time from a common baseline. Each arm is crossed with
-every engine but not with the other preparation choices, so each effect is measured at the
-baseline setting of the others and interactions between them are not detected: a
-protonation change that alters a ligand's charge might, for example, matter more or less
-in a larger box. A factorial or fractional factorial design over the preparation choices
-would capture such interactions at greater computational cost. Each choice was also
-tested at a few fixed settings. Ligands were docked in a single protonation state rather
-than as an ensemble of likely protomers, tautomers were not enumerated, and only the
-ligand side of protonation was varied, the receptor being protonated at pH 7.4
-throughout. The box padding was a fixed distance rather than scaled to the size of the
-ligand, as \citet{feinstein2015boxsize} proposed. The seed replicates that set the noise
-floor were run for Vina only; Smina and Gnina share
-much of Vina's search, but their own run-to-run variation was not measured. The analysis
+The design changes one choice at a time from a common baseline. Each primary arm is crossed
+with every engine but not with the other preparation choices, so each effect is measured at
+the baseline setting of the others. Only one interaction, protonation with box size, was
+tested, for Vina only, and it was suggestive but not established; others, such as the start
+conformer with box size, were not tested. A factorial or fractional factorial design over
+the preparation choices would capture such interactions at greater computational cost. Each
+choice was also tested at a few fixed settings. Ligands were docked in a single protonation
+state rather than as an ensemble of likely protomers, tautomers were not enumerated, and
+only the ligand side of protonation was varied, the receptor being protonated at pH 7.4
+throughout. The box scaled to the ligand's size was tested for Vina only. The seed
+replicates that set the noise floor were run for Vina only; Smina and Gnina share much of
+Vina's search, but their own run-to-run variation, and rDock's, was not measured. The analysis
 of which complexes are sensitive is exploratory, and the properties tested explained
 little of the variation. Results cover four engines and one dataset.
