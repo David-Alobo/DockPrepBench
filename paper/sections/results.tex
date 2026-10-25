@@ -229,3 +229,55 @@ across engines (Vina: 80\% of flipped against 62\% of unflipped complexes, odds 
 or flexibility in any engine, and no arm's flips were associated with the presence of a
 cofactor. All but 10 of the supplied ligands are neutral, so the formal charge of the
 supplied ligand itself could not be tested meaningfully.
+
+\subsection{Interaction between protonation and box size, and a box sized to the ligand}
+\label{sec:interaction}
+
+Because each arm changes one choice from the baseline, the effects above are measured at
+the baseline setting of the others. Two further sets of Vina runs tested that assumption.
+First, protonation at pH 7.4 was repeated at each box padding (Table~\ref{tab:interaction}).
+Its effect declined steadily as the box grew, from +4.2 points at \SI{2}{\angstrom} (30
+complexes gained, 12 lost; Holm $p = 0.032$ over the four paddings) to +2.8, +1.4 and
+$-0.5$ points at 4, 6 and \SI{8}{\angstrom}. Compared complex by complex with the effect at
+the baseline padding, the change was not significant at any single padding (sign test on
+the difference in effect, Holm $p \ge 0.46$), so the trend is consistent but not
+established. It is what would be expected if a large box lets wrong-site poses dominate,
+whatever the ligand's charge state, while in a tight box the charge state decides between
+nearby poses. Combining the two best choices gave the best Vina protocol in this study:
+\SI{2}{\angstrom} padding with protonation at pH 7.4 reached 57.2\% [52.5, 61.8], 10.9
+points above the baseline (60 complexes gained, 13 lost; exact McNemar
+$p = 2.3 \times 10^{-8}$) and two thirds of the way to Gnina's baseline (62.6\%).
+
+\begin{table}[h]
+  \centering
+  \caption{Vina top-1 success with and without ligand protonation at pH 7.4, at each box
+    padding (428 complexes; failures counted as failures; 95\% Wilson intervals). Gained
+    and lost are relative to the same padding without protonation; Holm-adjusted exact
+    McNemar $p$ over the four paddings.}
+  \label{tab:interaction}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Padding & Supplied ligand (\%) & Protonated (\%) & $\Delta$ (pts) & Gained / lost & Holm $p$ \\
+    \midrule
+    \SI{2}{\angstrom} & 53.0 [48.3, 57.7] & 57.2 [52.5, 61.8] & +4.2 & 30 / 12 & 0.032 \\
+    \SI{4}{\angstrom} (baseline) & 46.3 [41.6, 51.0] & 49.1 [44.4, 53.8] & +2.8 & 26 / 14 & 0.24 \\
+    \SI{6}{\angstrom} & 44.4 [39.8, 49.1] & 45.8 [41.1, 50.5] & +1.4 & 24 / 18 & 0.88 \\
+    \SI{8}{\angstrom} & 44.2 [39.5, 48.9] & 43.7 [39.1, 48.4] & $-0.5$ & 27 / 29 & 0.89 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Second, the box was sized to the ligand rather than padded around it: a cube 2.857 times
+the radius of gyration of the docked conformer, centred on the crystal ligand, the
+optimum \citet{feinstein2015boxsize} found for Vina. These boxes were smaller than the
+baseline box for 427 complexes (median volume 0.31 times) and smaller than the
+\SI{2}{\angstrom} box for 331 (0.75 times), and for 207 complexes part of the crystal
+ligand lay outside the box. Success was 50.2\% [45.5, 54.9], above the baseline (+3.9
+points; 46 gained, 29 lost; exact McNemar $p = 0.064$) but not above the
+\SI{2}{\angstrom} box (53.0\%; $p = 0.21$). The result split cleanly on whether the
+crystal ligand fitted (an exploratory, post hoc split): for the 221 complexes whose
+crystal ligand lay wholly inside the box, success rose from 51.6\% to 59.7\% (22 gained,
+4 lost), while for the 207 where it did not, success was unchanged (40.6\% and 40.1\%; 24
+gained, 25 lost). A box scaled to the ligand works well when it contains the binding
+mode, and the gain is lost where the rule truncates it; a small fixed padding around the
+reference ligand avoids that failure.
