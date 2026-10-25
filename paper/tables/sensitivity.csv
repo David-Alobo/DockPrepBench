@@ -24,6 +24,31 @@ gnina,ligand_rdkit_conformer,rotatable_bonds,85,428,7,6,median,0.0871892,rank-bi
 gnina,ligand_rdkit_conformer,abs_charge,85,428,0,0,median,0.0146802,rank-biserial r,,,0.424151,1
 gnina,ligand_rdkit_conformer,charge_changed,85,428,0.694118,0.618076,share with property,1.40221,odds ratio,0.217712,0.165605,0.210339,1
 gnina,ligand_rdkit_conformer,cofactor,85,428,0.564706,0.571429,share with property,0.972973,odds ratio,0.196721,0.201087,1,1
+rdock,box_padding_2,heavy_atoms,74,428,24.5,25,median,-0.0776073,rank-biserial r,,,0.293555,1
+rdock,box_padding_2,rotatable_bonds,74,428,6,6,median,-0.0277523,rank-biserial r,,,0.706718,1
+rdock,box_padding_2,abs_charge,74,428,0,0,median,-0.0119866,rank-biserial r,,,0.536533,1
+rdock,box_padding_2,charge_changed,74,428,0.581081,0.644068,share with property,0.766553,odds ratio,0.158672,0.197452,0.353341,1
+rdock,box_padding_2,cofactor,74,428,0.581081,0.567797,share with property,1.05585,odds ratio,0.17623,0.168478,0.897541,1
+rdock,box_padding_6,heavy_atoms,55,428,26,25,median,0.0415306,rank-biserial r,,,0.619135,1
+rdock,box_padding_6,rotatable_bonds,55,428,7,6,median,-0.00248599,rank-biserial r,,,0.976639,1
+rdock,box_padding_6,abs_charge,55,428,0,0,median,0.0152084,rank-biserial r,,,0.487711,1
+rdock,box_padding_6,charge_changed,55,428,0.618182,0.635389,share with property,0.929074,odds ratio,0.125461,0.133758,0.881022,1
+rdock,box_padding_6,cofactor,55,428,0.490909,0.581769,share with property,0.693219,odds ratio,0.110656,0.152174,0.243233,1
+rdock,box_padding_8,heavy_atoms,66,428,25,25,median,0.0062364,rank-biserial r,,,0.936153,1
+rdock,box_padding_8,rotatable_bonds,66,428,6,6,median,-0.0558764,rank-biserial r,,,0.469098,1
+rdock,box_padding_8,abs_charge,66,428,0,0,median,-0.00979407,rank-biserial r,,,0.629972,1
+rdock,box_padding_8,charge_changed,66,428,0.575758,0.643646,share with property,0.75138,odds ratio,0.140221,0.178344,0.331358,1
+rdock,box_padding_8,cofactor,66,428,0.515152,0.58011,share with property,0.769048,odds ratio,0.139344,0.173913,0.346074,1
+rdock,ligand_dimorphite,heavy_atoms,53,428,25,25,median,-0.0545912,rank-biserial r,,,0.520037,1
+rdock,ligand_dimorphite,rotatable_bonds,53,428,5,6,median,-0.118491,rank-biserial r,,,0.161318,0.80659
+rdock,ligand_dimorphite,abs_charge,53,428,0,0,median,-0.0266667,rank-biserial r,,,0.230432,0.921728
+rdock,ligand_dimorphite,charge_changed,53,428,0.603774,0.637333,share with property,0.867105,odds ratio,0.118081,0.133758,0.649916,1
+rdock,ligand_dimorphite,cofactor,53,428,0.603774,0.565333,share with property,1.17161,odds ratio,0.131148,0.11413,0.657868,1
+rdock,ligand_rdkit_conformer,heavy_atoms,63,428,24,25,median,-0.0730594,rank-biserial r,,,0.354277,1
+rdock,ligand_rdkit_conformer,rotatable_bonds,63,428,8,6,median,0.0374429,rank-biserial r,,,0.634268,1
+rdock,ligand_rdkit_conformer,abs_charge,63,428,0,0,median,-0.00887149,rank-biserial r,,,0.668765,1
+rdock,ligand_rdkit_conformer,charge_changed,63,428,0.68254,0.624658,share with property,1.29189,odds ratio,0.158672,0.127389,0.399786,1
+rdock,ligand_rdkit_conformer,cofactor,63,428,0.555556,0.572603,share with property,0.933014,odds ratio,0.143443,0.152174,0.890513,1
 smina,box_padding_2,heavy_atoms,53,428,28,24,median,0.182289,rank-biserial r,,,0.0315998,0.126399
 smina,box_padding_2,rotatable_bonds,53,428,10,6,median,0.309836,rank-biserial r,,,0.000248817,0.00124408
 smina,box_padding_2,abs_charge,53,428,0,0,median,0.0162013,rank-biserial r,,,0.466792,1
