@@ -19,12 +19,12 @@
 
 All tables except Table~\ref{tab:si-protocols} are generated from the per-complex results
 by \texttt{dockprepbench report}; the subset tables by the same command with
-\texttt{--subset configs/subsets/posebusters\_308.txt}. Success is top-1 heavy-atom RMSD
+\texttt{--subset} \nolinkurl{configs/subsets/posebusters_308.txt}. Success is top-1 heavy-atom RMSD
 below \SI{2}{\angstrom}; \pbvalid{} success also requires the top pose to pass every
 PoseBusters check. Preparation failures count as failures. $\Delta$ is the change from the
 same engine's baseline; gained and lost count complexes that succeed only in the arm or
 only in the baseline; $p$ is the exact McNemar test, Holm-adjusted over the five arms of
-each engine and metric. \result{rDock rows once its rerun finishes.}
+each engine and metric.
 
 \section{Success and paired comparisons for every engine}
 
@@ -109,33 +109,43 @@ that subset; Holm adjustment is recomputed within the subset.
   \end{tabular}
 \end{table}
 
-\section{The replaced first rDock run}
+\section{The replaced rDock runs}
 
-rDock defines its search space as a cavity. In a first run, the cavity was a sphere
-centred on the search box and passing through its corners, chosen so that it enclosed the
-whole box. That sphere is much larger than the box, and the run was compromised: baseline
-top-1 success was 13.6\% (58/428), 129 top poses lay in the wrong site (Vina: 20), and
-100 complexes failed, many because their docking processes were stopped by the memory
-limit of a 64-worker batch while others returned poses RDKit could not read (rDock writes
-poses without formal charges). The run was discarded and its results kept for the record.
-The final protocol (Methods) maps the cavity around the crystal ligand with a radius equal
-to the box padding and restores each pose's chemistry from the input ligand. On the first
-40 complexes, the change raised success from 7 to 16 and removed all failures
-(Table~\ref{tab:si-rdock-trial}).
+rDock defines its search space as a cavity rather than a box, and two cavity definitions
+were tried and replaced before the final one (Table~\ref{tab:si-rdock-versions}); their
+results are kept for the record.
+
+The first cavity was a sphere centred on the search box and passing through its corners,
+chosen so that it enclosed the whole box. That sphere is much larger than the box, and the
+run was compromised: baseline top-1 success was 13.6\% (58/428), 129 top poses lay in the
+wrong site (Vina: 20), and 100 complexes failed, many because their docking processes were
+stopped by the memory limit of a 64-worker batch while others returned poses RDKit could
+not read (rDock writes poses without formal charges).
+
+The second cavity was mapped around the crystal ligand, keeping free space within the box
+padding of any ligand atom, and each pose's chemistry was restored from the input ligand.
+Its success was implausibly high, 42.5\% at baseline and 72.9\% with
+\SI{2}{\angstrom} padding, well above Gnina: with a small padding the cavity takes the shape
+of the crystal ligand itself, so it encodes the answer rather than the search space the
+other engines were given.
+
+The final cavity (Methods) is the free space inside the same box the other engines use,
+mapped from a grid of points filling the box, with the same chemistry restoration. It keeps
+the search space comparable across engines without revealing the ligand's shape.
 
 \begin{table}[h]
   \centering
-  \caption{Baseline outcomes on the first 40 complexes for Vina and the two rDock
-    protocols.}
-  \label{tab:si-rdock-trial}
+  \caption{rDock top-1 success on all 428 complexes under the three cavity definitions.
+    Failures count as failures.}
+  \label{tab:si-rdock-versions}
   \small
   \begin{tabular}{lrrr}
     \toprule
-    & Top-1 success & Wrong site & Failed \\
+    Cavity & Baseline (\%) & Padding \SI{2}{\angstrom} (\%) & Failed at baseline \\
     \midrule
-    Vina & 20 & 2 & 0 \\
-    rDock, sphere enclosing the box (replaced) & 7 & 9 & 7 \\
-    rDock, reference-ligand cavity (final) & 16 & 2 & 0 \\
+    Sphere enclosing the box (replaced) & 13.6 & 18.5 & 100 \\
+    Around the crystal ligand (replaced) & 42.5 & 72.9 & 0 \\
+    Free space in the box (final) & 29.4 & 41.1 & 0 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -152,7 +162,7 @@ available for Vina only.
 
 \newcommand{\SensitivityCaption}{Ligand and complex properties of flipped and unflipped
   complexes, all 428 complexes.}
-{\small\input{tables/sensitivity_table}}
+{\footnotesize\input{tables/sensitivity_table}}
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}

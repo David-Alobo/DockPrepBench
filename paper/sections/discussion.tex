@@ -3,17 +3,20 @@
 
 The choice of docking engine was the largest single factor in this study, but preparation
 was large enough to change how engines compare. Gnina's re-scoring of the same search
-placed it 16.4 points above Vina at the baseline protocol, while across the six arms
-top-1 success varied by 7.0 to 10.5 points within an engine. Gnina led under every
+placed it 16.4 points above Vina at the baseline protocol, and the four engines spanned
+33.2 points, while across the six arms top-1 success varied by 7.0 to 10.5 points within
+each Vina-family engine and by 23.8 points for rDock. Gnina led under every
 preparation choice, yet Vina and Smina, whose baseline success differed by less than a
 point, swapped places depending on how the inputs were prepared. Only one choice, the size
 of the search box, shifted success beyond what multiple testing allows, and it did so for
-both Vina and Smina. The best single choice for Vina closed about 40\% of its gap to Gnina;
+Vina, Smina and rDock. The best single choice for Vina closed about 40\% of its gap to Gnina;
 combining it with protonation, which helped most in a tight box
 (Section~\ref{sec:interaction}), closed two thirds, and this combined protocol (57.2\%)
 came within 1.4 points of Gnina's worst arm (58.6\%), although Gnina itself was not run
-with the combination. \result{Whether rDock, an engine outside the Vina family, follows the
-same pattern.} For anyone comparing engines, these numbers set a scale: differences
+with the combination. rDock, an engine outside the Vina family, followed the same pattern
+more strongly: its success moved by 23.8 points across the arms, almost all of it through
+the box, so for an engine whose search space grows with the box, the box can matter as
+much as the choice of engine. For anyone comparing engines, these numbers set a scale: differences
 between engines of a few points, measured under a single preparation protocol, are within
 the range that preparation alone produces.
 
@@ -34,7 +37,9 @@ engine, sending top poses to high-scoring sites away from the crystal ligand. Th
 with earlier work showing that box size affects docking accuracy
 \citep{feinstein2015boxsize}, and it means that a box drawn generously around a known
 ligand is not a neutral default. Gnina was the least sensitive to the box, consistent
-with its re-scoring rejecting many of the wrong-site poses that a larger box admits. The
+with its re-scoring rejecting many of the wrong-site poses that a larger box admits, and
+rDock the most, since its cavity grows with the box: at \SI{8}{\angstrom} padding over
+half of its top poses lay in the wrong site. The
 start conformer, in contrast, changed which basin the search ended in, in both directions,
 and its effect was not related to ligand size or flexibility: it behaves like a
 reproducible perturbation of a stochastic search rather than a better or worse input.
@@ -44,8 +49,8 @@ changed, and no effect survived correction.
 These results suggest four practices for docking benchmarks and applications. First,
 report the search space exactly (centre, size and how it was derived), since it is the
 preparation choice with the largest and most consistent effect. Where a reference ligand
-is available, a tight box (\SI{2}{\angstrom} padding here) raised success for all three
-engines, significantly for Vina and Smina. Second, repeat runs with several seeds and report the spread: a single run cannot
+is available, a tight box (\SI{2}{\angstrom} padding here) raised success for all four
+engines, significantly for Vina, Smina and rDock. Second, repeat runs with several seeds and report the spread: a single run cannot
 separate a real difference from seed noise, which here amounted to 17.5 changed complexes
 between two runs of the same protocol. Third, compare protocols complex by complex with
 paired tests and report how many complexes changed, not only the net rate. Fourth, state

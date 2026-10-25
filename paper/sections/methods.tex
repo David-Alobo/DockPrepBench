@@ -101,17 +101,23 @@ asked for up to nine poses with a fixed seed (42):
     rescore}); exhaustiveness 8, on GPUs.
   \item \emph{rDock} 24.03 \citep{ruizcarmona2014rdock}, with 50 independent runs per ligand
     and the standard docking protocol. rDock defines its search space as a cavity rather
-    than a box; the cavity is mapped with rDock's reference-ligand method around the
-    crystal ligand, with a radius equal to the arm's box padding, so that it covers the
-    free space within the padding of any ligand atom, the analogue of the padded box used
-    by the other engines. Poses are ranked by the rDock total score. rDock writes poses
-    without formal charges and without all input hydrogens, so each pose's heavy atoms
-    are matched to the input ligand by element and connectivity, the input ligand takes
-    the pose's coordinates, and hydrogens are added back in place.
-    \todo{State that a first run, with a spherical cavity enclosing the box, gave 13.6\%
-    baseline success and was replaced (Supplementary).}
+    than a box, so the cavity is mapped as the free space inside the same box the other
+    engines use: rDock's reference-ligand mapper is given a reference made of points at the
+    centres of a regular grid filling the box (at most 999 points, at least
+    \SI{1.5}{\angstrom} apart), each with a radius of half a grid-cell diagonal, so that the
+    cavity covers the box and extends beyond its faces by at most a third of a cell. Poses
+    are ranked by the rDock total score. rDock writes poses without formal charges and
+    without all input hydrogens, so each pose's heavy atoms are matched to the input ligand
+    by element and connectivity, the input ligand takes the pose's coordinates, and
+    hydrogens are added back in place. Two earlier cavity definitions, a sphere enclosing
+    the box and a cavity mapped around the crystal ligand, were replaced because their
+    search spaces did not match the box (Supplementary Information).
 \end{itemize}
-All returned poses are saved with their rank, score and RMSD.
+All returned poses are saved with their rank, score and RMSD. Smina, Gnina and rDock run as
+external programs limited to one hour per complex; a run that exceeds the limit counts as a
+failure (three rDock runs, in the two largest boxes). Complexes whose rDock process was
+stopped by the server's memory limit were docked again with more memory, so every complex
+has a result in every arm.
 
 \subsection{Evaluation}
 

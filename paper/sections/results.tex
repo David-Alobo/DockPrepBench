@@ -3,7 +3,7 @@
 
 % Numbers come from `dockprepbench report` (paper/tables). Follow the benchmark-reporting
 % conventions: denominators, both metrics, Wilson intervals, effect size before p-value,
-% Holm-adjusted p. Vina is complete; \result{} marks what waits for the other engines.
+% Holm-adjusted p. All four engines are complete.
 
 \subsection{Baseline performance}
 
@@ -58,7 +58,7 @@ judging whether an arm changes more outcomes than chance.
   \caption{Top-1 success (heavy-atom RMSD below \SI{2}{\angstrom}) for each preparation
     arm and engine on all 428 complexes, with 95\% Wilson intervals; preparation failures
     count as failures. Faint vertical lines mark each engine's baseline success. Drawn by
-    \texttt{dockprepbench report --figures}. \result{Add rDock once its rerun finishes.}}
+    \texttt{dockprepbench report --figures}.}
   \label{fig:success}
 \end{figure}
 
@@ -132,8 +132,7 @@ failures into successes (15); eight correct but invalid poses became \pbvalid{}.
 
 \subsection{Preparation effects across engines}
 
-Table~\ref{tab:engines} gives the same comparisons for Smina and Gnina. \result{rDock, once
-its rerun finishes.} Smina, which reproduces Vina's scoring function, behaved like Vina
+Table~\ref{tab:engines} gives the same comparisons for Smina, Gnina and rDock. Smina, which reproduces Vina's scoring function, behaved like Vina
 throughout. Its baseline success was 47.0\% [42.3, 51.7], and on all 428 complexes it did
 not differ from Vina's (17 complexes gained, 14 lost; exact McNemar $p = 0.72$). The
 \SI{2}{\angstrom} box was again the only significant arm, raising success to 54.7\%
@@ -150,18 +149,33 @@ changed Gnina's success significantly. The \SI{2}{\angstrom} box gave +3.0 point
 \SI{8}{\angstrom} box $-4.0$ points (Holm $p = 0.47$ and $0.30$); ligand protonation gave
 $-3.3$ points and the RDKit conformer +0.7 points.
 
-The mechanism behind the box effect was shared. Every engine placed more top poses in
-the wrong site as the box grew: from 20, 30 and 4 complexes at \SI{4}{\angstrom} padding
-(Vina, Smina, Gnina) to 64, 72 and 36 at \SI{8}{\angstrom}, and down to 3, 4 and 2 at
-\SI{2}{\angstrom}. Gnina's re-scoring therefore removes most, but not all, of the
-wrong-site errors that a larger box invites.
+rDock, whose search and scoring share nothing with the Vina family, reached 29.4\% [25.3,
+33.9] at baseline, 16.9 points below Vina (33 complexes gained, 105 lost;
+$p = 6.1 \times 10^{-10}$) and 33.2 points below Gnina. It was by far the most sensitive to
+the search space. The \SI{2}{\angstrom} box raised its success to 41.1\% [36.6, 45.8]
+(+11.7 points; 62 gained, 12 lost; Holm $p = 1.1 \times 10^{-8}$), and larger boxes lowered
+it to 19.9\% at \SI{6}{\angstrom} ($-9.6$ points; 7 gained, 48 lost; Holm
+$p = 3.9 \times 10^{-8}$) and 17.3\% at \SI{8}{\angstrom} ($-12.1$ points; 7 gained, 59
+lost; Holm $p = 1.2 \times 10^{-10}$). The ligand choices did not change its success
+significantly: protonation gave +0.2 points and the RDKit conformer $-4.0$ points (Holm
+$p = 1$ and $0.086$).
 
-Across these three engines, the spread of top-1 success over the six preparation arms
-was 8.9 points for Vina (44.2--53.0\%), 10.5 points for Smina (44.2--54.7\%) and 7.0
-points for Gnina (58.6--65.7\%). The difference between engines at the baseline protocol
-was 16.4 points. Choosing a re-scoring engine thus mattered about twice as much as any
-single preparation choice studied here, yet the best preparation arm closed about 40\% of
-the gap between Vina and Gnina (6.8 of 16.4 points).
+The mechanism behind the box effect was shared. Every engine placed more top poses in
+the wrong site as the box grew: from 20, 30, 4 and 91 complexes at \SI{4}{\angstrom}
+padding (Vina, Smina, Gnina, rDock) to 64, 72, 36 and 219 at \SI{8}{\angstrom}, and down
+to 3, 4, 2 and 8 at \SI{2}{\angstrom}. Gnina's re-scoring therefore removes most, but not
+all, of the wrong-site errors that a larger box invites, while rDock, whose cavity grows
+with the box, is the most exposed to them: the tight box raised the number of complexes for
+which any of its poses lay within \SI{2}{\angstrom} of the crystal ligand from 186 to 271.
+
+The spread of top-1 success over the six preparation arms was 8.9 points for Vina
+(44.2--53.0\%), 10.5 points for Smina (44.2--54.7\%), 7.0 points for Gnina
+(58.6--65.7\%) and 23.8 points for rDock (17.3--41.1\%). At the baseline protocol the
+engines spanned 33.2 points, from rDock to Gnina, and Gnina led Vina by 16.4. For the Vina
+family, choosing a re-scoring engine thus mattered about twice as much as any single
+preparation choice, yet the best preparation arm closed about 40\% of the gap between Vina
+and Gnina (6.8 of 16.4 points). For rDock, the box alone moved success by more than its
+16.9-point gap to Vina.
 
 \begin{table}[h]
   \centering
@@ -169,21 +183,23 @@ the gap between Vina and Gnina (6.8 of 16.4 points).
     intervals; $\Delta$ is the change from that engine's baseline and $p$ is the exact
     McNemar test, Holm-adjusted over the five arms of each engine.}
   \label{tab:engines}
-  \small
-  \begin{tabular}{lrrrr}
+  \footnotesize
+  \setlength{\tabcolsep}{3.5pt}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lrrrrrr}
     \toprule
-    & \multicolumn{2}{c}{Smina} & \multicolumn{2}{c}{Gnina} \\
-    \cmidrule(lr){2-3} \cmidrule(lr){4-5}
-    Arm & Top-1 (\%) & $\Delta$ (Holm $p$) & Top-1 (\%) & $\Delta$ (Holm $p$) \\
+    & \multicolumn{2}{c}{Smina} & \multicolumn{2}{c}{Gnina} & \multicolumn{2}{c}{rDock} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+    Arm & Top-1 (\%) & $\Delta$ (Holm $p$) & Top-1 (\%) & $\Delta$ (Holm $p$) & Top-1 (\%) & $\Delta$ (Holm $p$) \\
     \midrule
-    Baseline & 47.0 [42.3, 51.7] & -- & 62.6 [57.9, 67.1] & -- \\
-    Padding \SI{2}{\angstrom} & 54.7 [49.9, 59.3] & +7.7 ($2.8\times10^{-5}$) & 65.7 [61.0, 70.0] & +3.0 (0.47) \\
-    Padding \SI{6}{\angstrom} & 45.6 [40.9, 50.3] & $-1.4$ (0.69) & 60.3 [55.6, 64.8] & $-2.3$ (0.47) \\
-    Padding \SI{8}{\angstrom} & 44.2 [39.5, 48.9] & $-2.8$ (0.38) & 58.6 [53.9, 63.2] & $-4.0$ (0.30) \\
-    Protonation (pH 7.4) & 48.1 [43.4, 52.9] & +1.2 (0.69) & 59.3 [54.6, 63.9] & $-3.3$ (0.47) \\
-    RDKit conformer & 50.2 [45.5, 54.9] & +3.3 (0.45) & 63.3 [58.7, 67.7] & +0.7 (0.83) \\
+    Baseline & 47.0 [42.3, 51.7] & -- & 62.6 [57.9, 67.1] & -- & 29.4 [25.3, 33.9] & -- \\
+    Padding \SI{2}{\angstrom} & 54.7 [49.9, 59.3] & +7.7 ($2.8\times10^{-5}$) & 65.7 [61.0, 70.0] & +3.0 (0.47) & 41.1 [36.6, 45.8] & +11.7 ($1.1\times10^{-8}$) \\
+    Padding \SI{6}{\angstrom} & 45.6 [40.9, 50.3] & $-1.4$ (0.69) & 60.3 [55.6, 64.8] & $-2.3$ (0.47) & 19.9 [16.4, 23.9] & $-9.6$ ($3.9\times10^{-8}$) \\
+    Padding \SI{8}{\angstrom} & 44.2 [39.5, 48.9] & $-2.8$ (0.38) & 58.6 [53.9, 63.2] & $-4.0$ (0.30) & 17.3 [14.0, 21.2] & $-12.1$ ($1.2\times10^{-10}$) \\
+    Protonation (pH 7.4) & 48.1 [43.4, 52.9] & +1.2 (0.69) & 59.3 [54.6, 63.9] & $-3.3$ (0.47) & 29.7 [25.5, 34.2] & +0.2 (1) \\
+    RDKit conformer & 50.2 [45.5, 54.9] & +3.3 (0.45) & 63.3 [58.7, 67.7] & +0.7 (0.83) & 25.5 [21.6, 29.8] & $-4.0$ (0.086) \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}}
 \end{table}
 
 \subsection{Robustness on the 308-complex subset}
@@ -198,7 +214,10 @@ were harder for every engine. Gnina's lead over Vina was 15.9 points
 for Vina (+5.5 points; 25 gained, 8 lost; Holm $p = 0.023$) and Smina (+6.2 points; Holm
 $p = 0.017$), and no arm was significant for Gnina. The one notable shift was Gnina's
 protonation arm, which lowered success by 6.2 points on this subset (19 gained, 38 lost;
-Holm $p = 0.08$) against 3.3 points on all 428. \result{rDock on the subset.}
+Holm $p = 0.08$) against 3.3 points on all 428. rDock's baseline was 29.5\% on the
+subset, close to its rate on all 428, and its box effects were as large: +13.3 points with
+the \SI{2}{\angstrom} box and $-9.4$ and $-12.3$ points at 6 and \SI{8}{\angstrom} (Holm
+$p \le 7.3 \times 10^{-6}$), with neither ligand choice significant.
 
 \subsection{Which complexes are sensitive to preparation}
 
