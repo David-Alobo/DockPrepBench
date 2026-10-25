@@ -114,10 +114,15 @@ select, input[type="search"] {
 .note { font-size: 12px; color: var(--muted); margin-top: auto; }
 
 /* Transition matrix */
-.matrix-wrap { overflow-x: auto; }
-.matrix { border-collapse: separate; border-spacing: 3px; width: 100%; font-size: 12.5px; }
-.matrix th { font-weight: 500; color: var(--muted); font-size: 11.5px; padding: 2px 4px; text-align: center; white-space: nowrap; }
-.matrix th.row { text-align: left; }
+/* Centred in the space the chart beside it leaves, so a tall chart (many arms) keeps the
+   two panels balanced. */
+.matrix-wrap { overflow-x: auto; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+/* Fixed layout: a label column, then six equal outcome columns, so the cells form a grid
+   whatever the counts or header lengths. */
+.matrix { border-collapse: separate; border-spacing: 3px; width: 100%; font-size: 12.5px; table-layout: fixed; }
+.matrix tr > :first-child { width: 29%; }
+.matrix th { font-weight: 500; color: var(--muted); font-size: 11.5px; padding: 2px 4px; text-align: center; line-height: 1.25; vertical-align: bottom; overflow-wrap: anywhere; }
+.matrix th.row { text-align: left; white-space: normal; vertical-align: middle; }
 .matrix td { text-align: center; font-family: var(--font-data); font-variant-numeric: tabular-nums; border-radius: 6px; height: 34px; min-width: 44px; cursor: pointer; }
 .matrix td.zero { color: var(--faint); cursor: default; }
 .matrix td.diag { box-shadow: inset 0 0 0 1px var(--line); }
