@@ -16,17 +16,20 @@ arm with its baseline complex by complex.
 ![Study design: the docking pipeline, the one-factor-at-a-time arms run with every engine, and the question asked](docs/figures/concept_v4.png)
 **[Browse every complex, engine and pose in 3D in the results explorer →](https://david-alobo.github.io/DockPrepBench/)**
 
-**Key findings** (Vina, Smina and Gnina; rDock is being added):
+**Key findings** (Vina, Smina, Gnina and rDock):
 
-- **Preparation moves top-1 success by 7 to 10.5 points within an engine.** Differences of a few
-  points between engines, measured under one protocol, are within what preparation alone produces.
+- **Preparation moves top-1 success by 7 to 24 points within an engine** (7 to 10.5 for the Vina
+  family, 23.8 for rDock). Differences of a few points between engines, measured under one
+  protocol, are within what preparation alone produces.
 - **The search box matters most.** A tight box (2 Å padding around the reference ligand) raised
-  Vina from 46.3% to 53.0% and Smina from 47.0% to 54.7%, the only effects that survive Holm
-  correction. Larger boxes sent top poses to wrong sites in every engine.
+  Vina from 46.3% to 53.0%, Smina from 47.0% to 54.7% and rDock from 29.4% to 41.1%, the only
+  effects that survive Holm correction. Larger boxes sent top poses to wrong sites in every engine.
+- **Choices interact.** Ligand protonation helps most in a tight box; together with 2 Å padding it
+  lifts Vina to 57.2%, two thirds of the way to Gnina.
 - **Net rates hide most of the effect.** Every arm changed the outcome of more complexes than a
   change of docking seed did, up to 4.9 times as many, but gains and losses largely cancelled.
-- **The engine still matters most.** Gnina's CNN re-scoring put it 16.4 points above Vina at the
-  same protocol; the best preparation closed about 40% of that gap.
+- **The engine still matters most.** The engines span 33 points at the same protocol; Gnina's CNN
+  re-scoring put it 16.4 points above Vina.
   
 ## Results
 
@@ -34,14 +37,14 @@ Top-1 success (heavy-atom RMSD < 2 Å) on all 428 complexes, with 95% Wilson int
 
 ![Top-1 success by preparation arm and engine](docs/figures/engine_arms.png)
 
-| Arm | Vina | Smina | Gnina |
-|---|---|---|---|
-| Baseline (4 Å box, supplied ligand) | 46.3 | 47.0 | 62.6 |
-| Box padding 2 Å | **53.0** | **54.7** | 65.7 |
-| Box padding 6 Å | 44.4 | 45.6 | 60.3 |
-| Box padding 8 Å | 44.2 | 44.2 | 58.6 |
-| Protonation at pH 7.4 | 49.1 | 48.1 | 59.3 |
-| RDKit start conformer | 50.7 | 50.2 | 63.3 |
+| Arm | Vina | Smina | Gnina | rDock |
+|---|---|---|---|---|
+| Baseline (4 Å box, supplied ligand) | 46.3 | 47.0 | 62.6 | 29.4 |
+| Box padding 2 Å | **53.0** | **54.7** | 65.7 | **41.1** |
+| Box padding 6 Å | 44.4 | 45.6 | 60.3 | **19.9** |
+| Box padding 8 Å | 44.2 | 44.2 | 58.6 | **17.3** |
+| Protonation at pH 7.4 | 49.1 | 48.1 | 59.3 | 29.7 |
+| RDKit start conformer | 50.7 | 50.2 | 63.3 | 25.5 |
 
 Bold: different from the same engine's baseline after Holm correction (exact McNemar test on the
 paired outcomes). The manuscript in [`paper/`](paper/) gives intervals, gained and lost
@@ -52,9 +55,9 @@ published PoseBusters Vina run.
 
 | | |
 |---|---|
-| **Engines** | AutoDock Vina 1.2.7, Smina, Gnina (CNN re-scoring), rDock (in progress) |
+| **Engines** | AutoDock Vina 1.2.7, Smina, Gnina (CNN re-scoring), rDock 24.03 (box-filling cavity) |
 | **Dataset** | PoseBusters Benchmark set, 428 complexes (and the 308-complex subset of the journal paper) |
-| **Arms** | Box padding 2 / 6 / 8 Å, ligand protonation at pH 7.4, RDKit start conformer; baseline 4 Å |
+| **Arms** | Box padding 2 / 6 / 8 Å, ligand protonation at pH 7.4, RDKit start conformer; baseline 4 Å. Follow-ups (Vina): protonation × padding, a box scaled to ligand size |
 | **Metrics** | Top-1 success (RMSD < 2 Å), PoseBusters validity, wrong-site and sampling failures |
 | **Statistics** | Wilson intervals, exact McNemar tests with Holm correction, a four-seed noise floor |
 
@@ -153,8 +156,8 @@ for how the stages fit together, and
 - [x] Vina, Smina and Gnina on the full PoseBusters set, with PoseBusters validity checks
 - [x] Preparation arms, paired statistics and the seed noise floor
 - [x] Results explorer and manuscript draft
-- [ ] rDock on all arms
-- [ ] Interaction runs (protonation × box size) and a box scaled to ligand size
+- [x] rDock on all arms
+- [x] Interaction runs (protonation × box size) and a box scaled to ligand size (Vina)
 - [ ] Preprint on ChemRxiv and an archived release
 
 ## License
