@@ -102,6 +102,12 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument(
         "--figures", type=Path, help="Also draw the engine-by-arm figure into this directory."
     )
+    report.add_argument(
+        "--subset",
+        type=Path,
+        help="File of complex IDs (one per line) to restrict every table to, "
+        "e.g. configs/subsets/posebusters_308.txt.",
+    )
 
     figures = commands.add_parser("figures", help="Figures and summary table for runs.")
     figures.add_argument(
@@ -312,13 +318,14 @@ def report_command(args: argparse.Namespace) -> int:
     Returns:
         int: Process exit code.
     """
-    from dockprepbench.analysis.report import write_report
+    from dockprepbench.analysis.report import read_ids, write_report
     from dockprepbench.datasets.posebusters import SET_NAME
 
     dataset = args.dataset if (args.dataset / SET_NAME).is_dir() else None
     if dataset is None:
         print(f"No dataset at {args.dataset}; skipping the sensitivity tables.")
-    for path in write_report(args.results, args.out, dataset=dataset):
+    subset = read_ids(args.subset) if args.subset else None
+    for path in write_report(args.results, args.out, dataset=dataset, subset=subset):
         print(path)
     if args.figures:
         import pandas as pd

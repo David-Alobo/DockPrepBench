@@ -21,21 +21,23 @@ jobs:
             latexmk texlive-latex-base texlive-latex-recommended texlive-latex-extra \
             texlive-fonts-recommended texlive-science lmodern
 
-      - name: Build PDF
+      - name: Build PDFs
         working-directory: paper
-        run: latexmk main.tex
+        run: latexmk main.tex supplementary.tex
 
       - name: Fail on undefined citations or references
         working-directory: paper
         run: |
-          if grep -E "(Citation|Reference) .* undefined" build/main.log; then
-            echo "::error::Undefined citations or references in the manuscript"
+          if grep -E "(Citation|Reference) .* undefined" build/main.log build/supplementary.log; then
+            echo "::error::Undefined citations or references in the manuscript or SI"
             exit 1
           fi
 
-      - name: Upload PDF
+      - name: Upload PDFs
         uses: actions/upload-artifact@v4
         with:
           name: manuscript
-          path: paper/build/main.pdf
+          path: |
+            paper/build/main.pdf
+            paper/build/supplementary.pdf
           retention-days: 90

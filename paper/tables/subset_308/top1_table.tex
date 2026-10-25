@@ -1,0 +1,26 @@
+\begin{tabular}{llrrrrr}
+\toprule
+Engine & Arm & Top-1 (\%) [95\% CI] & $\Delta$ (pts) & Gained & Lost & Holm $p$ \\
+\midrule
+Vina & Baseline (4 \AA{} box) & 52.9 [47.3, 58.4] & -- & -- & -- & -- \\
+ & Box padding 2 \AA{} & 58.4 [52.9, 63.8] & +5.5 & 25 & 8 & 0.023 \\
+ & Box padding 6 \AA{} & 50.3 [44.8, 55.9] & $-2.6$ & 4 & 12 & 0.31 \\
+ & Box padding 8 \AA{} & 49.7 [44.1, 55.2] & $-3.2$ & 9 & 19 & 0.31 \\
+ & Protonation (pH 7.4) & 54.5 [49.0, 60.0] & +1.6 & 17 & 12 & 0.46 \\
+ & RDKit conformer & 56.5 [50.9, 61.9] & +3.6 & 34 & 23 & 0.37 \\
+\addlinespace
+Smina & Baseline (4 \AA{} box) & 53.9 [48.3, 59.4] & -- & -- & -- & -- \\
+ & Box padding 2 \AA{} & 60.1 [54.5, 65.4] & +6.2 & 29 & 10 & 0.017 \\
+ & Box padding 6 \AA{} & 52.3 [46.7, 57.8] & $-1.6$ & 7 & 12 & 1.0 \\
+ & Box padding 8 \AA{} & 50.3 [44.8, 55.9] & $-3.6$ & 8 & 19 & 0.21 \\
+ & Protonation (pH 7.4) & 53.9 [48.3, 59.4] & +0.0 & 11 & 11 & 1.0 \\
+ & RDKit conformer & 56.5 [50.9, 61.9] & +2.6 & 33 & 25 & 1.0 \\
+\addlinespace
+Gnina & Baseline (4 \AA{} box) & 68.8 [63.5, 73.7] & -- & -- & -- & -- \\
+ & Box padding 2 \AA{} & 71.8 [66.5, 76.5] & +2.9 & 25 & 16 & 0.63 \\
+ & Box padding 6 \AA{} & 66.2 [60.8, 71.3] & $-2.6$ & 16 & 24 & 0.63 \\
+ & Box padding 8 \AA{} & 63.6 [58.1, 68.8] & $-5.2$ & 18 & 34 & 0.15 \\
+ & Protonation (pH 7.4) & 62.7 [57.1, 67.9] & $-6.2$ & 19 & 38 & 0.082 \\
+ & RDKit conformer & 69.8 [64.5, 74.7] & +1.0 & 32 & 29 & 0.80 \\
+\bottomrule
+\end{tabular}

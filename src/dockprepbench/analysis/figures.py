@@ -155,7 +155,9 @@ def plot_engine_arms(summary: pd.DataFrame, path_stem: Path) -> list[Path]:
     ax.set_xlim(
         5 * np.floor((low - 2) / 5), 5 * np.ceil((high + 2) / 5)
     )  # intervals clear of edges
-    ax.set_xlabel("Top-1 success, RMSD < 2 Å (% of 428 complexes)", color=INK_SECONDARY)
+    n = int(shown["n"].max()) if "n" in shown else None
+    of = f" (% of {n} complexes)" if n else " (%)"
+    ax.set_xlabel(f"Top-1 success, RMSD < 2 Å{of}", color=INK_SECONDARY)
     ax.grid(axis="x", color=GRID, lw=0.8)
     _legend_above(ax, ncol=len(engines))
     return _save(fig, path_stem)

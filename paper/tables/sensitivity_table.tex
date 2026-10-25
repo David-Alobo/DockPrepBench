@@ -1,0 +1,108 @@
+\begin{longtable}{lllrrrr}
+\caption{\SensitivityCaption}\label{tab:si-sensitivity}\\
+\toprule
+Engine & Arm & Property & Flipped & Unflipped & Effect & Holm $p$ \\
+\midrule
+\endfirsthead
+\toprule
+Engine & Arm & Property & Flipped & Unflipped & Effect & Holm $p$ \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Vina & Box padding 2 \AA{} & Heavy atoms & 29 & 24 & $r = 0.21$ & 0.057 \\
+ &  & Rotatable bonds & 7 & 6 & $r = 0.18$ & 0.15 \\
+ &  & Absolute charge & 0 & 0 & $r = -0.01$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 62.3\% & 63.5\% & OR 0.95 & 1.0 \\
+ &  & Cofactor present & 50.9\% & 57.9\% & OR 0.76 & 1.0 \\
+ &  & Seed-sensitive & 35.8\% & 3.7\% & OR 14 & $3.3\times10^{-10}$ \\
+\addlinespace
+Vina & Box padding 6 \AA{} & Heavy atoms & 26.5 & 25 & $r = 0.16$ & 0.71 \\
+ &  & Rotatable bonds & 7 & 6 & $r = 0.17$ & 0.71 \\
+ &  & Absolute charge & 0 & 0 & $r = -0.03$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 71.4\% & 62.7\% & OR 1.5 & 1.0 \\
+ &  & Cofactor present & 53.6\% & 57.2\% & OR 0.86 & 1.0 \\
+ &  & Seed-sensitive & 60.7\% & 4.0\% & OR 37 & $9.0\times10^{-14}$ \\
+\addlinespace
+Vina & Box padding 8 \AA{} & Heavy atoms & 24 & 25 & $r = -0.07$ & 1.0 \\
+ &  & Rotatable bonds & 6 & 6 & $r = -0.07$ & 1.0 \\
+ &  & Absolute charge & 0 & 0 & $r = -0.03$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 61.7\% & 63.5\% & OR 0.93 & 1.0 \\
+ &  & Cofactor present & 51.1\% & 57.7\% & OR 0.76 & 1.0 \\
+ &  & Seed-sensitive & 40.4\% & 3.7\% & OR 18 & $2.4\times10^{-11}$ \\
+\addlinespace
+Vina & Protonation (pH 7.4) & Heavy atoms & 29 & 25 & $r = 0.18$ & 0.18 \\
+ &  & Rotatable bonds & 8 & 6 & $r = 0.19$ & 0.18 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.03$ & 0.49 \\
+ &  & Charge changed at pH 7.4 & 80.0\% & 61.6\% & OR 2.5 & 0.12 \\
+ &  & Cofactor present & 55.0\% & 57.2\% & OR 0.91 & 0.87 \\
+ &  & Seed-sensitive & 40.0\% & 4.4\% & OR 15 & $3.6\times10^{-9}$ \\
+\addlinespace
+Vina & RDKit conformer & Heavy atoms & 25 & 25 & $r = 0.01$ & 1.0 \\
+ &  & Rotatable bonds & 6 & 6 & $r = 0.00$ & 1.0 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.00$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 58.8\% & 64.4\% & OR 0.79 & 1.0 \\
+ &  & Cofactor present & 54.1\% & 57.7\% & OR 0.86 & 1.0 \\
+ &  & Seed-sensitive & 25.9\% & 3.2\% & OR 11 & $6.1\times10^{-9}$ \\
+\addlinespace
+Smina & Box padding 2 \AA{} & Heavy atoms & 28 & 24 & $r = 0.18$ & 0.13 \\
+ &  & Rotatable bonds & 10 & 6 & $r = 0.31$ & 0.0012 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.02$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 66.0\% & 62.9\% & OR 1.1 & 1.0 \\
+ &  & Cofactor present & 56.6\% & 57.1\% & OR 0.98 & 1.0 \\
+\addlinespace
+Smina & Box padding 6 \AA{} & Heavy atoms & 27.5 & 25 & $r = 0.01$ & 1.0 \\
+ &  & Rotatable bonds & 7 & 6 & $r = 0.07$ & 1.0 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.01$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 75.0\% & 62.5\% & OR 1.8 & 1.0 \\
+ &  & Cofactor present & 67.9\% & 56.2\% & OR 1.6 & 1.0 \\
+\addlinespace
+Smina & Box padding 8 \AA{} & Heavy atoms & 25.5 & 25 & $r = 0.03$ & 1.0 \\
+ &  & Rotatable bonds & 6 & 6 & $r = 0.01$ & 1.0 \\
+ &  & Absolute charge & 0 & 0 & $r = -0.03$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 65.9\% & 63.0\% & OR 1.1 & 1.0 \\
+ &  & Cofactor present & 61.4\% & 56.5\% & OR 1.2 & 1.0 \\
+\addlinespace
+Smina & Protonation (pH 7.4) & Heavy atoms & 23 & 25 & $r = -0.10$ & 1.0 \\
+ &  & Rotatable bonds & 6 & 6 & $r = 0.09$ & 1.0 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.01$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 72.7\% & 62.5\% & OR 1.6 & 1.0 \\
+ &  & Cofactor present & 66.7\% & 56.2\% & OR 1.6 & 1.0 \\
+\addlinespace
+Smina & RDKit conformer & Heavy atoms & 26 & 25 & $r = 0.05$ & 1.0 \\
+ &  & Rotatable bonds & 7.5 & 6 & $r = 0.13$ & 0.30 \\
+ &  & Absolute charge & 0 & 0 & $r = -0.01$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 62.2\% & 63.6\% & OR 0.94 & 1.0 \\
+ &  & Cofactor present & 54.9\% & 57.5\% & OR 0.9 & 1.0 \\
+\addlinespace
+Gnina & Box padding 2 \AA{} & Heavy atoms & 26 & 25 & $r = 0.07$ & 1.0 \\
+ &  & Rotatable bonds & 8 & 6 & $r = 0.17$ & 0.18 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.01$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 67.8\% & 62.6\% & OR 1.3 & 1.0 \\
+ &  & Cofactor present & 62.7\% & 56.1\% & OR 1.3 & 1.0 \\
+\addlinespace
+Gnina & Box padding 6 \AA{} & Heavy atoms & 22 & 25 & $r = -0.06$ & 1.0 \\
+ &  & Rotatable bonds & 7 & 6 & $r = 0.05$ & 1.0 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.04$ & 0.49 \\
+ &  & Charge changed at pH 7.4 & 68.5\% & 62.6\% & OR 1.3 & 1.0 \\
+ &  & Cofactor present & 55.6\% & 57.2\% & OR 0.93 & 1.0 \\
+\addlinespace
+Gnina & Box padding 8 \AA{} & Heavy atoms & 24 & 25 & $r = 0.00$ & 0.98 \\
+ &  & Rotatable bonds & 6 & 6 & $r = 0.09$ & 0.97 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.02$ & 0.97 \\
+ &  & Charge changed at pH 7.4 & 71.2\% & 61.7\% & OR 1.5 & 0.71 \\
+ &  & Cofactor present & 63.0\% & 55.8\% & OR 1.4 & 0.97 \\
+\addlinespace
+Gnina & Protonation (pH 7.4) & Heavy atoms & 24 & 25 & $r = -0.02$ & 1.0 \\
+ &  & Rotatable bonds & 8 & 6 & $r = 0.16$ & 0.13 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.02$ & 0.87 \\
+ &  & Charge changed at pH 7.4 & 73.0\% & 61.3\% & OR 1.7 & 0.26 \\
+ &  & Cofactor present & 59.5\% & 56.5\% & OR 1.1 & 1.0 \\
+\addlinespace
+Gnina & RDKit conformer & Heavy atoms & 24 & 25 & $r = -0.02$ & 1.0 \\
+ &  & Rotatable bonds & 7 & 6 & $r = 0.09$ & 1.0 \\
+ &  & Absolute charge & 0 & 0 & $r = 0.01$ & 1.0 \\
+ &  & Charge changed at pH 7.4 & 69.4\% & 61.8\% & OR 1.4 & 1.0 \\
+ &  & Cofactor present & 56.5\% & 57.1\% & OR 0.97 & 1.0 \\
+\addlinespace
+\end{longtable}

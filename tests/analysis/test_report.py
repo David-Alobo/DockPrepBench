@@ -9,6 +9,8 @@ from dockprepbench.analysis.report import (
     flips_table,
     noise_table,
     outcome_class,
+    read_ids,
+    restrict,
     summary_table,
     transition_table,
     write_report,
@@ -142,8 +144,15 @@ def test_write_report_writes_every_table(results, tmp_path):
     written = write_report(results, tmp_path / "tables")
 
     assert sorted(p.name for p in written) == [
-        "comparisons.csv", "flips.csv", "noise.csv", "summary.csv", "transitions.csv",
-    ]  # fmt: skip
+        "comparisons.csv",
+        "flips.csv",
+        "flips_table.tex",
+        "noise.csv",
+        "pb_valid_table.tex",
+        "summary.csv",
+        "top1_table.tex",
+        "transitions.csv",
+    ]  # fmt: skip (no dataset given, so no sensitivity tables)
     assert not math.isnan(pd.read_csv(tmp_path / "tables" / "noise.csv")["flips_mean"][0])
 
 
@@ -152,3 +161,26 @@ def test_write_report_needs_a_baseline(tmp_path):
 
     with pytest.raises(ValueError, match="No finished baseline"):
         write_report(tmp_path, tmp_path / "out")
+
+
+def test_restrict_keeps_only_the_subset_in_every_run(results):
+    runs = restrict(discover(results), ["C0", "C2", "C9"])  # C9 is in no run
+
+    assert list(runs["vina"].baseline.index) == ["C0", "C2"]
+    assert list(runs["vina"].seeds["baseline_seed1"].index) == ["C0", "C2"]
+    assert list(runs["vina"].arms["box_padding_2"].index) == ["C0", "C2"]
+
+
+def test_write_report_on_a_subset(results, tmp_path):
+    write_report(results, tmp_path / "sub", subset=["C2", "C3"])
+
+    summary = pd.read_csv(tmp_path / "sub" / "summary.csv").set_index(["engine", "run"])
+    assert summary.loc[("vina", "baseline"), "n"] == 2
+    assert summary.loc[("vina", "box_padding_2"), "top1"] == 1.0  # C2 and C3 succeed
+
+
+def test_read_ids_skips_blanks_and_comments(tmp_path):
+    path = tmp_path / "ids.txt"
+    path.write_text("# subset\nC0\n\nC2  # note\n")
+
+    assert read_ids(path) == ["C0", "C2"]
