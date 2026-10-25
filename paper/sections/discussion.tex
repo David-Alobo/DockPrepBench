@@ -1,15 +1,21 @@
 \section{Discussion}
 \label{sec:discussion}
 
-Preparation choices changed redocking success by amounts that matter, but less than the
-choice of engine. Across the six arms, top-1 success varied by 7.0 to 10.5 points within
-an engine, while Gnina's re-scoring of the same search placed it 16.4 points above Vina
-at the baseline protocol. Only one choice, the size of the search box, shifted success
-beyond what multiple testing allows, and it did so for both Vina and Smina. The best
-preparation for Vina closed about 40\% of its gap to Gnina. \result{Whether rDock, an engine
-outside the Vina family, follows the same pattern.} For anyone comparing engines, these
-numbers set a scale: differences between engines of a few points, measured under a single
-preparation protocol, are within the range that preparation alone produces.
+The choice of docking engine was the largest single factor in this study, but preparation
+was large enough to change how engines compare. Gnina's re-scoring of the same search
+placed it 16.4 points above Vina at the baseline protocol, while across the six arms
+top-1 success varied by 7.0 to 10.5 points within an engine. Gnina led under every
+preparation choice, yet Vina and Smina, whose baseline success differed by less than a
+point, swapped places depending on how the inputs were prepared. Only one choice, the size
+of the search box, shifted success beyond what multiple testing allows, and it did so for
+both Vina and Smina. The best single choice for Vina closed about 40\% of its gap to Gnina;
+combining it with protonation, which helped most in a tight box
+(Section~\ref{sec:interaction}), closed two thirds, and this combined protocol (57.2\%)
+came within 1.4 points of Gnina's worst arm (58.6\%), although Gnina itself was not run
+with the combination. \result{Whether rDock, an engine outside the Vina family, follows the
+same pattern.} For anyone comparing engines, these numbers set a scale: differences
+between engines of a few points, measured under a single preparation protocol, are within
+the range that preparation alone produces.
 
 Net success rates hide most of what preparation does. Every arm changed the outcome of more
 complexes than a change of docking seed did, up to 4.9 times as many, and most of these
