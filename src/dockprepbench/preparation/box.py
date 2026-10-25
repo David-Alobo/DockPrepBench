@@ -23,19 +23,13 @@ def box_from_ligand(ligand: Chem.Mol, padding: float = DEFAULT_PADDING) -> Box:
         padding (float): Margin in Å added on each side of the ligand's extent.
 
     Returns:
-        Box: Box centred on the ligand's extent, carrying the heavy-atom ligand and padding.
+        Box: Box centred on the ligand's extent.
     """
-    heavy = Chem.RemoveAllHs(ligand)
-    coords = heavy.GetConformer().GetPositions()
+    coords = Chem.RemoveAllHs(ligand).GetConformer().GetPositions()
     low, high = coords.min(axis=0), coords.max(axis=0)
     center = (low + high) / 2
     size = high - low + 2 * padding
-    return Box(
-        center=tuple(center.tolist()),
-        size=tuple(size.tolist()),
-        reference=heavy,
-        padding=float(padding),
-    )
+    return Box(center=tuple(center.tolist()), size=tuple(size.tolist()))
 
 
 def radius_of_gyration(ligand: Chem.Mol) -> float:
@@ -66,9 +60,9 @@ def box_from_gyration(reference: Chem.Mol, ligand: Chem.Mol) -> Box:
         ligand (Chem.Mol): Ligand to be docked, with a 3D conformer.
 
     Returns:
-        Box: Cubic box at the reference ligand's centroid, carrying the heavy-atom reference.
+        Box: Cubic box at the reference ligand's centroid.
     """
     heavy = Chem.RemoveAllHs(reference)
     center = heavy.GetConformer().GetPositions().mean(axis=0)
     edge = GYRATION_FACTOR * radius_of_gyration(ligand)
-    return Box(center=tuple(center.tolist()), size=(edge, edge, edge), reference=heavy)
+    return Box(center=tuple(center.tolist()), size=(edge, edge, edge))

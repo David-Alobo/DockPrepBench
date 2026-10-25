@@ -117,6 +117,50 @@ def test_run_force_reruns_finished(tmp_path, monkeypatch, fake_pipeline):
     assert fake_pipeline == ["arm_a"]
 
 
+def test_retry_killed_reopens_only_complexes_whose_process_was_killed(
+    tmp_path, monkeypatch, fake_pipeline
+):
+    import pandas as pd
+
+    from dockprepbench import benchmark
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "arm_a.toml").write_text("", encoding="utf-8")
+    run_dir = write_run(tmp_path / "results" / "vina" / "arm_a", [0.5, 1.0, 3.0], [True] * 3)
+    results = pd.read_csv(run_dir / "results.csv", keep_default_na=False)
+    results["error"] = [
+        "",
+        "EngineError: rbdock exited -9: killed",
+        "EngineError: rbdock exited -11: x",
+    ]
+    results.to_csv(run_dir / "results.csv", index=False)
+    seen = {}
+
+    def capture(complexes, engine, config, work_dir, workers=1, pose_dir=None, checkpoint=None):
+        seen["checkpoint"] = [
+            json.loads(line)["id"] for line in checkpoint.read_text().splitlines()
+        ]
+        return results.iloc[[0]]
+
+    monkeypatch.setattr(benchmark, "run_benchmark", capture)
+
+    main(["run", "--config", "arm_a.toml", "--retry-killed"])
+
+    # C1 (killed) is docked again; C0 and C2 (a genuine crash) are kept from the first run.
+    assert seen["checkpoint"] == ["C0", "C2"]
+    assert (run_dir / "results.csv").is_file()
+
+
+def test_retry_killed_skips_runs_without_killed_complexes(tmp_path, monkeypatch, fake_pipeline):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "arm_a.toml").write_text("", encoding="utf-8")
+    write_run(tmp_path / "results" / "vina" / "arm_a", [0.5, float("nan")], [True, False])
+
+    main(["run", "--config", "arm_a.toml", "--retry-killed"])
+
+    assert fake_pipeline == []
+
+
 def test_run_rejects_out_with_several_configs(tmp_path, fake_pipeline):
     for name in ("a", "b"):
         (tmp_path / f"{name}.toml").write_text("", encoding="utf-8")

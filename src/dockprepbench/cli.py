@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 RESULTS_FILE = "results.csv"
 CHECKPOINT_FILE = "results.partial.jsonl"  # per-complex results of an unfinished run
 DEFAULT_SEED = 42  # matches VinaEngine's default, so unseeded runs stay comparable
+# A docking process ended by SIGKILL, e.g. by a memory limit: not a property of the protocol.
+KILLED_PATTERN = r"exited -9\b"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,6 +58,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument(
         "--force", action="store_true", help="Rerun configs whose results already exist."
+    )
+    run.add_argument(
+        "--retry-killed",
+        action="store_true",
+        help="For finished configs, re-dock only complexes whose process was killed "
+        "(e.g. by a memory limit) and keep every other result.",
     )
     run.add_argument("--data-dir", type=Path, default=Path("data/raw"))
     run.add_argument("--work-dir", type=Path, default=Path("data/prepared"))
@@ -149,7 +157,16 @@ def run_command(args: argparse.Namespace) -> int:
     for i, config in enumerate(configs, 1):
         out = args.out or Path("results") / args.engine / f"{config.name}{suffix}"
         if (out / RESULTS_FILE).is_file() and not args.force:
-            logger.info("[%d/%d] %s: results exist, skipping", i, len(configs), config.name)
+            killed = _reopen_killed(out) if args.retry_killed else 0
+            if not killed:
+                logger.info("[%d/%d] %s: results exist, skipping", i, len(configs), config.name)
+                continue
+            logger.info(
+                "[%d/%d] %s: re-docking %d complexes whose process was killed",
+                i, len(configs), config.name, killed,
+            )  # fmt: skip
+            _run_one(complexes, engine, config, out, args)
+            print(_format_summary(out / RESULTS_FILE))
             continue
         logger.info(
             "[%d/%d] %s: docking %d complexes", i, len(configs), config.name, len(complexes)
@@ -157,6 +174,40 @@ def run_command(args: argparse.Namespace) -> int:
         _run_one(complexes, engine, config, out, args)
         print(_format_summary(out / RESULTS_FILE))
     return 0
+
+
+def _reopen_killed(out: Path) -> int:
+    """
+    Turn a finished run back into a checkpoint without the complexes whose process was killed.
+
+    A docking process killed by a signal (e.g. by a memory limit: "exited -9") says nothing
+    about the protocol, so such complexes are docked again. Every other result, including
+    genuine failures, is kept. Resuming from the checkpoint then docks only the reopened
+    complexes and rewrites results.csv.
+
+    Args:
+        out (Path): Run directory with a results.csv.
+
+    Returns:
+        int: Number of complexes reopened; 0 leaves the run untouched.
+    """
+    import pandas as pd
+
+    results = pd.read_csv(out / RESULTS_FILE, keep_default_na=False, na_values=[""])
+    errors = results["error"].fillna("").astype(str)
+    killed = errors.str.contains(KILLED_PATTERN, regex=True)
+    if not killed.any():
+        return 0
+    kept = results[~killed].copy()
+    for column in ("top1_failed_checks", "error"):
+        kept[column] = kept[column].fillna("")
+    rows = json.loads(kept.to_json(orient="records"))  # numpy and NaN to plain JSON
+    checkpoint = out / CHECKPOINT_FILE
+    checkpoint.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    # The checkpoint is complete before the results go, so an interruption here only means
+    # the run resumes from the checkpoint.
+    (out / RESULTS_FILE).unlink()
+    return int(killed.sum())
 
 
 def _make_engine(args: argparse.Namespace, seed: int) -> DockingEngine:
