@@ -160,6 +160,35 @@ for how the stages fit together, and
 - [x] Interaction runs (protonation × box size) and a box scaled to ligand size (Vina)
 - [ ] Preprint on ChemRxiv and an archived release
 
+## Citing
+
+If you use DockPrepBench, its results or its code, please cite the software. GitHub's
+**Cite this repository** button (from [`CITATION.cff`](CITATION.cff)) gives the same entry in
+APA and BibTeX:
+
+> Alobo, D. O. *DockPrepBench: How much does preparation matter in molecular docking?*
+> (version 0.1.0) [Computer software]. https://github.com/David-Alobo/DockPrepBench
+
+```bibtex
+@software{alobo_dockprepbench,
+  author  = {Alobo, David Obeh},
+  title   = {{DockPrepBench}: How much does preparation matter in molecular docking?},
+  version = {0.1.0},
+  url     = {https://github.com/David-Alobo/DockPrepBench},
+  license = {MIT}
+}
+```
+
+A preprint describing the benchmark and an archived release with a DOI are in preparation;
+this section will give their citations once they are available.
+
+DockPrepBench is built on the PoseBusters Benchmark set, so please also cite the study that
+introduced it:
+
+> Buttenschoen, M., Morris, G. M. & Deane, C. M. PoseBusters: AI-based docking methods fail
+> to generate physically valid poses or generalise to novel sequences. *Chem. Sci.* **15**,
+> 3130–3139 (2024). https://doi.org/10.1039/D3SC04185A
+
 ## License
 
 MIT
