@@ -36,9 +36,14 @@ are run on the same complexes and compared with paired statistics
 We use the PoseBusters Benchmark set \citep{buttenschoen2024posebusters} in the version
 released on Zenodo with the study's data \citep{posebusters2023data}: 428 protein--ligand
 complexes. The archive is verified against its MD5 checksum. During peer review of the
-PoseBusters study its authors found that some of these structures contain crystal contacts,
-and the journal version reports results on a subset of 308 complexes whose identifiers are
-linked from the same Zenodo record. All 308 are among the 428. Our primary analysis uses
+PoseBusters study its authors found that some of these structures contain crystal contacts:
+the ligand lies close to a symmetry-related copy of the protein (a neighbouring molecule in
+the crystal lattice that is absent from the deposited protein file and so invisible to a
+docking engine), which can hold it in a pose that docking against one copy cannot be
+expected to reproduce. The journal version therefore reports results on the subset of 308
+complexes in which no ligand atom lies within \SI{5}{\angstrom} of any symmetry mate
+(\citealp{buttenschoen2024posebusters}, ESI Table S1), whose identifiers are linked from the
+same Zenodo record. All 308 are among the 428. Our primary analysis uses
 all 428 complexes; every comparison is repeated on the 308-complex subset as a robustness
 check. For each complex the set provides the protein without
 the ligand of interest, without solvent and with cofactors retained; the crystal ligand,
