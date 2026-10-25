@@ -9,6 +9,8 @@ from dockprepbench.analysis.report import (
     flips_table,
     noise_table,
     outcome_class,
+    read_ids,
+    restrict,
     summary_table,
     transition_table,
     write_report,
@@ -64,6 +66,13 @@ def test_discover_groups_seeds_and_arms(results):
     assert sorted(runs["vina"].seeds) == ["baseline_seed1", "baseline_seed2"]
     assert sorted(runs["vina"].arms) == ["box_padding_2", "box_padding_8"]
     assert runs["gnina"].seeds == {} and runs["gnina"].arms == {}
+
+
+def test_discover_leaves_out_follow_up_runs(results):
+    write_run(results, "vina", "box_gyration", [1.0] * 6)
+    write_run(results, "vina", "ligand_dimorphite_box_2", [1.0] * 6)
+
+    assert sorted(discover(results)["vina"].arms) == ["box_padding_2", "box_padding_8"]
 
 
 @pytest.mark.parametrize(
@@ -135,8 +144,15 @@ def test_write_report_writes_every_table(results, tmp_path):
     written = write_report(results, tmp_path / "tables")
 
     assert sorted(p.name for p in written) == [
-        "comparisons.csv", "flips.csv", "noise.csv", "summary.csv", "transitions.csv",
-    ]  # fmt: skip
+        "comparisons.csv",
+        "flips.csv",
+        "flips_table.tex",
+        "noise.csv",
+        "pb_valid_table.tex",
+        "summary.csv",
+        "top1_table.tex",
+        "transitions.csv",
+    ]  # fmt: skip (no dataset given, so no sensitivity tables)
     assert not math.isnan(pd.read_csv(tmp_path / "tables" / "noise.csv")["flips_mean"][0])
 
 
@@ -145,3 +161,26 @@ def test_write_report_needs_a_baseline(tmp_path):
 
     with pytest.raises(ValueError, match="No finished baseline"):
         write_report(tmp_path, tmp_path / "out")
+
+
+def test_restrict_keeps_only_the_subset_in_every_run(results):
+    runs = restrict(discover(results), ["C0", "C2", "C9"])  # C9 is in no run
+
+    assert list(runs["vina"].baseline.index) == ["C0", "C2"]
+    assert list(runs["vina"].seeds["baseline_seed1"].index) == ["C0", "C2"]
+    assert list(runs["vina"].arms["box_padding_2"].index) == ["C0", "C2"]
+
+
+def test_write_report_on_a_subset(results, tmp_path):
+    write_report(results, tmp_path / "sub", subset=["C2", "C3"])
+
+    summary = pd.read_csv(tmp_path / "sub" / "summary.csv").set_index(["engine", "run"])
+    assert summary.loc[("vina", "baseline"), "n"] == 2
+    assert summary.loc[("vina", "box_padding_2"), "top1"] == 1.0  # C2 and C3 succeed
+
+
+def test_read_ids_skips_blanks_and_comments(tmp_path):
+    path = tmp_path / "ids.txt"
+    path.write_text("# subset\nC0\n\nC2  # note\n")
+
+    assert read_ids(path) == ["C0", "C2"]

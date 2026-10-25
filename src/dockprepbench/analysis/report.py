@@ -6,6 +6,7 @@ A run named `baseline_seed<N>` is a seed replicate of that engine's baseline.
 
 import itertools
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,6 +16,16 @@ from dockprepbench.analysis.stats import compare, holm_adjust, load_run, success
 
 BASELINE = "baseline"
 SEED_RUN = re.compile(rf"^{BASELINE}_seed(\d+)$")
+# The study's one-factor-at-a-time arms. Other runs on disk (the follow-up interaction arms and
+# the radius-of-gyration box) are analysed separately, so they must not enter these tables or
+# their Holm correction, which is over these five arms for every engine.
+PRIMARY_ARMS = (
+    "box_padding_2",
+    "box_padding_6",
+    "box_padding_8",
+    "ligand_dimorphite",
+    "ligand_rdkit_conformer",
+)
 SITE_SHIFT = 4.0  # Å; heuristic split between wrong site and wrong binding mode
 METRICS = {"top1": False, "pb_valid": True}  # metric name -> require PB-valid
 CLASSES = ["valid", "invalid", "scoring", "site", "mode", "failed"]
@@ -34,7 +45,8 @@ def discover(results: str | Path) -> dict[str, EngineRuns]:
     """
     Find every finished run under a results directory, grouped by engine.
 
-    Engines without a finished baseline are skipped, since every comparison is to it.
+    Engines without a finished baseline are skipped, since every comparison is to it. Only the
+    primary arms (`PRIMARY_ARMS`) are kept; other runs are follow-ups analysed on their own.
 
     Args:
         results (str | Path): Root containing `<engine>/<arm>/results.csv`.
@@ -52,9 +64,50 @@ def discover(results: str | Path) -> dict[str, EngineRuns]:
         if BASELINE not in runs:
             continue
         seeds = {k: v for k, v in runs.items() if SEED_RUN.match(k)}
-        arms = {k: v for k, v in runs.items() if k != BASELINE and k not in seeds}
+        arms = {k: v for k, v in runs.items() if k in PRIMARY_ARMS}
         found[engine_dir.name] = EngineRuns(engine_dir.name, runs[BASELINE], seeds, arms)
     return found
+
+
+def restrict(runs: dict[str, EngineRuns], ids: Iterable[str]) -> dict[str, EngineRuns]:
+    """
+    Keep only the given complexes in every run.
+
+    Args:
+        runs (dict[str, EngineRuns]): Output of `discover`.
+        ids (Iterable[str]): Complex IDs to keep; IDs absent from a run are ignored.
+
+    Returns:
+        dict[str, EngineRuns]: The same runs, each limited to `ids`.
+    """
+    keep = list(dict.fromkeys(ids))
+
+    def cut(run: pd.DataFrame) -> pd.DataFrame:
+        return run.loc[run.index.intersection(keep)]
+
+    return {
+        name: EngineRuns(
+            e.engine,
+            cut(e.baseline),
+            {k: cut(v) for k, v in e.seeds.items()},
+            {k: cut(v) for k, v in e.arms.items()},
+        )
+        for name, e in runs.items()
+    }
+
+
+def read_ids(path: str | Path) -> list[str]:
+    """
+    Read a subset file: one complex ID per line; blank lines and `#` comments are ignored.
+
+    Args:
+        path (str | Path): Subset file, e.g. configs/subsets/posebusters_308.txt.
+
+    Returns:
+        list[str]: Complex IDs in file order.
+    """
+    lines = (line.split("#")[0].strip() for line in Path(path).read_text().splitlines())
+    return [line for line in lines if line]
 
 
 def outcome_class(row: pd.Series, site_shift: float = SITE_SHIFT) -> str:
@@ -233,7 +286,10 @@ def transition_table(runs: dict[str, EngineRuns], site_shift: float = SITE_SHIFT
 
 
 def write_report(
-    results: str | Path, out: str | Path, dataset: str | Path | None = None
+    results: str | Path,
+    out: str | Path,
+    dataset: str | Path | None = None,
+    subset: Iterable[str] | None = None,
 ) -> list[Path]:
     """
     Regenerate all report tables from raw results and write them as CSV files.
@@ -243,6 +299,7 @@ def write_report(
         out (str | Path): Directory for the tables.
         dataset (str | Path | None): Extracted PoseBusters set; when given, also writes the
             ligand properties and the sensitivity of each arm's flips to them.
+        subset (Iterable[str] | None): Complex IDs to restrict every table to.
 
     Returns:
         list[Path]: Files written.
@@ -253,6 +310,8 @@ def write_report(
     runs = discover(results)
     if not runs:
         raise ValueError(f"No finished baseline runs under {results}")
+    if subset is not None:
+        runs = restrict(runs, subset)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     noise = noise_table(runs)
@@ -274,6 +333,10 @@ def write_report(
     written = []
     for name, table in tables.items():
         path = out / f"{name}.csv"
-        table.to_csv(path, index=False, float_format="%.6g")
+        # Unix line endings on every OS, so regenerated tables are byte-identical.
+        table.to_csv(path, index=False, float_format="%.6g", lineterminator="\n")
         written.append(path)
-    return written
+    # LaTeX fragments for the supplementary information, from the CSVs just written.
+    from dockprepbench.analysis.latex import write_latex
+
+    return written + write_latex(out)

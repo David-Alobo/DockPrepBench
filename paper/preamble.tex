@@ -1,0 +1,29 @@
+% Packages, units and macros shared by main.tex and supplementary.tex.
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{siunitx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{lineno}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../docs/figures/}{../figures/}}
+\sisetup{detect-all}
+% Ångström is no longer an SI unit, so siunitx deprecates it; it remains standard here.
+\DeclareSIUnit{\angstrom}{\text{\AA}}
+\onehalfspacing
+\linenumbers
+
+% Placeholders that stay visible until filled. Search for \result and \todo before submitting.
+\newcommand{\result}[1]{\textcolor{orange}{[#1]}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+% Notation used throughout. (siunitx already defines \ang, for angles.)
+\newcommand{\pbvalid}{PB-valid}

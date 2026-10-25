@@ -5,7 +5,9 @@ from collections.abc import Sequence
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import numpy as np
 from rdkit import Chem
+from rdkit.Geometry import Point3D
 
 from dockprepbench.engines.base import Box, DockingEngine, DockingResult
 from dockprepbench.engines.external import (
@@ -20,53 +22,92 @@ from dockprepbench.engines.external import (
 DOCKING_PROTOCOL = "dock.prm"
 
 
-REFERENCE_FILE = "reference.sdf"
+REFERENCE_FILE = "box.sdf"
+MAX_REFERENCE_POINTS = 999  # V2000 SD limit; rbcavity crashes on V3000 references
+MIN_SPACING = 1.5  # Å between grid points filling the box
 
 
-def cavity_parameters(receptor_mol2: str, box: Box) -> str:
+def box_points(box: Box) -> tuple[np.ndarray, float]:
     """
-    Write an rDock receptor parameter file defining the docking cavity.
+    Fill a search box with a regular grid of points for rDock's ligand site mapper.
 
-    With a reference ligand (boxes from `box_from_ligand`), the cavity is rDock's standard
-    reference-ligand mapping: free space within the box padding of any ligand atom, the
-    analogue of the padded box the other engines search. Without one, it falls back to a
-    sphere through the box's corners, which is larger than the box.
+    rDock maps cavities, not boxes. Its reference-ligand mapper keeps free space within a
+    radius of any reference atom, so a reference made of points filling the box, each with
+    a radius that covers its grid cell, gives a cavity equal to the free space in the box.
+    The grid is as fine as the 999-atom SD limit allows, and at least MIN_SPACING.
+
+    Args:
+        box (Box): Search box.
+
+    Returns:
+        tuple[np.ndarray, float]: Grid points (n, 3), one at the centre of each cell of a
+            grid dividing the box, and the radius (half a cell diagonal) at which each
+            point's sphere covers its cell. The cavity therefore covers the whole box and
+            extends beyond a face by at most the radius minus half the cell width (about a
+            third of a cell).
+    """
+    size = np.array(box.size)
+    spacing = MIN_SPACING
+    while np.prod(np.ceil(size / spacing)) > MAX_REFERENCE_POINTS:
+        spacing += 0.05
+    counts = np.maximum(np.ceil(size / spacing), 1).astype(int)
+    cell = size / counts
+    low = np.array(box.center) - size / 2
+    axes = [lo + c * (np.arange(n) + 0.5) for lo, c, n in zip(low, cell, counts, strict=True)]
+    points = np.array(np.meshgrid(*axes, indexing="ij")).reshape(3, -1).T
+    return points, float(np.linalg.norm(cell) / 2)
+
+
+def box_reference(box: Box) -> tuple[Chem.Mol, float]:
+    """
+    Build the box-filling reference molecule for rDock (unbonded carbon atoms).
+
+    Args:
+        box (Box): Search box.
+
+    Returns:
+        tuple[Chem.Mol, float]: Reference molecule with one conformer, and the mapper radius.
+    """
+    points, radius = box_points(box)
+    mol = Chem.RWMol()
+    for _ in points:
+        mol.AddAtom(Chem.Atom(6))
+    conf = Chem.Conformer(len(points))
+    for i, (x, y, z) in enumerate(points):
+        conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
+    mol.AddConformer(conf, assignId=True)
+    return mol.GetMol(), radius
+
+
+def cavity_parameters(receptor_mol2: str, radius: float) -> str:
+    """
+    Write an rDock receptor parameter file whose cavity is the free space in the search box.
+
+    The cavity is mapped by rDock's reference-ligand mapper around the box-filling points
+    written to REFERENCE_FILE (see `box_reference`), so every engine searches the same box.
 
     Args:
         receptor_mol2 (str): Receptor file name, relative to the working directory.
-        box (Box): Search box; its reference ligand, if any, is expected in REFERENCE_FILE.
+        radius (float): Mapper radius from `box_reference`.
 
     Returns:
         str: Contents of the .prm file.
     """
-    if box.reference is not None:
-        mapper = (
-            "    SITE_MAPPER RbtLigandSiteMapper\n"
-            f"    REF_MOL {REFERENCE_FILE}\n"
-            f"    RADIUS {box.padding:.3f}\n"
-            "    SMALL_SPHERE 1.0\n"
-            "    MIN_VOLUME 100\n"
-            "    MAX_CAVITIES 1\n"
-            "    VOL_INCR 0.0\n"
-            "    GRIDSTEP 0.5\n"
-        )
-    else:
-        cx, cy, cz = box.center
-        radius = 0.5 * sum(s * s for s in box.size) ** 0.5
-        mapper = (
-            "    SITE_MAPPER RbtSphereSiteMapper\n"
-            f"    CENTER ({cx:.3f},{cy:.3f},{cz:.3f})\n"
-            f"    RADIUS {radius:.3f}\n"
-            "    SMALL_SPHERE 1.0\n"
-            "    LARGE_SPHERE 3.5\n"
-            "    MAX_CAVITIES 1\n"
-        )
     return (
         "RBT_PARAMETER_FILE_V1.00\n"
         "TITLE dockprepbench\n"
         f"RECEPTOR_FILE {receptor_mol2}\n"
         "RECEPTOR_FLEX 3.0\n"
-        "SECTION MAPPER\n" + mapper + "END_SECTION\n"
+        "SECTION MAPPER\n"
+        "    SITE_MAPPER RbtLigandSiteMapper\n"
+        f"    REF_MOL {REFERENCE_FILE}\n"
+        f"    RADIUS {radius:.3f}\n"
+        "    SMALL_SPHERE 1.0\n"
+        "    MIN_VOLUME 100\n"
+        "    MAX_CAVITIES 1\n"
+        "    VOL_INCR 0.0\n"
+        "    GRIDSTEP 0.5\n"
+        "END_SECTION\n"
         "SECTION CAVITY\n"
         "    SCORING_FUNCTION RbtCavityGridSF\n"
         "    WEIGHT 1.0\n"
@@ -204,9 +245,9 @@ class RDockEngine(DockingEngine):
                 [*self._cmd("obabel"), str(Path(receptor).resolve()), "-O", "receptor.mol2"],
                 cwd=work,
             )
-            if box.reference is not None:
-                write_ligand(box.reference, work / REFERENCE_FILE)
-            (work / "receptor.prm").write_text(cavity_parameters("receptor.mol2", box))
+            reference, radius = box_reference(box)
+            write_ligand(reference, work / REFERENCE_FILE)
+            (work / "receptor.prm").write_text(cavity_parameters("receptor.mol2", radius))
             run([*self._cmd("rbcavity"), "-W", "-r", "receptor.prm"], cwd=work, env=env)
             write_ligand(ligand, work / "ligand.sdf")
             rbdock = [

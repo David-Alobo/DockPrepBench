@@ -1,33 +1,7 @@
 % DockPrepBench manuscript. Build: see paper/README.md (latexmk in WSL or Overleaf).
 \documentclass[11pt]{article}
 
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{lmodern}
-\usepackage[margin=2.5cm]{geometry}
-\usepackage{setspace}
-\usepackage{amsmath}
-\usepackage{graphicx}
-\usepackage{booktabs}
-\usepackage{siunitx}
-\usepackage[dvipsnames]{xcolor}
-\usepackage[numbers,sort&compress]{natbib}
-\usepackage{lineno}
-\usepackage[hidelinks]{hyperref}
-
-\graphicspath{{../docs/figures/}{../figures/}}
-\sisetup{detect-all}
-% Ångström is no longer an SI unit, so siunitx deprecates it; it remains standard here.
-\DeclareSIUnit{\angstrom}{\text{\AA}}
-\onehalfspacing
-\linenumbers
-
-% Placeholders that stay visible until filled. Search for \result and \todo before submitting.
-\newcommand{\result}[1]{\textcolor{orange}{[#1]}}
-\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
-
-% Notation used throughout. (siunitx already defines \ang, for angles.)
-\newcommand{\pbvalid}{PB-valid}
+\input{preamble}
 
 \title{How much does preparation matter in classical molecular docking?\\
   \large A paired benchmark of protein and ligand preparation choices}

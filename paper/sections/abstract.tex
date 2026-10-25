@@ -5,11 +5,13 @@ search space are made differently in every study. We measure how much these choi
 redocking outcomes on the PoseBusters Benchmark set (428 complexes), using paired,
 one-factor-at-a-time comparisons scored by heavy-atom RMSD and PoseBusters physical
 validity, for four engines: AutoDock Vina, Smina, Gnina and rDock. Within an engine,
-preparation moved top-1 success by 7.0 to 10.5 percentage points across the arms, against
-16.4 points between Gnina and Vina at the same protocol \result{and N points for rDock}.
-Only the size of the search box changed success beyond multiple-testing correction: a
-\SI{2}{\angstrom} padding raised Vina from 46.3\% [41.6, 51.0] to 53.0\% [48.3, 57.7] and
-Smina by 7.7 points, while larger boxes sent top poses to wrong sites. Every arm changed the
+preparation moved top-1 success by 7.0 to 10.5 percentage points across the arms for the
+Vina family and by 23.8 points for rDock, against 33.2 points between the engines at the
+baseline protocol. Only the size of the search box changed success beyond multiple-testing
+correction, for every engine but Gnina, which it moved the same way: a \SI{2}{\angstrom} padding raised Vina
+from 46.3\% [41.6, 51.0] to 53.0\% [48.3, 57.7], Smina by 7.7 points and rDock by 11.7,
+while larger boxes sent top poses to wrong sites; combined with ligand protonation, it lifted
+Vina to 57.2\%. Every arm changed the
 outcome of more complexes than a change of docking seed did, up to 4.9 times as many, though
 gains and losses largely cancelled in the net rates. Differences between engines of a few
 points, measured under one protocol, are therefore within the range that preparation alone

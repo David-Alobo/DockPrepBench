@@ -1,0 +1,2 @@
+engine,replicates,top1_mean,top1_sd,top1_range,flips_mean,flips_min,flips_max,always_succeed,always_fail,seed_sensitive
+vina,4,52.8409,0.554489,1.2987,9.83333,7,14,154,135,19
