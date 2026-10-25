@@ -55,8 +55,8 @@ crystallisation additives) are removed; missing loops are not modelled. Hydrogen
 the input are deleted so that protonation follows the protocol alone, and residues not
 bonded to any other residue are removed, since no Amber template covers a free amino acid.
 Missing heavy atoms are rebuilt and hydrogens are added at the protocol's pH (baseline 7.4).
-The added atoms are then relaxed by energy minimisation with the Amber14 force field
-(non-periodic, \SI{1}{\nano\metre} cutoff, at most 500 iterations) while every atom present
+The added atoms are then relaxed by energy minimisation with OpenMM's Amber14 force field
+(ff14SB for the protein \citep{maier2015ff14sb}; non-periodic, \SI{1}{\nano\metre} cutoff, at most 500 iterations) while every atom present
 in the crystal structure is held fixed, so experimental coordinates are unchanged.
 Without this step, initial atom placements produced spurious bonds under distance-based bond
 perception for about half of the set.
@@ -71,7 +71,8 @@ For Vina, the prepared receptor is converted to rigid-receptor PDBQT with Meeko
 matching is dropped only if it lies more than \SI{8}{\angstrom} outside the search box,
 Vina's interaction cutoff; otherwise the complex is recorded as a preparation failure. The
 other engines read the prepared receptor directly (Smina and Gnina) or after conversion to
-Mol2 with Open Babel 3.2.1 (rDock), so this step is specific to Vina.
+Mol2 with Open Babel 3.2.1 \citep{oboyle2011openbabel} (rDock), so this step is specific to
+Vina.
 
 \subsection{Ligand preparation}
 
@@ -80,9 +81,12 @@ Ligands are docked from the supplied start conformer. Two options are varied.
 assigned with Dimorphite-DL \citep{ropp2019dimorphite}, transferring charges, hydrogen counts
 and bond orders onto the start conformer while its heavy atoms stay fixed. At pH 7.4 this
 changes the net formal charge of 271 of the 428 ligands. \emph{Start conformer}: the supplied
-conformer, or a new one generated with RDKit \citep{rdkit} (ETKDGv3, fixed seed, then MMFF94
-minimisation). Protonation is applied before conformer generation; both options succeed for
-all 428 ligands.
+conformer, or a new one generated with RDKit \citep{rdkit} (ETKDGv3 \citep{wang2020etkdgv3},
+fixed seed, then MMFF94 minimisation \citep{halgren1996mmff94}). Protonation is applied before conformer generation; both options succeed for
+all 428 ligands. The supplied conformer was itself generated with ETKDGv3 and minimised with
+UFF \citep{rappe1992uff} by the dataset authors (\citealp{buttenschoen2024posebusters}, ESI section S1), so the
+start-conformer arm draws a new conformer from a similar generator rather than replacing an
+experimental geometry.
 
 \subsection{Search space and docking}
 
@@ -94,13 +98,14 @@ asked for up to nine poses with a fixed seed (42):
   \item \emph{AutoDock Vina} 1.2.7 \citep{trott2010vina,eberhardt2021vina}, through its
     Python bindings, with the Vina scoring function and exhaustiveness 8. Poses are
     converted back to RDKit molecules through Meeko, which restores bond orders.
-  \item \emph{Smina} \citep{koes2013smina}, a fork of Vina whose default scoring function
-    reproduces Vina's, run from the command line with exhaustiveness 8.
+  \item \emph{Smina} (build of 15 October 2019) \citep{koes2013smina}, a fork of Vina whose
+    default scoring function reproduces Vina's, run from the command line with
+    exhaustiveness 8.
   \item \emph{Gnina} 1.3.3 \citep{mcnutt2021gnina}, which searches with the Smina machinery and re-ranks the final
     poses with its default convolutional neural network ensemble (\texttt{--cnn\_scoring
     rescore}); exhaustiveness 8, on GPUs.
   \item \emph{rDock} 24.03 \citep{ruizcarmona2014rdock}, with 50 independent runs per ligand
-    and the standard docking protocol. rDock defines its search space as a cavity rather
+    and the standard docking protocol shipped with rDock (\texttt{dock.prm}). rDock defines its search space as a cavity rather
     than a box, so the cavity is mapped as the free space inside the same box the other
     engines use: rDock's reference-ligand mapper is given a reference made of points at the
     centres of a regular grid filling the box (at most 999 points, at least
@@ -115,9 +120,9 @@ asked for up to nine poses with a fixed seed (42):
 \end{itemize}
 All returned poses are saved with their rank, score and RMSD. Smina, Gnina and rDock run as
 external programs limited to one hour per complex; a run that exceeds the limit counts as a
-failure (three rDock runs, in the two largest boxes). Complexes whose rDock process was
-stopped by the server's memory limit were docked again with more memory, so every complex
-has a result in every arm.
+failure (three rDock runs, in the two largest boxes). Five rDock runs (one complex in
+one arm each) that were stopped by the server's memory limit were docked again with more
+memory, so every complex has a result in every arm.
 
 \subsection{Evaluation}
 
@@ -134,6 +139,9 @@ To explain differences between arms, each top pose is assigned one failure class
 success; correct but not \pbvalid{}; scoring failure (a pose below \SI{2}{\angstrom} exists
 but is not ranked first); wrong site (the top pose's centroid lies more than
 \SI{4}{\angstrom} from the crystal ligand's, a heuristic threshold); or wrong binding mode.
+Classes are assigned in that order: a failed complex first, then a top pose below
+\SI{2}{\angstrom} (valid or not), then a scoring failure, and only then wrong site or wrong
+mode by the centroid distance, so the classes do not overlap.
 
 \subsection{Statistics}
 
@@ -141,14 +149,18 @@ Success rates are reported with 95\% Wilson score intervals \citep{wilson1927}. 
 compared with the baseline on the complexes both share using an exact McNemar test
 \citep{mcnemar1947}, a two-sided binomial test on the complexes that succeed in exactly one
 of the two. P-values across the five arms tested against one baseline are adjusted with
-Holm's method \citep{holm1979}, separately for each engine and each success metric.
+Holm's method \citep{holm1979}, separately for each engine and each success metric. These
+five arms are the study's primary comparisons; the follow-up arms described below are
+analysed separately, each set with its own correction, and do not enter this family.
 
 Effects are interpreted against the run-to-run variation of the baseline. The Vina baseline
 was repeated with three further docking seeds (1, 2 and 3; preparation is identical, so only
 the search differs). From the four replicates we report the spread of the success rate and
-the number of complexes whose outcome changes between pairs of seeds; an arm is considered
-to change outcomes beyond chance only if it changes more complexes than a change of seed
-does. Engines are compared with each other both on all 428 complexes, counting preparation
+the number of complexes whose outcome changes between pairs of seeds, and an arm's count of
+changed complexes is compared with that seed-to-seed count. This is a descriptive yardstick
+rather than a test: every arm is itself docked with one seed, so its changes include some
+stochastic ones, and four replicates cannot reveal every complex with a small chance of
+flipping. Engines are compared with each other both on all 428 complexes, counting preparation
 failures as failures, and on the complexes every engine docked.
 
 To see which complexes a preparation choice affects, the complexes whose top-1 outcome
@@ -183,13 +195,28 @@ All tables are regenerated from the per-complex results with \texttt{dockprepben
   \end{tabular}
 \end{table}
 
+\paragraph{Follow-up arms (Vina only).} Two further sets of runs test assumptions of the
+one-factor design. First, ligand protonation at pH 7.4 is repeated at 2, 6 and
+\SI{8}{\angstrom} padding. At each padding it is compared with the same padding without
+protonation (exact McNemar, Holm-adjusted over the four paddings, the \SI{4}{\angstrom}
+comparison being the primary protonation arm). Whether its effect depends on the padding is
+tested complex by complex: for each complex the effect at a padding (+1, 0 or $-1$) minus its
+effect at \SI{4}{\angstrom} is computed, and the non-zero differences are tested with a
+two-sided sign test, Holm-adjusted over the three paddings. Second, the box is sized to the
+ligand following \citet{feinstein2015boxsize}: a cube whose edge is 2.857 times the radius of
+gyration of the docked conformer's heavy atoms (unweighted), centred on the centroid of the
+crystal ligand's heavy atoms rather than on the centre of its extent. The combined protocol
+and this box are compared with the baseline and with the \SI{2}{\angstrom} box by exact
+McNemar tests without further adjustment; these comparisons are exploratory.
+
 \subsection{Reproducibility}
 
 Each run records its configuration, engine settings, software version and timestamps
 alongside its results. Dependencies are pinned in a lock file (Python 3.12, RDKit 2026.09,
 Meeko 0.8, Vina 1.2.7, OpenMM 8.6, PDBFixer 1.12, PoseBusters 0.6.5, Dimorphite-DL 2.1).
-Receptor preparation, ligand preparation and docking are deterministic for given inputs and
-versions. External engines are installed by \texttt{scripts/setup.sh} in the repository.
+Receptor preparation, ligand preparation and docking with Vina, Smina and rDock are
+deterministic for given inputs and versions; Gnina's neural-network scores, computed on
+GPUs, may differ in the last digits between hardware. External engines are installed by \texttt{scripts/setup.sh} in the repository.
 Runs were carried out on a shared Linux server (Ubuntu 22.04) with one complex per worker
 process; Gnina used NVIDIA GPUs. Each run writes a per-complex checkpoint, so an interrupted
 run resumes without redocking finished complexes.
