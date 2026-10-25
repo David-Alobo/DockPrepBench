@@ -66,6 +66,13 @@ def test_discover_groups_seeds_and_arms(results):
     assert runs["gnina"].seeds == {} and runs["gnina"].arms == {}
 
 
+def test_discover_leaves_out_follow_up_runs(results):
+    write_run(results, "vina", "box_gyration", [1.0] * 6)
+    write_run(results, "vina", "ligand_dimorphite_box_2", [1.0] * 6)
+
+    assert sorted(discover(results)["vina"].arms) == ["box_padding_2", "box_padding_8"]
+
+
 @pytest.mark.parametrize(
     ("row", "expected"),
     [

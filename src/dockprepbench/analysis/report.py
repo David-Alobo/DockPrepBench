@@ -15,6 +15,16 @@ from dockprepbench.analysis.stats import compare, holm_adjust, load_run, success
 
 BASELINE = "baseline"
 SEED_RUN = re.compile(rf"^{BASELINE}_seed(\d+)$")
+# The study's one-factor-at-a-time arms. Other runs on disk (the follow-up interaction arms and
+# the radius-of-gyration box) are analysed separately, so they must not enter these tables or
+# their Holm correction, which is over these five arms for every engine.
+PRIMARY_ARMS = (
+    "box_padding_2",
+    "box_padding_6",
+    "box_padding_8",
+    "ligand_dimorphite",
+    "ligand_rdkit_conformer",
+)
 SITE_SHIFT = 4.0  # Å; heuristic split between wrong site and wrong binding mode
 METRICS = {"top1": False, "pb_valid": True}  # metric name -> require PB-valid
 CLASSES = ["valid", "invalid", "scoring", "site", "mode", "failed"]
@@ -34,7 +44,8 @@ def discover(results: str | Path) -> dict[str, EngineRuns]:
     """
     Find every finished run under a results directory, grouped by engine.
 
-    Engines without a finished baseline are skipped, since every comparison is to it.
+    Engines without a finished baseline are skipped, since every comparison is to it. Only the
+    primary arms (`PRIMARY_ARMS`) are kept; other runs are follow-ups analysed on their own.
 
     Args:
         results (str | Path): Root containing `<engine>/<arm>/results.csv`.
@@ -52,7 +63,7 @@ def discover(results: str | Path) -> dict[str, EngineRuns]:
         if BASELINE not in runs:
             continue
         seeds = {k: v for k, v in runs.items() if SEED_RUN.match(k)}
-        arms = {k: v for k, v in runs.items() if k != BASELINE and k not in seeds}
+        arms = {k: v for k, v in runs.items() if k in PRIMARY_ARMS}
         found[engine_dir.name] = EngineRuns(engine_dir.name, runs[BASELINE], seeds, arms)
     return found
 
