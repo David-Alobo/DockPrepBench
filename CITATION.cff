@@ -1,9 +1,27 @@
 cff-version: 1.2.0
-message: "If you use DockPrepBench, please cite it as below."
+message: "If you use DockPrepBench, please cite the paper below and, for the code, this repository."
 title: "DockPrepBench: How much does preparation matter in molecular docking?"
+type: software
 authors:
   - family-names: Alobo
     given-names: David Obeh
+    affiliation: University of Glasgow
 version: 0.1.0
 license: MIT
 repository-code: "https://github.com/David-Alobo/DockPrepBench"
+url: "https://david-alobo.github.io/DockPrepBench/"
+keywords:
+  - molecular docking
+  - structure preparation
+  - benchmark
+  - PoseBusters
+  - AutoDock Vina
+preferred-citation:
+  type: article
+  title: "How much does preparation matter in molecular docking? A paired benchmark of search-space and ligand preparation choices across four engines"
+  authors:
+    - family-names: Alobo
+      given-names: David Obeh
+      affiliation: University of Glasgow
+  status: in-preparation
+  year: 2026

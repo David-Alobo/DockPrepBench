@@ -1,0 +1,11 @@
+{
+  "title": "DockPrepBench: How much does preparation matter in molecular docking?",
+  "upload_type": "software",
+  "description": "A paired benchmark of how search-space and ligand preparation choices change docking success on the PoseBusters set, across four engines, with an interactive results explorer (https://david-alobo.github.io/DockPrepBench/). Code accompanying the paper 'How much does preparation matter in molecular docking? A paired benchmark of search-space and ligand preparation choices across four engines'.",
+  "creators": [
+    {"name": "Alobo, David Obeh", "affiliation": "University of Glasgow"}
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": ["molecular docking", "structure preparation", "benchmark", "PoseBusters", "AutoDock Vina", "cheminformatics"]
+}
