@@ -89,3 +89,40 @@ def test_subset_table_counts_subsets_and_full_set_matches():
     full = sum((frame[f"d_{a}"] < 2).astype(int) for a in PRIMARY_ARMS)
     assert t.loc[5, "auroc_mean"] == pytest.approx(auroc(full, frame["success"]))
     assert t.loc[1, "auroc_min"] <= t.loc[1, "auroc_mean"] <= t.loc[1, "auroc_max"]
+
+
+def test_logistic_fit_recovers_direction_and_validation_runs():
+    from dockprepbench.analysis.agreement import (
+        PRIMARY_ARMS,
+        fit_logistic,
+        predict_logistic,
+        stratified_folds,
+        validation_table,
+    )
+
+    rng = np.random.default_rng(5)
+    x = rng.normal(size=(300, 1))
+    y = (rng.random(300) < 1 / (1 + np.exp(-2 * x[:, 0]))).astype(float)
+    beta = fit_logistic(x, y)
+    assert beta[1] > 1
+    assert auroc(predict_logistic(beta, x), y.astype(bool)) > 0.7
+
+    folds = stratified_folds(y.astype(bool), 5, rng)
+    assert set(folds) == set(range(5))
+    assert max(abs((y[folds == f]).mean() - y.mean()) for f in range(5)) < 0.05
+
+    success = rng.random(150) < 0.5
+    frame = pd.DataFrame(
+        {
+            "engine": "vina",
+            "id": range(150),
+            "success": success,
+            "score": np.where(success, -8.0, -7.0) + rng.normal(0, 2, 150),
+        }
+    )
+    for arm in PRIMARY_ARMS:
+        frame[f"d_{arm}"] = np.where(rng.random(150) < np.where(success, 0.85, 0.3), 1.0, 5.0)
+    frame["prep_agree"] = sum((frame[f"d_{a}"] < 2).astype(int) for a in PRIMARY_ARMS)
+    table, calibration = validation_table(frame, repeats=2)
+    assert set(table["model"]) == {"score", "prep_agree", "score+prep_agree", "best_pair"}
+    assert calibration["n"].sum() == 150
