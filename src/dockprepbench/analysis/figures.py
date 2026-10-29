@@ -245,6 +245,56 @@ def _spread(values: list[float], min_gap: float) -> list[tuple[float, float]]:
     return list(zip(values, result, strict=True))
 
 
+def plot_agreement_levels(levels: pd.DataFrame, path_stem: Path) -> list[Path]:
+    """
+    Draw baseline top-1 success against the number of preparation arms agreeing with its pose.
+
+    One line per engine, in the same colour slots as `plot_engine_arms`, with 95% Wilson
+    intervals; engines are offset slightly along x so the intervals don't overlap.
+
+    Args:
+        levels (pd.DataFrame): `agreement.level_table` output: engine, prep_agree, n, rate,
+            low, high.
+        path_stem (Path): Output path without extension; one file per format is written.
+
+    Returns:
+        list[Path]: Files written.
+
+    Raises:
+        ValueError: If there are more engines than colour slots.
+    """
+    engines = [e for e in ENGINE_LABELS if e in set(levels["engine"])]
+    engines += sorted(set(levels["engine"]) - set(engines))
+    if len(engines) > len(SERIES):
+        raise ValueError(f"{len(engines)} engines but only {len(SERIES)} colour slots")
+    n_arms = int(levels["prep_agree"].max())
+
+    fig = Figure(figsize=(5.2, 3.6), facecolor=SURFACE)
+    ax = fig.add_subplot()
+    _style_axes(ax)
+    step = 0.08
+    offsets = (np.arange(len(engines)) - (len(engines) - 1) / 2) * step
+    for engine, colour, offset in zip(engines, SERIES, offsets, strict=False):
+        g = levels[levels["engine"] == engine].sort_values("prep_agree")
+        x = g["prep_agree"].to_numpy() + offset
+        ax.vlines(x, 100 * g["low"], 100 * g["high"], color=colour, lw=1.5, alpha=0.6, zorder=2)
+        ax.plot(x, 100 * g["rate"], color=colour, lw=2, zorder=3,
+                label=ENGINE_LABELS.get(engine, engine))  # fmt: skip
+        ax.scatter(x, 100 * g["rate"], s=36, color=colour, edgecolor=SURFACE, lw=1.5, zorder=4)
+
+    ax.set_xticks(range(n_arms + 1))
+    ax.set_xlim(-0.4, n_arms + 0.4)
+    ax.set_ylim(0, 100)
+    ax.set_xlabel(
+        f"Preparation arms whose top pose lies within 2 Å of the baseline pose (of {n_arms})",
+        color=INK_SECONDARY,
+    )
+    ax.set_ylabel("Baseline top-1 success (%)", color=INK_SECONDARY)
+    ax.grid(axis="y", color=GRID, lw=0.8)
+    _legend_above(ax, ncol=len(engines))
+    return _save(fig, path_stem)
+
+
 def _label(ax, text: str, x: float, y: float, color: str = INK_SECONDARY) -> None:
     """
     Place a small direct label to the right of a point, masking lines behind it.
