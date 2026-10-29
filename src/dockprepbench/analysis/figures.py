@@ -158,7 +158,6 @@ def plot_engine_arms(summary: pd.DataFrame, path_stem: Path) -> list[Path]:
     n = int(shown["n"].max()) if "n" in shown else None
     of = f" (% of {n} complexes)" if n else " (%)"
     ax.set_xlabel(f"Top-1 success, RMSD < 2 Å{of}", color=INK_SECONDARY)
-    ax.grid(axis="x", color=GRID, lw=0.8)
     _legend_above(ax, ncol=len(engines))
     return _save(fig, path_stem)
 
@@ -290,7 +289,6 @@ def plot_agreement_levels(levels: pd.DataFrame, path_stem: Path) -> list[Path]:
         color=INK_SECONDARY,
     )
     ax.set_ylabel("Baseline top-1 success (%)", color=INK_SECONDARY)
-    ax.grid(axis="y", color=GRID, lw=0.8)
     _legend_above(ax, ncol=len(engines))
     return _save(fig, path_stem)
 
