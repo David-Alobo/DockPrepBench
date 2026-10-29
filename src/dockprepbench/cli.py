@@ -65,6 +65,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="For finished configs, re-dock only complexes whose process was killed "
         "(e.g. by a memory limit) and keep every other result.",
     )
+    run.add_argument(
+        "--dataset",
+        choices=["posebusters", "astex"],
+        default="posebusters",
+        help="Complex set. Astex results go to results/astex/<engine>/<config name>.",
+    )
     run.add_argument("--data-dir", type=Path, default=Path("data/raw"))
     run.add_argument("--work-dir", type=Path, default=Path("data/prepared"))
     run.add_argument(
@@ -139,7 +145,7 @@ def run_command(args: argparse.Namespace) -> int:
     Returns:
         int: Process exit code.
     """
-    from dockprepbench.datasets.posebusters import download, load_complexes
+    from dockprepbench.datasets.posebusters import SETS, download, load_complexes
     from dockprepbench.preparation.config import PrepConfig, load_config
 
     configs = [load_config(path) for path in args.config] if args.config else [PrepConfig()]
@@ -149,13 +155,16 @@ def run_command(args: argparse.Namespace) -> int:
     if len(set(names)) != len(names):
         raise SystemExit(f"Config names must be unique, got {names}")
 
-    complexes = load_complexes(download(args.data_dir))[: args.limit]
+    complexes = load_complexes(download(args.data_dir), SETS[args.dataset])[: args.limit]
+    results_root = (
+        Path("results") if args.dataset == "posebusters" else Path("results") / args.dataset
+    )
     # One Vina thread per complex when complexes already run in parallel.
     seed = DEFAULT_SEED if args.seed is None else args.seed
     suffix = "" if args.seed is None else f"_seed{args.seed}"
     engine = _make_engine(args, seed)
     for i, config in enumerate(configs, 1):
-        out = args.out or Path("results") / args.engine / f"{config.name}{suffix}"
+        out = args.out or results_root / args.engine / f"{config.name}{suffix}"
         if (out / RESULTS_FILE).is_file() and not args.force:
             killed = _reopen_killed(out) if args.retry_killed else 0
             if not killed:

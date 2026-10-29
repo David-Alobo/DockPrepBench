@@ -4,16 +4,16 @@ import zipfile
 import pytest
 
 from dockprepbench.datasets import posebusters
-from dockprepbench.datasets.posebusters import SET_NAME, download, load_complexes
+from dockprepbench.datasets.posebusters import SET_NAME, SETS, download, load_complexes
 
 SUFFIXES = ("_protein.pdb", "_ligand.sdf", "_ligand_start_conf.sdf")
 
 
-def make_set(root, ids, skip=None):
-    (root / SET_NAME).mkdir(parents=True)
-    (root / f"{SET_NAME}_ids.txt").write_text("\n".join(ids))  # no trailing newline, as upstream
+def make_set(root, ids, skip=None, set_name=SET_NAME):
+    (root / set_name).mkdir(parents=True)
+    (root / f"{set_name}_ids.txt").write_text("\n".join(ids))  # no trailing newline, as upstream
     for cid in ids:
-        folder = root / SET_NAME / cid
+        folder = root / set_name / cid
         folder.mkdir()
         for suffix in SUFFIXES:
             if (cid, suffix) != skip:
@@ -27,6 +27,15 @@ def test_load_complexes_follows_id_list(tmp_path):
 
     assert [c.id for c in complexes] == ["5S8I_2LY", "7PA4_C"]
     assert complexes[1].start_ligand.name == "7PA4_C_ligand_start_conf.sdf"
+
+
+def test_load_complexes_reads_the_astex_set(tmp_path):
+    make_set(tmp_path, ["1G9V_RQ3"], set_name=SETS["astex"])
+
+    complexes = load_complexes(tmp_path, SETS["astex"])
+
+    assert [c.id for c in complexes] == ["1G9V_RQ3"]
+    assert complexes[0].protein.parent.parent.name == "astex_diverse_set"
 
 
 def test_load_complexes_missing_file_raises(tmp_path):

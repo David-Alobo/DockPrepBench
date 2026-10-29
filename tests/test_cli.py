@@ -88,7 +88,7 @@ def fake_pipeline(monkeypatch):
         )
 
     monkeypatch.setattr(posebusters, "download", lambda data_dir: data_dir)
-    monkeypatch.setattr(posebusters, "load_complexes", lambda root: ["C0"])
+    monkeypatch.setattr(posebusters, "load_complexes", lambda root, set_name=None: ["C0"])
     monkeypatch.setattr(benchmark, "run_benchmark", fake_run_benchmark)
     return docked
 
