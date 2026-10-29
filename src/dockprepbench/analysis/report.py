@@ -12,7 +12,14 @@ from pathlib import Path
 
 import pandas as pd
 
-from dockprepbench.analysis.stats import compare, holm_adjust, load_run, success_rate, successes
+from dockprepbench.analysis.stats import (
+    compare,
+    holm_adjust,
+    load_run,
+    paired_difference_interval,
+    success_rate,
+    successes,
+)
 
 BASELINE = "baseline"
 SEED_RUN = re.compile(rf"^{BASELINE}_seed(\d+)$")
@@ -175,6 +182,7 @@ def comparison_table(runs: dict[str, EngineRuns]) -> pd.DataFrame:
                 hits = successes(run, pb_valid=pb)
                 c = compare(base, hits)
                 shared = base.index.intersection(hits.index)
+                low, high = paired_difference_interval(c.both, len(c.only_a), len(c.only_b), c.n)
                 family.append({
                     "engine": e.engine,
                     "metric": metric,
@@ -183,6 +191,8 @@ def comparison_table(runs: dict[str, EngineRuns]) -> pd.DataFrame:
                     "baseline": base[shared].mean(),
                     "arm_rate": hits[shared].mean(),
                     "delta_pts": 100 * (hits[shared].mean() - base[shared].mean()),
+                    "delta_low": 100 * low,
+                    "delta_high": 100 * high,
                     "gained": len(c.only_b),
                     "lost": len(c.only_a),
                     "p": c.p_value,

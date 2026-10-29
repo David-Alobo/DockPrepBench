@@ -129,3 +129,15 @@ def test_holm_adjust_matches_hand_calculation():
 def test_holm_adjust_caps_at_one_and_keeps_single_p():
     assert holm_adjust([0.6, 0.7]) == pytest.approx([1.0, 1.0])
     assert holm_adjust([0.04]) == pytest.approx([0.04])
+
+
+def test_paired_difference_interval_contains_estimate_and_is_symmetric_at_zero():
+    from dockprepbench.analysis.stats import paired_difference_interval
+
+    low, high = paired_difference_interval(both=180, only_a=18, only_b=48, n=428)
+    assert low < 30 / 428 < high
+    assert 0.0 < low  # 48 vs 18 discordant is a clear improvement
+    low0, high0 = paired_difference_interval(both=100, only_a=0, only_b=0, n=428)
+    assert low0 == pytest.approx(-high0)
+    with pytest.raises(ValueError):
+        paired_difference_interval(both=400, only_a=20, only_b=20, n=428)
