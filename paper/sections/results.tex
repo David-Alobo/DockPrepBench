@@ -363,6 +363,15 @@ below agreement across arms. A change of seed moved the top-1 pose by more than
 choices perturb the search more, and where the top pose survives that perturbation it is
 usually right.
 
+Most of the signal needs only two extra runs. Averaged over every pair of arms, agreement
+gave an AUROC of 0.775 for Vina, 0.744 for Smina, 0.801 for Gnina and 0.836 for rDock,
+against 0.857, 0.830, 0.863 and 0.897 with all five arms; a single arm gave 0.67 to 0.76.
+The same pair, the \SI{2}{\angstrom} box with the RDKit start conformer, was the best of the
+ten for all four engines (0.828, 0.810, 0.828 and 0.894), within 0.03 to 0.05 of all five
+arms. It was selected on these data, so its advantage over the average pair is optimistic,
+but that one pair came first for every engine suggests the choice is not arbitrary: it
+combines a change of search space with a change of starting point.
+
 \begin{table}[h]
   \centering
   \caption{AUROC for predicting whether the baseline top-1 pose is correct (RMSD below
@@ -397,5 +406,5 @@ for every engine: Vina from 46.3\% to 48.1\% (11 gained, 3 lost), Smina from 47.
 29.4\% to 31.3\% (14 gained, 6 lost). PB-valid success moved the same way. The direction was
 consistent, but no single engine's gain survived correction over the four engines (Holm
 $p \ge 0.059$), so the consensus pose is a modest, unconfirmed improvement, whereas
-agreement as a confidence signal is a large one. Both require docking each complex six
-times.
+agreement as a confidence signal is a large one. As tested, both used six runs per complex,
+although the confidence signal keeps most of its value with three.
