@@ -2,11 +2,12 @@
 Docking benchmarks usually compare engines under a single, fixed preparation protocol, yet
 choices such as protonation state, the starting ligand conformer and the definition of the
 search space are made differently in every study. We measure how much these choices change
-redocking outcomes on the PoseBusters Benchmark set (428 complexes), using paired,
+redocking outcomes on the PoseBusters Benchmark set (428 complexes), with the search space
+drawn from the crystal ligand, using paired,
 one-factor-at-a-time comparisons scored by heavy-atom RMSD and PoseBusters physical
 validity, for four engines: AutoDock Vina, Smina, Gnina and rDock. Within an engine,
 preparation moved top-1 success by 7.0 to 10.5 percentage points across the arms for the
-Vina family and by 23.8 points for rDock, against 33.2 points between the engines at the
+Vina family and by 23.8 points for rDock, against 33.2 points between the engine pipelines at the
 baseline protocol. Among the five primary arms, only the size of the search box changed success beyond
 multiple-testing correction, significantly for Vina, Smina and rDock and in the same
 direction, without significance, for Gnina: a \SI{2}{\angstrom} padding raised Vina
@@ -14,7 +15,7 @@ from 46.3\% [41.6, 51.0] to 53.0\% [48.3, 57.7], Smina by 7.7 points and rDock b
 while larger boxes sent top poses to wrong sites; combined with ligand protonation, it lifted
 Vina to 57.2\%. For Vina, every arm changed the
 outcome of more complexes than a change of docking seed did, up to 4.9 times as many, though
-gains and losses largely cancelled in the net rates. Differences between engines of a few
+gains and losses largely cancelled in the net rates. In redocking, differences between engines of a few
 points, measured under one protocol, are therefore within the range that preparation alone
 produces; benchmarks should report the search space exactly, repeat runs over seeds and
 compare protocols complex by complex. All code, configurations and per-complex results are

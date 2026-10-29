@@ -36,10 +36,15 @@ in how the same dataset is prepared alone produce substantial variation in repor
 rates \citep{corbeil2012variability}, and the protein and ligand preparation protocol
 influences virtual screening enrichment \citep{sastry2013preparation}. Guidelines for
 evaluating computational methods have long asked that preparation be reported and that
-results come with statistical uncertainty \citep{jain2008recommendations}. Even so, it is
-rarely measured how large preparation effects are compared with the differences between
-engines that benchmarks are designed to detect, or how large they are compared with the
-run-to-run variation of a single engine.
+results come with statistical uncertainty \citep{jain2008recommendations}. That preparation matters is therefore not new. What earlier studies did not provide is a
+measure of its size on a common scale: they reported its effect on aggregate success rates or
+enrichment, typically for one docking program, so it remains unclear how large preparation
+effects are compared with the differences between engines that benchmarks are designed to
+detect, how large they are compared with the run-to-run variation of a single engine, and
+which individual complexes they change. A net success rate cannot answer the last question:
+two protocols with the same rate can succeed on different complexes, and only a paired,
+complex-by-complex comparison shows how many outcomes a choice changes and in which
+direction.
 
 Here we measure this directly. DockPrepBench redocks the 428 complexes of the PoseBusters
 Benchmark set under a reproducible baseline protocol and under arms that each change one
@@ -56,9 +61,15 @@ convolutional neural network. Our contributions are:
   \item effect sizes for search-box padding, ligand protonation and the ligand start
     conformer, set against the differences between engines;
   \item a failure-mode analysis that separates scoring failures from search failures and
-    wrong sites from wrong binding modes, explaining how each choice changes outcomes; and
+    wrong sites from wrong binding modes, describing geometrically how each choice changes
+    outcomes;
+  \item a separate, exploratory methodological result: agreement of the top pose across
+    preparation variants as a candidate confidence signal, evaluated by cross-validation
+    and on an independent set specified in advance; and
   \item open code, configurations and per-complex results, with an interactive explorer.
 \end{itemize}
-Across the four engines, preparation moved top-1 success by 7 to 24 points within an
-engine, the search box above all, while the engines themselves spanned 33 points; a tight
-box combined with ligand protonation lifted Vina from 46.3\% to 57.2\%.
+All experiments are redocking into the crystal structure with a search space drawn from the
+crystal ligand, the setting in which docking methods are usually benchmarked. Across the four
+engines, preparation moved top-1 success by 7 to 24 points within an engine, the search box
+above all, while the engine pipelines themselves spanned 33 points; a tight box combined with
+ligand protonation lifted Vina from 46.3\% to 57.2\%.

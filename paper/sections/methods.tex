@@ -53,6 +53,7 @@ Because the protein files contain no waters, retained waters cannot be studied w
 as distributed.
 
 \subsection{Receptor preparation}
+\label{sec:receptor}
 
 Receptors are prepared with PDBFixer and OpenMM \citep{eastman2024openmm}. Nonstandard
 residues are mutated to their standard parents and all heterogens (cofactors, ions,
@@ -66,6 +67,15 @@ in the crystal structure is held fixed, so experimental coordinates are unchange
 Without this step, initial atom placements produced spurious bonds under distance-based bond
 perception for about half of the set.
 
+Removing every heterogen is a deliberate simplification, made because most cofactors have
+no chemical template in Meeko and so could not be kept for Vina, and because keeping them for
+some engines only would confound the engine comparison. It is not neutral: a removed
+cofactor can leave a cavity that attracts poses, and the PoseBusters checks, which use the
+original protein with its cofactors, then reject such poses. Of the 428 complexes, 244
+contain at least one heterogen other than the ligand and common additives (organic
+cofactors, metal and other ions); their effect is assessed in a robustness analysis
+(Section~\ref{sec:robustness}).
+
 All minimisations run on OpenMM's single-threaded Reference platform with a seeded random
 generator. New hydrogens are otherwise placed at random positions and multithreaded force
 summation is order-dependent, which together made prepared receptors differ between runs by
@@ -77,13 +87,35 @@ matching is dropped only if it lies more than \SI{8}{\angstrom} outside the sear
 Vina's interaction cutoff; otherwise the complex is recorded as a preparation failure. The
 other engines read the prepared receptor directly (Smina and Gnina) or after conversion to
 Mol2 with Open Babel 3.2.1 \citep{oboyle2011openbabel} (rDock), so this step is specific to
-Vina.
+Vina. Table~\ref{tab:receptor-paths} summarises how each engine receives the receptor. Each
+engine therefore sees the same atoms and coordinates but its own file format and atom
+typing, so differences between engines in this study are differences between complete
+pipelines (receptor representation, search and scoring together), not between search or
+scoring algorithms in isolation.
+
+\begin{table}[h]
+  \centering
+  \caption{Receptor representation per engine. All start from the same prepared receptor
+    (PDBFixer and OpenMM, hydrogens added at pH 7.4, heterogens removed).}
+  \label{tab:receptor-paths}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    Engine & Receptor file & Conversion & Atom typing \\
+    \midrule
+    Vina & PDBQT & Meeko templates & AutoDock types from Meeko \\
+    Smina & PDB & none & assigned by Smina on reading \\
+    Gnina & PDB & none & as Smina; CNN uses its own types \\
+    rDock & Mol2 & Open Babel 3.2.1 & Tripos types from Open Babel \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsection{Ligand preparation}
 
 Ligands are docked from the supplied start conformer. Two options are varied.
-\emph{Protonation}: the supplied state is kept, or the dominant state at the protocol's pH is
-assigned with Dimorphite-DL \citep{ropp2019dimorphite}, transferring charges, hydrogen counts
+\emph{Protonation}: the supplied state is kept, or the single dominant state predicted at the
+protocol's pH is assigned with Dimorphite-DL \citep{ropp2019dimorphite}, transferring charges, hydrogen counts
 and bond orders onto the start conformer while its heavy atoms stay fixed. At pH 7.4 this
 changes the net formal charge of 271 of the 428 ligands. \emph{Start conformer}: the supplied
 conformer, or a new one generated with RDKit \citep{rdkit} (ETKDGv3 \citep{wang2020etkdgv3},
@@ -91,7 +123,11 @@ fixed seed, then MMFF94 minimisation \citep{halgren1996mmff94}). Protonation is 
 all 428 ligands. The supplied conformer was itself generated with ETKDGv3 and minimised with
 UFF \citep{rappe1992uff} by the dataset authors (\citealp{buttenschoen2024posebusters}, ESI section S1), so the
 start-conformer arm draws a new conformer from a similar generator rather than replacing an
-experimental geometry.
+experimental geometry. The two options are therefore two starting-structure protocols, which
+differ in the force field used for minimisation (UFF or MMFF94) as well as in the sampled
+coordinates; the arm cannot separate the two. Neither option enumerates protomers or
+tautomers: the protonation arm compares two single states, and receptor protonation is held
+fixed.
 
 \subsection{Search space and docking}
 
@@ -146,7 +182,12 @@ but is not ranked first); wrong site (the top pose's centroid lies more than
 \SI{4}{\angstrom} from the crystal ligand's, a heuristic threshold); or wrong binding mode.
 Classes are assigned in that order: a failed complex first, then a top pose below
 \SI{2}{\angstrom} (valid or not), then a scoring failure, and only then wrong site or wrong
-mode by the centroid distance, so the classes do not overlap.
+mode by the centroid distance, so the classes do not overlap. The classes are geometric
+descriptions of where the top pose lies, not diagnoses of why docking failed: a pose
+displaced into a neighbouring subpocket may count as a wrong site, and a reversed pose
+with a similar centroid as a wrong mode. Because the \SI{4}{\angstrom} threshold is a
+heuristic, wrong-site counts are also reported at 2, 3, 5 and \SI{6}{\angstrom}
+(Section~\ref{sec:robustness}).
 
 \subsection{Statistics}
 
@@ -154,9 +195,21 @@ Success rates are reported with 95\% Wilson score intervals \citep{wilson1927}. 
 compared with the baseline on the complexes both share using an exact McNemar test
 \citep{mcnemar1947}, a two-sided binomial test on the complexes that succeed in exactly one
 of the two. P-values across the five arms tested against one baseline are adjusted with
-Holm's method \citep{holm1979}, separately for each engine and each success metric. These
-five arms are the study's primary comparisons; the follow-up arms described below are
-analysed separately, each set with its own correction, and do not enter this family.
+Holm's method \citep{holm1979}, separately for each engine and each success metric. The
+size of each paired effect is reported as the difference in success rate (arm minus
+baseline) with a 95\% interval for paired proportions, Newcombe's hybrid score interval
+\citep{newcombe1998paired}, which, unlike the two Wilson intervals of the separate rates,
+reflects the pairing.
+
+The analyses fall into two groups. \emph{Confirmatory}: the five primary arms against the
+baseline, for each engine and metric, each engine and metric forming one Holm family of
+five; this design was fixed before the runs. \emph{Exploratory}: everything else, namely the
+follow-up arms (protonation at each box padding, and the box sized to the ligand), each set
+with its own correction; the ligand-property comparisons; the agreement analysis; and the
+robustness analyses. Exploratory results are reported with effect sizes and intervals, and
+p-values there are descriptive. The follow-up box and protonation arms overlap scientifically
+with the primary ones but test different questions (an interaction and a different box
+rule), so they do not enter the primary families.
 
 Effects are interpreted against the run-to-run variation of the baseline. The Vina baseline
 was repeated with three further docking seeds (1, 2 and 3; preparation is identical, so only
@@ -191,7 +244,33 @@ consensus pose is the top-1 pose, among the baseline and the five arms, within \
 of the most others, ties going to the baseline; it is compared with the baseline pose by the
 exact McNemar test, with Holm's correction over the four engines for each success metric. This
 analysis was conceived after the runs were complete, so it is exploratory, and its thresholds
-were not tuned. It is regenerated with \texttt{python -m dockprepbench.analysis.agreement}.
+were not tuned. A missing pose (a failed run) counts as disagreement, so failures lower
+agreement; the analysis is repeated without complexes that have any missing pose.
+
+Because the signal was found and evaluated on the same complexes, it is also evaluated out
+of sample, by 5-fold cross-validation over complexes repeated 20 times, with folds stratified
+by baseline success. Four predictors are fitted on the training folds and scored on the
+held-out fold: the docking score (logistic regression); agreement (the training-fold
+success rate at each agreement level, the lookup a user would apply); score and agreement
+together (logistic regression); and the best pair of arms, chosen by training-fold AUROC
+and then used as a two-arm agreement lookup, which removes the optimism of choosing the pair
+on all the data. Held-out AUROC and Brier score are averaged over repeats. Whether
+agreement adds to the score is also tested with a likelihood-ratio test on all complexes.
+These analyses are regenerated with \texttt{python -m dockprepbench.analysis.agreement}.
+
+An independent check on the Astex Diverse Set (85 complexes, no PDB entry in common with the
+benchmark set, from the same PoseBusters release) was specified in writing, with its
+hypotheses, tests and decision rules, before any of its runs
+(\texttt{docs/astex\_validation\_plan.md} in the repository) and is reported in
+Section~\ref{sec:astex}.
+
+Two robustness analyses address choices of this design. The
+wrong-site counts are recomputed at centroid thresholds of 2 to \SI{6}{\angstrom}. The
+complexes whose protein files contain any heterogen other than common additives
+(Section~\ref{sec:receptor}) are counted, the correct top poses that fail
+PoseBusters only on a cofactor check are counted, and the primary comparisons are repeated
+on the complexes without such heterogens. They are regenerated with
+\texttt{python -m dockprepbench.analysis.robustness}.
 
 All other tables are regenerated from the per-complex results with \texttt{dockprepbench report}.
 
