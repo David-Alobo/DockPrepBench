@@ -279,6 +279,47 @@ def level_table(per_complex: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["engine", "prep_agree"], ignore_index=True)
 
 
+def subset_table(per_complex: pd.DataFrame) -> pd.DataFrame:
+    """
+    How many arms the signal needs: AUROC over every subset of k primary arms, k = 1..5.
+
+    For each subset, agreement is counted over its arms only. Also reported, for each k, is
+    the success rate of baseline poses that every arm in the subset agrees with, averaged
+    over subsets, and the share of complexes that receive that unanimous verdict.
+
+    Args:
+        per_complex (pd.DataFrame): Output of `collect`, with one `d_<arm>` column per arm.
+
+    Returns:
+        pd.DataFrame: One row per (engine, k): number of subsets, mean, min and max AUROC,
+            the best subset, and the mean unanimous success rate and coverage.
+    """
+    rows = []
+    for e, g in per_complex.groupby("engine", sort=False):
+        agree = {a: (g[f"d_{a}"] < SUCCESS_THRESHOLD).astype(int) for a in PRIMARY_ARMS}
+        for k in range(1, len(PRIMARY_ARMS) + 1):
+            scores, unanimous_rate, unanimous_share = {}, [], []
+            for subset in itertools.combinations(PRIMARY_ARMS, k):
+                count = sum(agree[a] for a in subset)
+                scores[subset] = auroc(count, g["success"])
+                unanimous = count == k
+                unanimous_rate.append(g.loc[unanimous, "success"].mean())
+                unanimous_share.append(unanimous.mean())
+            best = max(scores, key=scores.get)
+            rows.append({
+                "engine": e,
+                "k": k,
+                "subsets": len(scores),
+                "auroc_mean": float(np.mean(list(scores.values()))),
+                "auroc_min": min(scores.values()),
+                "auroc_max": scores[best],
+                "best_subset": "+".join(best),
+                "unanimous_success": float(np.nanmean(unanimous_rate)),
+                "unanimous_share": float(np.mean(unanimous_share)),
+            })  # fmt: skip
+    return pd.DataFrame(rows)
+
+
 def consensus_table(per_complex: pd.DataFrame) -> pd.DataFrame:
     """
     Consensus pose against the baseline pose, per engine and metric, with paired tests.
@@ -378,6 +419,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "agreement_per_complex": per_complex,
         "agreement_signals": signal_table(per_complex),
         "agreement_levels": level_table(per_complex),
+        "agreement_subsets": subset_table(per_complex),
         "agreement_consensus": consensus_table(per_complex),
         "agreement_oracle": oracle_table(args.results),
     }

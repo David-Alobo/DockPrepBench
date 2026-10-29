@@ -72,3 +72,20 @@ def test_top_pose_reads_first_pose(tmp_path):
     first = top_pose(tmp_path, "X")
     assert pair_rmsd(first, pose(0.0)) == pytest.approx(0.0, abs=1e-3)
     assert top_pose(tmp_path, "missing") is None
+
+
+def test_subset_table_counts_subsets_and_full_set_matches():
+    from dockprepbench.analysis.agreement import PRIMARY_ARMS, subset_table
+
+    rng = np.random.default_rng(3)
+    n = 120
+    success = rng.random(n) < 0.5
+    frame = pd.DataFrame({"engine": "vina", "success": success})
+    for arm in PRIMARY_ARMS:
+        # Correct poses mostly agree (small distance), wrong ones mostly don't.
+        frame[f"d_{arm}"] = np.where(rng.random(n) < np.where(success, 0.8, 0.3), 1.0, 5.0)
+    t = subset_table(frame).set_index("k")
+    assert t["subsets"].tolist() == [5, 10, 10, 5, 1]
+    full = sum((frame[f"d_{a}"] < 2).astype(int) for a in PRIMARY_ARMS)
+    assert t.loc[5, "auroc_mean"] == pytest.approx(auroc(full, frame["success"]))
+    assert t.loc[1, "auroc_min"] <= t.loc[1, "auroc_mean"] <= t.loc[1, "auroc_max"]
