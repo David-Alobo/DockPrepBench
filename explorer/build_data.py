@@ -27,6 +27,7 @@ from rdkit.Chem.Draw import rdMolDraw2D
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+from dockprepbench.analysis.agreement import collect as collect_agreement  # noqa: E402
 from dockprepbench.analysis.sensitivity import ADDITIVES  # noqa: E402
 from dockprepbench.analysis.stats import load_run  # noqa: E402
 from dockprepbench.datasets.posebusters import SET_NAME, download, load_complexes  # noqa: E402
@@ -312,6 +313,11 @@ def main() -> None:
         e: {arm: load_run(results / e / arm / "results.csv") for arm in arms[e]} for e in engines
     }
 
+    # Agreement of each baseline top pose with the primary arms (paper section on agreement).
+    print("Computing pose agreement across arms...")
+    agreement = collect_agreement(results, engines)
+    agree = {(r.engine, r.id): int(r.prep_agree) for r in agreement.itertuples()}
+
     pose_dir = args.out / "poses"
     shutil.rmtree(pose_dir, ignore_errors=True)
     pose_dir.mkdir(parents=True)
@@ -349,6 +355,7 @@ def main() -> None:
                     }
                     for e in engines
                 },
+                "agreeByEngine": {e: agree[(e, c.id)] for e in engines if (e, c.id) in agree},
             }
         )
         payload = {

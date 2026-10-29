@@ -185,3 +185,37 @@ describe("formatting", () => {
     expect(L.fmtA(null)).toBe("–");
   });
 });
+
+describe("pairedDiff", () => {
+  it("matches the Python paired_difference_interval", () => {
+    const [lo, hi] = L.pairedDiff(180, 18, 48, 428);
+    expect(100 * lo).toBeCloseTo(3.34, 1);
+    expect(100 * hi).toBeCloseTo(10.63, 1);
+  });
+
+  it("is symmetric around zero when nothing changes, and rejects bad counts", () => {
+    const [lo, hi] = L.pairedDiff(100, 0, 0, 428);
+    expect(lo).toBeCloseTo(-hi, 10);
+    expect(() => L.pairedDiff(400, 20, 20, 428)).toThrow(RangeError);
+  });
+});
+
+describe("agreement filter", () => {
+  const base = { rmsd: 1, best: 1, valid: true, shift: 0 };
+  const complexes = [
+    { id: "A", cofactors: [], agree: 5, arms: { baseline: base } },
+    { id: "B", cofactors: [], agree: 0, arms: { baseline: base } },
+    { id: "C", cofactors: [], agree: null, arms: { baseline: base } },
+  ];
+  const f = (agree) => L.filterComplexes(complexes, { agree, arm: "baseline", metric: "top1" }).map((c) => c.id);
+
+  it("keeps every complex when no level is chosen", () => {
+    expect(f("")).toEqual(["A", "B", "C"]);
+    expect(f(undefined)).toEqual(["A", "B", "C"]);
+  });
+
+  it("keeps only complexes at the chosen level, including 0", () => {
+    expect(f("5")).toEqual(["A"]);
+    expect(f("0")).toEqual(["B"]);
+  });
+});
