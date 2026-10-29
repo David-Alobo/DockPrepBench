@@ -322,3 +322,80 @@ crystal ligand lay wholly inside the box, success rose from 51.6\% to 59.7\% (22
 gained, 25 lost). A box scaled to the ligand works well when it contains the binding
 mode, and the gain is lost where the rule truncates it; a small fixed padding around the
 reference ligand avoids that failure.
+
+\subsection{Agreement across preparation arms as a confidence signal}
+\label{sec:agreement}
+
+The sensitivity above can also be used. For each engine and complex, the baseline top-1
+pose was compared with the top-1 pose of each of the five primary arms, and the number of
+arms whose pose lay within \SI{2}{\angstrom} of it (0--5; a missing pose counts as
+disagreement) was tested as a predictor of whether the baseline pose was correct
+(Figure~\ref{fig:agreement}). When all five arms agreed, the baseline pose was correct for
+83.7\% [77.4, 88.6] of 166 complexes with Vina, 81.3\% [74.8, 86.4] of 171 with Smina,
+92.8\% [88.3, 95.7] of 194 with Gnina and 91.1\% [79.3, 96.5] of 45 with rDock. When none
+agreed, it was correct for at most 5.6\% (Vina, 2 of 36).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.7\textwidth]{pose_agreement.pdf}
+  \caption{Baseline top-1 success against the number of the five primary arms whose top-1
+    pose lies within \SI{2}{\angstrom} of the baseline top-1 pose, for each engine (428
+    complexes; failures counted as failures and missing poses as disagreement; 95\% Wilson
+    intervals). Drawn by \texttt{python -m dockprepbench.analysis.agreement}.}
+  \label{fig:agreement}
+\end{figure}
+
+As a ranking of poses by confidence, agreement across arms outperformed the docking score
+for every engine, by 0.16 to 0.21 in the area under the ROC curve (AUROC;
+Table~\ref{tab:agreement}), and it outperformed Gnina's own CNN pose score (0.863 against
+0.812; difference 0.051 [0.011, 0.093]). Agreement across engines, the established form of
+consensus, was comparable: better for Smina (difference 0.048 [0.009, 0.087]), worse for
+Gnina ($-0.079$ [$-0.122$, $-0.034$]), and not distinguishable for Vina and rDock. The two
+carried partly different information: their sum was better than agreement across arms alone
+for every engine (by 0.024 to 0.069, all intervals excluding zero), reaching 0.95 for
+rDock.
+
+The signal is not simply the stochasticity of the search. For Vina, agreement across the
+three seed replicates of the baseline, whose preparation is identical, gave an AUROC of
+0.674 [0.637, 0.709], not distinguishable from the docking score and 0.183 [0.148, 0.220]
+below agreement across arms. A change of seed moved the top-1 pose by more than
+\SI{2}{\angstrom} in 15.9\% of comparisons, a change of preparation in 31.2\%: preparation
+choices perturb the search more, and where the top pose survives that perturbation it is
+usually right.
+
+\begin{table}[h]
+  \centering
+  \caption{AUROC for predicting whether the baseline top-1 pose is correct (RMSD below
+    \SI{2}{\angstrom}), with 95\% bootstrap intervals (2,000 resamples of complexes; 428
+    complexes per engine). Docking scores enter negated, so higher is more confident.
+    Gnina's docking score is its minimised Vina-like affinity; its CNN score is shown
+    separately. Agreement counts the seed replicates, primary arms or other engines whose
+    top-1 pose lies within \SI{2}{\angstrom} of the baseline pose; seed replicates exist
+    only for Vina.}
+  \label{tab:agreement}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lrrrr}
+    \toprule
+    Signal & Vina & Smina & Gnina & rDock \\
+    \midrule
+    Docking score & 0.65 [0.60, 0.70] & 0.64 [0.59, 0.69] & 0.70 [0.65, 0.75] & 0.72 [0.67, 0.77] \\
+    Gnina CNN score & -- & -- & 0.81 [0.77, 0.85] & -- \\
+    Seeds agree (0--3) & 0.67 [0.64, 0.71] & -- & -- & -- \\
+    Arms agree (0--5) & 0.86 [0.82, 0.89] & 0.83 [0.79, 0.87] & 0.86 [0.83, 0.90] & 0.90 [0.87, 0.93] \\
+    Engines agree (0--3) & 0.89 [0.86, 0.92] & 0.88 [0.85, 0.91] & 0.78 [0.74, 0.82] & 0.92 [0.89, 0.95] \\
+    Arms + engines & 0.91 [0.88, 0.94] & 0.90 [0.87, 0.93] & 0.89 [0.86, 0.92] & 0.95 [0.93, 0.97] \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Agreement can also choose the pose. Taking, among the six top-1 poses (baseline and five
+arms), the one that most of the others agree with (ties keep the baseline pose) changed the
+chosen pose for 7.9\% (Vina) to 18.2\% (Gnina, rDock) of complexes and raised top-1 success
+for every engine: Vina from 46.3\% to 48.1\% (11 gained, 3 lost), Smina from 47.0\% to
+48.6\% (8 gained, 1 lost), Gnina from 62.6\% to 65.7\% (19 gained, 6 lost) and rDock from
+29.4\% to 31.3\% (14 gained, 6 lost). PB-valid success moved the same way. The direction was
+consistent, but no single engine's gain survived correction over the four engines (Holm
+$p \ge 0.059$), so the consensus pose is a modest, unconfirmed improvement, whereas
+agreement as a confidence signal is a large one. Both require docking each complex six
+times.

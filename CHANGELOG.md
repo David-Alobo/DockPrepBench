@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- `analysis.agreement`: pose agreement across preparation arms, engines and seeds as a confidence signal (AUROC with paired bootstrap intervals), the consensus pose, and the per-complex oracle; `analysis.figures.plot_agreement_levels`; paper section 3.9 and Figure 3.
 - Package layout (`dockprepbench`) with `datasets`, `preparation`, `engines`, `evaluation` and `analysis` subpackages.
 - `dockprepbench` command-line entry point.
 - uv-managed environment, pytest suite, ruff linting, pre-commit hooks and cross-platform CI.

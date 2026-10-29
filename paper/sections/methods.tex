@@ -180,7 +180,20 @@ rank-biserial correlation as effect size; binary ones with Fisher's exact test a
 odds ratio. P-values are Holm-adjusted over the properties tested for each engine and
 arm. These comparisons are exploratory.
 
-All tables are regenerated from the per-complex results with \texttt{dockprepbench report}.
+Agreement between poses is measured with the same symmetry-corrected heavy-atom RMSD, without
+superposition, between the top-1 poses of two runs; two poses agree when it is below
+\SI{2}{\angstrom}. For each engine, the baseline pose's agreement with the five primary arms
+(0--5), with the baseline poses of the other three engines (0--3) and, for Vina, with its three
+seed replicates (0--3) is compared with the docking score, and for Gnina its CNN pose score, as a
+predictor of baseline top-1 success. Each signal is summarised by the area under the ROC curve,
+with 95\% intervals and paired differences from 2,000 bootstrap resamples of complexes. The
+consensus pose is the top-1 pose, among the baseline and the five arms, within \SI{2}{\angstrom}
+of the most others, ties going to the baseline; it is compared with the baseline pose by the
+exact McNemar test, with Holm's correction over the four engines for each success metric. This
+analysis was conceived after the runs were complete, so it is exploratory, and its thresholds
+were not tuned. It is regenerated with \texttt{python -m dockprepbench.analysis.agreement}.
+
+All other tables are regenerated from the per-complex results with \texttt{dockprepbench report}.
 
 \subsection{Experiment arms}
 

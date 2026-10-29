@@ -60,6 +60,23 @@ paired tests and report how many complexes changed, not only the net rate. Fourt
 the ligand protonation and start conformer used, as both change individual outcomes even
 when they leave the overall rate unchanged.
 
+The same sensitivity is also informative (Section~\ref{sec:agreement}). A top pose that
+survives changes of preparation was usually correct, and one that did not was rarely
+correct: agreement across the five arms ranked poses by confidence far better than the
+docking score for all four engines, better than Gnina's CNN score, and about as well as
+agreement across engines, while needing only one engine. Rerunning with new seeds did not
+reproduce this, so the signal comes from perturbing the input, not from repeating the
+search; the idea parallels test-time augmentation in machine learning. In practice,
+re-docking a candidate with a few preparation variants is a cheap way to decide which poses
+to trust before inspecting or rescoring them. There is also room to choose better: had the
+best of the six protocols been picked for each complex, Vina would have succeeded for 66.4\%
+of complexes, against 46.3\% at the baseline and 50.5\% for the best of its four seed
+replicates. A post hoc best is an upper bound, not an achievable protocol, but it shows that
+choosing the preparation per complex could recover far more than any fixed choice. These
+results are exploratory and retrospective, come from redocking with a box defined from the
+crystal ligand, and cost five extra docking runs per complex; whether agreement keeps its
+value in cross-docking, where fewer poses are correct, remains to be tested.
+
 \subsection{Limitations}
 
 Several choices are fixed in all arms. Cofactors are removed in the baseline because most
