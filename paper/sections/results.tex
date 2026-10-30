@@ -66,7 +66,7 @@ many outcomes an arm changes; it is a yardstick, not a significance threshold.
 Table~\ref{tab:comparisons} compares each arm with the Vina baseline on all 428 complexes.
 Only one choice changed success beyond what multiple testing allows. A box padding of
 \SI{2}{\angstrom} raised top-1 success from 46.3\% [41.6, 51.0] to 53.0\% [48.3, 57.7]
-(+6.8 points; 41 complexes gained, 12 lost; Holm $p = 4.1 \times 10^{-4}$) and \pbvalid{}
+(+6.8 points [3.5, 10.0]; 41 complexes gained, 12 lost; Holm $p = 4.1 \times 10^{-4}$) and \pbvalid{}
 success from 41.8\% to 47.9\% (+6.1 points; 41 gained, 15 lost; Holm $p = 0.003$). Larger
 boxes lowered success slightly: \SI{6}{\angstrom} padding to 44.4\% ($-1.9$ points; 10
 gained, 18 lost; Holm $p = 0.37$) and \SI{8}{\angstrom} to 44.2\% ($-2.1$ points; 19
@@ -82,23 +82,25 @@ $p = 0.20$).
 \begin{table}[h]
   \centering
   \caption{Paired comparison of each arm with the Vina baseline on all 428 complexes
-    (failures counted as failures). Top-1 success with 95\% Wilson interval; gained and lost
+    (failures counted as failures). Top-1 success with 95\% Wilson interval; $\Delta$ with
+    a 95\% interval for the paired difference (Newcombe); gained and lost
     are complexes that succeed in only the arm or only the baseline; $p$ is the exact
     McNemar test, Holm-adjusted over the five arms. Changed: complexes whose outcome
     differs from the baseline, and the ratio to the 17.5 changed by a change of seed.}
   \label{tab:comparisons}
   \small
+  \setlength{\tabcolsep}{4pt}
   \begin{tabular}{lrrrrrr}
     \toprule
     Arm & Top-1 (\%) & $\Delta$ (pts) & Gained & Lost & Holm $p$ & Changed \\
     \midrule
     Baseline & 46.3 [41.6, 51.0] & -- & -- & -- & -- & -- \\
-    Padding \SI{2}{\angstrom} & 53.0 [48.3, 57.7] & +6.8 & 41 & 12 & $4.1\times10^{-4}$
+    Padding \SI{2}{\angstrom} & 53.0 [48.3, 57.7] & +6.8 [3.5, 10.0] & 41 & 12 & $4.1\times10^{-4}$
       & 53 (3.0$\times$) \\
-    Padding \SI{6}{\angstrom} & 44.4 [39.8, 49.1] & $-1.9$ & 10 & 18 & 0.37 & 28 (1.6$\times$) \\
-    Padding \SI{8}{\angstrom} & 44.2 [39.5, 48.9] & $-2.1$ & 19 & 28 & 0.37 & 47 (2.7$\times$) \\
-    Protonation (pH 7.4) & 49.1 [44.4, 53.8] & +2.8 & 26 & 14 & 0.24 & 40 (2.3$\times$) \\
-    RDKit conformer & 50.7 [46.0, 55.4] & +4.4 & 52 & 33 & 0.20 & 85 (4.9$\times$) \\
+    Padding \SI{6}{\angstrom} & 44.4 [39.8, 49.1] & $-1.9$ [$-4.3$, 0.5] & 10 & 18 & 0.37 & 28 (1.6$\times$) \\
+    Padding \SI{8}{\angstrom} & 44.2 [39.5, 48.9] & $-2.1$ [$-5.2$, 1.0] & 19 & 28 & 0.37 & 47 (2.7$\times$) \\
+    Protonation (pH 7.4) & 49.1 [44.4, 53.8] & +2.8 [$-0.1$, 5.7] & 26 & 14 & 0.24 & 40 (2.3$\times$) \\
+    RDKit conformer & 50.7 [46.0, 55.4] & +4.4 [0.2, 8.6] & 52 & 33 & 0.20 & 85 (4.9$\times$) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -107,13 +109,15 @@ Every Vina arm changed the outcome of more complexes than a change of seed did
 (Table~\ref{tab:comparisons}, last column), though for the \SI{6}{\angstrom} box only just
 (28 against 16--19 between pairs of seeds). The clearest case is the start conformer: it
 changed 85 outcomes, 4.9 times the seed level, although its net effect was only +4.4
-points. Most of these changes cancel, so a small net difference hides a large reshuffling of
+points. These ratios are descriptive: they compare counts of changed outcomes and do not
+test whether one source of change matters more than the other. Most of these changes cancel, so a small net difference hides a large reshuffling of
 which complexes succeed. Net success rates alone therefore understate how much a preparation
 choice matters for any individual complex.
 
 \subsection{How outcomes change: failure modes}
 
-The tight box worked mainly by improving search. Moving from \SI{4}{\angstrom} to
+The failure classes below describe where top poses lay, not why they were chosen. By that
+description, the tight box acted mainly through search. Moving from \SI{4}{\angstrom} to
 \SI{2}{\angstrom} padding raised the number of complexes with any pose below
 \SI{2}{\angstrom} from 303 to 338, and wrong-site top poses fell from 20 to 3. The largest
 movements were wrong binding modes that became scoring failures (30 complexes, now with a
@@ -138,7 +142,7 @@ Table~\ref{tab:engines} gives the same comparisons for Smina, Gnina and rDock. S
 throughout. Its baseline success was 47.0\% [42.3, 51.7], and on all 428 complexes it did
 not differ from Vina's (17 complexes gained, 14 lost; exact McNemar $p = 0.72$). The
 \SI{2}{\angstrom} box was again the only significant arm, raising success to 54.7\%
-[49.9, 59.3] (+7.7 points; 43 gained, 10 lost; Holm $p = 2.8 \times 10^{-5}$), and larger
+[49.9, 59.3] (+7.7 points [4.4, 10.9]; 43 gained, 10 lost; Holm $p = 2.8 \times 10^{-5}$), and larger
 boxes again lowered it slightly (\SI{6}{\angstrom}: $-1.4$ points; \SI{8}{\angstrom}:
 $-2.8$ points; Holm $p \ge 0.38$).
 
@@ -147,7 +151,7 @@ neural network, reached 62.6\% [57.9, 67.1] at baseline, 16.4 points above Vina 
 complexes gained, 33 lost; $p = 1.4 \times 10^{-9}$). The difference is not an artefact of
 Vina's 16 preparation failures: on the 412 complexes both engines docked, success was
 48.1\% for Vina and 63.1\% for Gnina ($p = 3.8 \times 10^{-8}$). No preparation choice
-changed Gnina's success significantly. The \SI{2}{\angstrom} box gave +3.0 points and the
+changed Gnina's success significantly. The \SI{2}{\angstrom} box gave +3.0 points [$-0.5$, 6.5] and the
 \SI{8}{\angstrom} box $-4.0$ points (Holm $p = 0.47$ and $0.30$); ligand protonation gave
 $-3.3$ points and the RDKit conformer +0.7 points.
 
@@ -155,14 +159,14 @@ rDock, whose search and scoring share nothing with the Vina family, reached 29.4
 33.9] at baseline, 16.8 points below Vina (33 complexes gained, 105 lost;
 $p = 6.1 \times 10^{-10}$) and 33.2 points below Gnina. It was by far the most sensitive to
 the search space. The \SI{2}{\angstrom} box raised its success to 41.1\% [36.6, 45.8]
-(+11.7 points; 62 gained, 12 lost; Holm $p = 1.1 \times 10^{-8}$), and larger boxes lowered
+(+11.7 points [7.9, 15.4]; 62 gained, 12 lost; Holm $p = 1.1 \times 10^{-8}$), and larger boxes lowered
 it to 19.9\% at \SI{6}{\angstrom} ($-9.6$ points; 7 gained, 48 lost; Holm
 $p = 3.9 \times 10^{-8}$) and 17.3\% at \SI{8}{\angstrom} ($-12.1$ points; 7 gained, 59
 lost; Holm $p = 1.2 \times 10^{-10}$). The ligand choices did not change its success
 significantly: protonation gave +0.2 points and the RDKit conformer $-4.0$ points (Holm
 $p = 1$ and $0.086$).
 
-The mechanism behind the box effect was shared. Every engine placed more top poses in
+The geometric pattern behind the box effect was shared. Every engine placed more top poses in
 the wrong site as the box grew: from 20, 30, 4 and 91 complexes at \SI{4}{\angstrom}
 padding (Vina, Smina, Gnina, rDock) to 64, 72, 36 and 219 at \SI{8}{\angstrom}, and down
 to 3, 4, 2 and 8 at \SI{2}{\angstrom}. Gnina's re-scoring therefore removes most, but not
@@ -173,9 +177,12 @@ which any of its poses lay within \SI{2}{\angstrom} of the crystal ligand from 1
 The spread of top-1 success over the six protocols (baseline and five arms) was 8.9 points for Vina
 (44.2--53.0\%), 10.5 points for Smina (44.2--54.7\%), 7.0 points for Gnina
 (58.6--65.7\%) and 23.8 points for rDock (17.3--41.1\%). At the baseline protocol the
-engines spanned 33.2 points, from rDock to Gnina, and Gnina led Vina by 16.4. For the Vina
-family, choosing a re-scoring engine thus mattered about twice as much as any single
-preparation choice, yet the best preparation arm closed about 40\% of the gap between Vina
+engines spanned 33.2 points, from rDock to Gnina, and Gnina led Vina by 16.4. These spreads
+run from the best to the worst protocol; they are not the effect of any one choice, which is
+the paired difference reported above. The engine differences are differences between complete
+pipelines, each with its own receptor representation, search and scoring
+(Table~\ref{tab:receptor-paths}). For the Vina family, choosing the re-scoring pipeline
+thus mattered about twice as much as any single preparation choice, yet the best preparation arm closed about 40\% of the gap between Vina
 and Gnina (6.8 of 16.4 points). For rDock, the box alone moved success by more than its
 16.8-point gap to Vina.
 
@@ -225,6 +232,51 @@ $p \le 7.3 \times 10^{-6}$), with neither ligand choice significant for top-1 su
 For \pbvalid{} success, the subset changed two conclusions: the \SI{2}{\angstrom} box was no
 longer significant for Vina (Holm $p = 0.083$) or Smina ($0.65$), and the RDKit conformer
 lowered rDock's \pbvalid{} success significantly ($-5.5$ points; Holm $p = 0.027$).
+This subset is a robustness check within the same dataset, not an independent validation.
+
+\subsection{Robustness to the wrong-site threshold and to removed cofactors}
+\label{sec:robustness}
+
+The box-size pattern does not depend on the \SI{4}{\angstrom} centroid threshold that
+separates wrong sites from wrong binding modes. At every threshold from 2 to
+\SI{6}{\angstrom}, and for every engine, the \SI{2}{\angstrom} box placed fewer top poses in
+the wrong site than the baseline and the \SI{8}{\angstrom} box placed more
+(Table~\ref{tab:threshold}); only the share of misses called wrong site changes with the
+threshold.
+
+\begin{table}[h]
+  \centering
+  \caption{Top-1 poses classed as wrong site at three centroid thresholds, for the baseline
+    (\SI{4}{\angstrom} padding) and the \SI{2}{\angstrom} and \SI{8}{\angstrom} boxes (428
+    complexes). Counts at 3 and \SI{5}{\angstrom} follow the same pattern.}
+  \label{tab:threshold}
+  \small
+  \begin{tabular}{lccc}
+    \toprule
+    Engine & \SI{2}{\angstrom} threshold & \SI{4}{\angstrom} threshold & \SI{6}{\angstrom} threshold \\
+     & 2 / 4 / \SI{8}{\angstrom} box & 2 / 4 / \SI{8}{\angstrom} box & 2 / 4 / \SI{8}{\angstrom} box \\
+    \midrule
+    Vina & 27 / 59 / 92 & 3 / 20 / 64 & 0 / 4 / 41 \\
+    Smina & 31 / 68 / 96 & 4 / 30 / 72 & 1 / 10 / 41 \\
+    Gnina & 17 / 31 / 58 & 2 / 4 / 36 & 0 / 1 / 17 \\
+    rDock & 68 / 169 / 257 & 8 / 91 / 219 & 0 / 30 / 192 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Removing cofactors affects the PoseBusters checks more than it affects success. Of the 428
+complexes, 244 contain a heterogen other than common additives (organic cofactors, metal
+and other ions). Among them, a correct top pose (RMSD below \SI{2}{\angstrom}) failed
+PoseBusters only on a cofactor check for 13 complexes with Vina, 12 with Smina, 24 with Gnina
+and 7 with rDock, poses placed where a removed cofactor would be. On the 184 complexes
+without such heterogens, baseline top-1 success was 46.7\% for Vina, 47.3\% for Smina,
+62.0\% for Gnina and 34.8\% for rDock, so the engines kept their order. The
+\SI{2}{\angstrom} box raised success for all four (Vina +6.5 points [1.2, 11.8]; Smina +7.1
+[2.1, 12.0]; Gnina +2.2 [$-2.8$, 7.1]; rDock +9.2 [3.4, 14.9]), significantly after
+correction only for rDock (Holm $p = 0.010$) in this smaller set. One effect differed: the
+RDKit start conformer helped more in complexes without cofactors (Vina +9.2 points
+[2.7, 15.6], Smina +8.2 [1.8, 14.4], against +4.4 and +3.3 on all 428), an exploratory
+observation that this design cannot explain.
 
 \subsection{Which complexes are sensitive to preparation}
 
@@ -323,7 +375,7 @@ gained, 25 lost). A box scaled to the ligand works well when it contains the bin
 mode, and the gain is lost where the rule truncates it; a small fixed padding around the
 reference ligand avoids that failure.
 
-\subsection{Agreement across preparation arms as a confidence signal}
+\subsection{Agreement across preparation arms as a candidate confidence signal}
 \label{sec:agreement}
 
 The sensitivity above can also be used. For each engine and complex, the baseline top-1
@@ -372,6 +424,40 @@ arms. It was selected on these data, so its advantage over the average pair is o
 but that one pair came first for every engine suggests the choice is not arbitrary: it
 combines a change of search space with a change of starting point.
 
+Because the signal was found on these complexes, it was also evaluated out of sample
+(Table~\ref{tab:agreement-cv}). Under cross-validation, the agreement levels learned on
+training folds ranked held-out poses with an AUROC of 0.838 for Vina, 0.809 for Smina, 0.835
+for Gnina and 0.884 for rDock, against 0.637 to 0.717 for the docking score, and with lower
+Brier scores (0.118 to 0.162 against 0.201 to 0.234). Agreement added to the score rather
+than restating it: a model with both reached held-out AUROCs of 0.857 to 0.906, and adding
+agreement to the score improved the fit for every engine (likelihood-ratio test, $p <
+10^{-30}$). Choosing the best pair of arms inside each training fold, which removes the
+optimism of choosing it on all the data, gave held-out AUROCs of 0.790 to 0.871, about 0.02
+below the in-sample values above. Missing poses do not drive the signal: only 16 Vina and 2
+rDock complexes had a missing arm pose, and without them Vina's AUROC was 0.847 instead of
+0.857. All of this remains within one dataset; Section~\ref{sec:astex} tests it on another.
+
+\begin{table}[h]
+  \centering
+  \caption{Held-out performance of confidence predictors for baseline top-1 success: mean
+    over 20 repetitions of 5-fold cross-validation by complex (range over repetitions in
+    brackets). Agreement: training-fold success rate at each agreement level. Best pair:
+    the pair of arms with the highest training-fold AUROC. Lower Brier is better.}
+  \label{tab:agreement-cv}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Engine & Score & Agreement (5 arms) & Score + agreement & Best pair & Brier: score / agreement \\
+    \midrule
+    Vina & 0.671 & 0.838 [0.832, 0.845] & 0.872 & 0.809 [0.800, 0.818] & 0.225 / 0.147 \\
+    Smina & 0.637 & 0.809 [0.801, 0.816] & 0.857 & 0.790 [0.781, 0.796] & 0.234 / 0.162 \\
+    Gnina & 0.696 & 0.835 [0.826, 0.844] & 0.868 & 0.802 [0.784, 0.813] & 0.207 / 0.137 \\
+    rDock & 0.717 & 0.884 [0.881, 0.887] & 0.906 & 0.871 [0.860, 0.883] & 0.201 / 0.118 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \begin{table}[h]
   \centering
   \caption{AUROC for predicting whether the baseline top-1 pose is correct (RMSD below
@@ -408,3 +494,68 @@ consistent, but no single engine's gain survived correction over the four engine
 $p \ge 0.059$), so the consensus pose is a modest, unconfirmed improvement, whereas
 agreement as a confidence signal is a large one. As tested, both used six runs per complex,
 although the confidence signal keeps most of its value with three.
+
+\subsection{Independent check on the Astex Diverse Set}
+\label{sec:astex}
+
+The six protocols were run with all four engines on the 85 complexes of the Astex Diverse Set,
+which shares no PDB entry with the benchmark set, testing four hypotheses fixed in writing
+before the runs (Methods). Preparation failures counted as failures, as before: Meeko could not
+convert the receptor of 3 complexes for Vina (4 at 6 and \SI{8}{\angstrom}), and one Gnina run
+returned no pose; five rDock runs stopped by the memory limit were docked again with more
+memory. Baseline top-1 success was 62.4\% [51.7, 71.9] for Vina, 67.1\% [56.5, 76.1] for
+Smina, 80.0\% [70.3, 87.1] for Gnina and 37.6\% [28.1, 48.3] for rDock, higher than on the
+benchmark set for every engine.
+
+The tight box (H1) raised success only for rDock: by 17.6 points [8.2, 26.4] (17 gained, 2
+lost; Holm $p = 0.003$ over the four engines). For Vina, Smina and Gnina the changes were
+$+1.2$ [$-2.9$, 5.2], $-1.2$ [$-7.3$, 5.0] and $+1.2$ [$-5.3$, 7.7] points, with no detectable
+effect; for Vina the interval excludes the 6.8-point gain seen on the benchmark set. The
+geometric pattern did recur: the \SI{2}{\angstrom} box left no wrong-site top poses for Vina,
+Smina or Gnina and 2 for rDock, against 3, 2, 1 and 17 at baseline, and the
+\SI{8}{\angstrom} box raised them for every engine (to 6, 6, 4 and 41). On this set the
+baseline box rarely sent a Vina-family pose to the wrong site, so the tight box had little to
+correct; rDock, whose cavity grows with the box, had many such poses and gained.
+
+Agreement across the five arms (H2) identified correct baseline poses better than the docking
+score for Vina (AUROC 0.818 against 0.659; difference 0.159 [0.042, 0.289]), Smina (0.804
+against 0.620; 0.184 [0.054, 0.317]) and rDock (0.927 against 0.777; 0.151 [0.060, 0.251]). For
+Gnina the difference was similar in size but not established (0.771 against 0.636; 0.135
+[$-0.005$, 0.276]), and agreement was no better than Gnina's CNN score (0.781). With only 17
+incorrect Gnina baseline poses, its intervals are wide. The pair of arms chosen on the
+benchmark set before these runs (H3), the \SI{2}{\angstrom} box with the RDKit conformer, also
+beat the score for Vina, Smina and rDock (differences 0.155, 0.227 and 0.129, all intervals
+excluding zero) but not for Gnina. When all five arms agreed (H4), the baseline pose was correct
+for 87.2\% [74.8, 94.0] of 47 complexes with Vina, 89.4\% [77.4, 95.4] of 47 with Smina,
+91.4\% [81.4, 96.3] of 58 with Gnina and 88.9\% [67.2, 96.9] of 18 with rDock, consistent
+with the benchmark set for every engine (Table~\ref{tab:astex}).
+
+\begin{table}[h]
+  \centering
+  \caption{Independent check on the Astex Diverse Set (85 complexes), as specified before the
+    runs. H1: change in top-1 success with the \SI{2}{\angstrom} box, with 95\% paired
+    interval and Holm-adjusted $p$ over four engines. H2 and H3: AUROC of agreement across the
+    five arms and across the pre-selected pair, against the docking score, with the 95\%
+    bootstrap interval of the difference. H4: success when all five arms agree, with Wilson
+    interval (benchmark set in brackets).}
+  \label{tab:astex}
+  \small
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{lllll}
+    \toprule
+     & Vina & Smina & Gnina & rDock \\
+    \midrule
+    H1 box, pts & +1.2 [$-2.9$, 5.2] & $-1.2$ [$-7.3$, 5.0] & +1.2 [$-5.3$, 7.7] & +17.6 [8.2, 26.4] \\
+    \quad Holm $p$ & 1 & 1 & 1 & 0.003 \\
+    H2 arms vs score & 0.82 vs 0.66 & 0.80 vs 0.62 & 0.77 vs 0.64 & 0.93 vs 0.78 \\
+    \quad difference & 0.16 [0.04, 0.29] & 0.18 [0.05, 0.32] & 0.14 [$-0.01$, 0.28] & 0.15 [0.06, 0.25] \\
+    H3 pair vs score & 0.16 [0.03, 0.29] & 0.23 [0.10, 0.37] & 0.08 [$-0.08$, 0.24] & 0.13 [0.04, 0.23] \\
+    H4 all agree & 87\% (84\%) & 89\% (81\%) & 91\% (93\%) & 89\% (91\%) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+In short, the confidence signal replicated on an independent set for three of the four engines
+and its calibration held for all four, while the gain from a tight box replicated only for
+rDock: for the Vina family it depends on how often a dataset's baseline box admits wrong-site
+poses.

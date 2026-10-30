@@ -1,8 +1,9 @@
 \section{Discussion}
 \label{sec:discussion}
 
-The choice of docking engine was the largest single factor in this study, but preparation
-was large enough to change how engines compare. Gnina's re-scoring of the same search
+The choice of docking pipeline (engine together with its receptor representation) was the
+largest single factor in this redocking study, but preparation was large enough to change
+how pipelines compare. Gnina's re-scoring of the same search
 placed it 16.4 points above Vina at the baseline protocol, and the four engines spanned
 33.2 points, while across the six protocols (baseline and five arms) top-1 success varied
 by 7.0 to 10.5 points within each Vina-family engine and by 23.8 points for rDock. Gnina
@@ -17,9 +18,9 @@ came within 1.4 points of Gnina's worst arm (58.6\%), although Gnina itself was 
 with the combination. rDock, an engine outside the Vina family, followed the same pattern
 more strongly: its success moved by 23.8 points across the arms, almost all of it through
 the box, so for an engine whose search space grows with the box, the box can matter as
-much as the choice of engine. For anyone comparing engines, these numbers set a scale: differences
+much as the choice of engine. For anyone comparing engines by redocking, these numbers set a scale: differences
 between engines of a few points, measured under a single preparation protocol, are within
-the range that preparation alone produces.
+the range that preparation alone produced here.
 
 Net success rates hide most of what preparation does. For Vina, the one engine with seed
 replicates, every arm changed the outcome of more complexes than a change of docking seed
@@ -32,8 +33,8 @@ benchmark-level rates look stable. That docking responds strongly to small chang
 input has been reported before \citep{feher2012chaotic}; here it is quantified against the
 seed-to-seed variation of the same protocol.
 
-The failure-mode analysis shows how the choices act. The search box worked through
-sampling, not scoring: a tight box removed nearly all wrong-site poses and raised the
+The failure classes describe where top poses lay, and read that way they suggest how the
+choices act. The search box acted through sampling, not scoring: a tight box removed nearly all wrong-site poses and raised the
 number of complexes with any correct pose, and larger boxes did the reverse for every
 engine, sending top poses to high-scoring sites away from the crystal ligand. This agrees
 with earlier work showing that box size affects docking accuracy
@@ -45,30 +46,44 @@ half of its top poses lay in the wrong site. The
 start conformer, in contrast, changed which basin the search ended in, in both directions,
 and its effect was not related to ligand size or flexibility: it behaves like a
 reproducible perturbation of a stochastic search rather than a better or worse input.
+Because the regenerated conformer was also minimised with a different force field (MMFF94
+rather than UFF), its effect cannot be assigned to the coordinates alone.
 Protonation at pH 7.4 had small effects that leaned towards the ligands whose charge it
 changed, and no effect survived correction among the primary arms; in the follow-up runs
 its effect was significant only in combination with the \SI{2}{\angstrom} box.
 
 These results suggest four practices for docking benchmarks and applications. First,
 report the search space exactly (centre, size and how it was derived), since it is the
-preparation choice with the largest and most consistent effect. Where a reference ligand
-is available, a tight box (\SI{2}{\angstrom} padding here) raised success for all four
-engines, significantly for Vina, Smina and rDock. Second, repeat runs with several seeds and report the spread: a single run cannot
+preparation choice with the largest and most consistent effect. In redocking, with the box
+drawn around the crystal ligand, a tight box (\SI{2}{\angstrom} padding here) raised success
+for all four engines, significantly for Vina, Smina and rDock. On the independent Astex set
+the gain recurred only for rDock (Section~\ref{sec:astex}): a tight box helps where the
+generous box lets poses reach wrong sites, which on that set was common only for rDock. A
+box drawn generously around a known site can therefore cost accuracy, by an amount that
+depends on the engine and the dataset; the results do not show that \SI{2}{\angstrom} is
+optimal for prospective docking, cross-docking or virtual screening, where the site and the
+ligand's extent are less certain and a tight box risks cutting off the binding mode, as the
+ligand-scaled box did here (Section~\ref{sec:interaction}). Second, repeat runs with several seeds and report the spread: a single run cannot
 separate a real difference from seed noise, which here amounted to 17.5 changed complexes
 between two runs of the same protocol. Third, compare protocols complex by complex with
 paired tests and report how many complexes changed, not only the net rate. Fourth, state
 the ligand protonation and start conformer used, as both change individual outcomes even
 when they leave the overall rate unchanged.
 
-The same sensitivity is also informative (Section~\ref{sec:agreement}). A top pose that
+The same sensitivity may also be informative (Section~\ref{sec:agreement}). A top pose that
 survives changes of preparation was usually correct, and one that did not was rarely
 correct: agreement across the five arms ranked poses by confidence far better than the
 docking score for all four engines, better than Gnina's CNN score, and about as well as
 agreement across engines, while needing only one engine. Rerunning with new seeds did not
 reproduce this, so the signal comes from perturbing the input, not from repeating the
-search; the idea parallels test-time augmentation in machine learning. In practice,
-re-docking a candidate with a few preparation variants is a cheap way to decide which poses
-to trust before inspecting or rescoring them. There is also room to choose better: had the
+search; the idea parallels test-time augmentation in machine learning. The signal held under cross-validation and added to the docking score rather than
+restating it, and on the independent Astex set, tested as specified in advance, it again beat
+the docking score for Vina, Smina and rDock (though not detectably for Gnina) with success
+rates at full agreement close to those of the benchmark set. If it holds beyond redocking,
+re-docking a candidate with a few preparation
+variants would be a cheap way to decide which poses to trust before inspecting or rescoring
+them; for now it is a candidate confidence signal, not a validated, calibrated measure, and
+its success rates at each agreement level are those of this dataset. There is also room to choose better: had the
 best of the six protocols been picked for each complex, Vina would have succeeded for 66.4\%
 of complexes, against 46.3\% at the baseline and 50.5\% for the best of its four seed
 replicates. A post hoc best is an upper bound, not an achievable protocol, but it shows that
@@ -81,8 +96,12 @@ value in cross-docking, where fewer poses are correct, remains to be tested.
 \subsection{Limitations}
 
 Several choices are fixed in all arms. Cofactors are removed in the baseline because most
-lack Meeko templates; trial runs already show top poses placed in a cofactor's site, which
-the PoseBusters checks then reject. Waters cannot be studied because the dataset's protein
+lack Meeko templates. Some top poses then sit where a cofactor was: 7 to 24 correct poses
+per engine failed PoseBusters only on a cofactor check, most of them Gnina's
+(Section~\ref{sec:robustness}). Without the 244 complexes that contain cofactors or ions, the
+engines kept their order and the tight box helped all four, so the main conclusions do not
+rest on them, but a protocol that kept relevant cofactors could rank pipelines differently on
+\pbvalid{} success. Waters cannot be studied because the dataset's protein
 files contain none. A small number of complexes fail receptor conversion because atoms in
 the deposited structure lie close enough for a spurious bond to be perceived; they are not
 repaired, since that would move experimental atoms. This affects 16 complexes for Vina
@@ -115,4 +134,9 @@ throughout. The box scaled to the ligand's size was tested for Vina only. The se
 replicates that set the noise floor were run for Vina only; Smina and Gnina share much of
 Vina's search, but their own run-to-run variation, and rDock's, was not measured. The analysis
 of which complexes are sensitive is exploratory, and the properties tested explained
-little of the variation. Results cover four engines and one dataset.
+little of the variation. The failure classes are geometric descriptions with a heuristic
+threshold; the box-size pattern held at every threshold tested, but the classes do not
+identify why a pose was chosen. The 308-complex subset and the cofactor analysis are
+robustness checks within one dataset; the Astex check (Section~\ref{sec:astex}) is a small
+independent test, not a general validation. Results cover four engines, redocking, and
+search spaces drawn from the crystal ligand.

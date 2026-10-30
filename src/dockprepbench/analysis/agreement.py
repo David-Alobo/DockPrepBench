@@ -400,6 +400,253 @@ def oracle_table(results: str | Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def fit_logistic(x: np.ndarray, y: np.ndarray, ridge: float = 1e-4, steps: int = 50) -> np.ndarray:
+    """
+    Fit a logistic regression with an intercept by iteratively reweighted least squares.
+
+    A small ridge penalty keeps the fit finite when a feature separates the classes.
+
+    Args:
+        x (np.ndarray): Features, shape (n, k).
+        y (np.ndarray): Binary outcomes, shape (n,).
+        ridge (float): L2 penalty on the non-intercept coefficients.
+        steps (int): Maximum Newton steps.
+
+    Returns:
+        np.ndarray: Coefficients, intercept first, shape (k + 1,).
+    """
+    design = np.column_stack([np.ones(len(x)), x])
+    beta = np.zeros(design.shape[1])
+    penalty = ridge * np.eye(len(beta))
+    penalty[0, 0] = 0.0
+    for _ in range(steps):
+        p = 1 / (1 + np.exp(-design @ beta))
+        w = p * (1 - p)
+        step = np.linalg.solve(
+            design.T @ (design * w[:, None]) + penalty, design.T @ (y - p) - penalty @ beta
+        )
+        beta += step
+        if np.abs(step).max() < 1e-8:
+            break
+    return beta
+
+
+def predict_logistic(beta: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """
+    Predicted probabilities from `fit_logistic` coefficients.
+
+    Args:
+        beta (np.ndarray): Coefficients, intercept first.
+        x (np.ndarray): Features, shape (n, k).
+
+    Returns:
+        np.ndarray: Probabilities, shape (n,).
+    """
+    return 1 / (1 + np.exp(-np.column_stack([np.ones(len(x)), x]) @ beta))
+
+
+def log_likelihood(p: np.ndarray, y: np.ndarray) -> float:
+    """
+    Bernoulli log-likelihood of outcomes under predicted probabilities.
+
+    Args:
+        p (np.ndarray): Predicted probabilities.
+        y (np.ndarray): Binary outcomes.
+
+    Returns:
+        float: Sum of log-probabilities of the observed outcomes.
+    """
+    p = np.clip(p, 1e-12, 1 - 1e-12)
+    return float(np.sum(y * np.log(p) + (1 - y) * np.log(1 - p)))
+
+
+def stratified_folds(y: np.ndarray, k: int, rng: np.random.Generator) -> np.ndarray:
+    """
+    Assign each item to one of k folds, balancing the classes across folds.
+
+    Args:
+        y (np.ndarray): Binary outcomes.
+        k (int): Number of folds.
+        rng (np.random.Generator): Random generator.
+
+    Returns:
+        np.ndarray: Fold index per item.
+    """
+    folds = np.empty(len(y), dtype=int)
+    for cls in (False, True):
+        idx = rng.permutation(np.flatnonzero(y == cls))
+        folds[idx] = np.arange(len(idx)) % k
+    return folds
+
+
+def _features(g: pd.DataFrame) -> dict[str, np.ndarray]:
+    """
+    Per-complex confidence features for one engine; a failed baseline gets the worst score.
+
+    Args:
+        g (pd.DataFrame): One engine's rows of `collect` output.
+
+    Returns:
+        dict[str, np.ndarray]: The negated docking score and the preparation agreement.
+    """
+    score = -g["score"].to_numpy(dtype=float)
+    score[np.isnan(score)] = np.nanmin(score)
+    return {"score": score, "prep_agree": g["prep_agree"].to_numpy(dtype=float)}
+
+
+def _level_rates(
+    signal: np.ndarray, y: np.ndarray, train: np.ndarray, test: np.ndarray
+) -> np.ndarray:
+    """
+    Predict held-out outcomes by the training success rate at each level of a discrete signal.
+
+    Levels unseen in training get the overall training rate.
+
+    Args:
+        signal (np.ndarray): Discrete signal per item (e.g. an agreement count).
+        y (np.ndarray): Binary outcomes.
+        train (np.ndarray): Boolean mask of training items.
+        test (np.ndarray): Boolean mask of held-out items.
+
+    Returns:
+        np.ndarray: Predicted probability per held-out item.
+    """
+    rates = pd.Series(y[train]).groupby(signal[train]).mean()
+    prior = y[train].mean()
+    return np.array([rates.get(v, prior) for v in signal[test]])
+
+
+def validation_table(
+    per_complex: pd.DataFrame, repeats: int = 20, folds: int = 5, seed: int = SEED
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Out-of-sample evaluation of the confidence signals by repeated cross-validation over complexes.
+
+    Models, each fitted on the training folds and scored on the held-out fold:
+    `score` and `score+prep_agree` (logistic regressions, features standardised on the training
+    folds); `prep_agree` (the training-fold success rate at each agreement level, i.e. the
+    lookup a user would apply); and `best_pair` (the pair of arms with the highest
+    training-fold AUROC, then the training-fold success rate at each level of that pair's
+    agreement), which removes the optimism of choosing the pair on all the data.
+    A likelihood-ratio test on all complexes asks whether agreement adds to the score.
+
+    Args:
+        per_complex (pd.DataFrame): Output of `collect`, with `d_<arm>` columns.
+        repeats (int): Repetitions of the k-fold split.
+        folds (int): Number of folds.
+        seed (int): Random seed.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: Per (engine, model): mean held-out AUROC and Brier
+            score with their 2.5th and 97.5th percentiles over repeats (and, for the combined
+            model, the likelihood-ratio statistic and p-value); and per (engine, agreement
+            level): mean held-out predicted probability against observed success.
+    """
+    from scipy.stats import chi2
+
+    rng = np.random.default_rng(seed)
+    pairs = list(itertools.combinations(PRIMARY_ARMS, 2))
+    rows, calibration = [], []
+    for e, g in per_complex.groupby("engine", sort=False):
+        y = g["success"].to_numpy(dtype=float)
+        feats = _features(g)
+        agree = {a: (g[f"d_{a}"] < SUCCESS_THRESHOLD).to_numpy(dtype=int) for a in PRIMARY_ARMS}
+        pair_count = {p: agree[p[0]] + agree[p[1]] for p in pairs}
+        level = feats["prep_agree"].astype(int)
+        results = {
+            m: {"auroc": [], "brier": []}
+            for m in ("score", "prep_agree", "score+prep_agree", "best_pair")
+        }
+        oof_sum, oof_n = np.zeros(len(y)), np.zeros(len(y))
+        for _ in range(repeats):
+            fold = stratified_folds(y.astype(bool), folds, rng)
+            pred = {m: np.empty(len(y)) for m in results}
+            for f in range(folds):
+                test, train = fold == f, fold != f
+
+                for model, cols in (
+                    ("score", ["score"]),
+                    ("score+prep_agree", ["score", "prep_agree"]),
+                ):
+                    x = np.column_stack([feats[c] for c in cols])
+                    mu, sd = x[train].mean(0), x[train].std(0) + 1e-12
+                    beta = fit_logistic((x[train] - mu) / sd, y[train])
+                    pred[model][test] = predict_logistic(beta, (x[test] - mu) / sd)
+                pred["prep_agree"][test] = _level_rates(level, y, train, test)
+                best = max(pairs, key=lambda p: auroc(pair_count[p][train], y[train]))
+                pred["best_pair"][test] = _level_rates(pair_count[best], y, train, test)
+            for model in results:
+                results[model]["auroc"].append(auroc(pred[model], y.astype(bool)))
+                results[model]["brier"].append(float(np.mean((pred[model] - y) ** 2)))
+            oof_sum += pred["prep_agree"]
+            oof_n += 1
+        x_full = np.column_stack([feats["score"], feats["prep_agree"]])
+        x_full = (x_full - x_full.mean(0)) / (x_full.std(0) + 1e-12)
+        ll_score = log_likelihood(
+            predict_logistic(fit_logistic(x_full[:, :1], y, ridge=0), x_full[:, :1]), y
+        )
+        ll_both = log_likelihood(predict_logistic(fit_logistic(x_full, y, ridge=0), x_full), y)
+        lr = 2 * (ll_both - ll_score)
+        for model, r in results.items():
+            a, b = np.array(r["auroc"]), np.array(r["brier"])
+            row = {
+                "engine": e,
+                "model": model,
+                "n": len(y),
+                "auroc": a.mean(),
+                "auroc_lo": np.percentile(a, 2.5),
+                "auroc_hi": np.percentile(a, 97.5),
+                "brier": b.mean(),
+                "brier_lo": np.percentile(b, 2.5),
+                "brier_hi": np.percentile(b, 97.5),
+            }
+            if model == "score+prep_agree":
+                row |= {"lr_stat": lr, "lr_p": float(chi2.sf(lr, 1))}
+            rows.append(row)
+        oof = oof_sum / oof_n
+        for lv in sorted(set(level)):
+            m = level == lv
+            calibration.append({
+                "engine": e,
+                "prep_agree": lv,
+                "n": int(m.sum()),
+                "predicted": float(oof[m].mean()),
+                "observed": float(y[m].mean()),
+            })  # fmt: skip
+    return pd.DataFrame(rows), pd.DataFrame(calibration)
+
+
+def missing_table(per_complex: pd.DataFrame) -> pd.DataFrame:
+    """
+    Whether missing poses drive the agreement signal: AUROCs with and without such complexes.
+
+    A missing arm pose counts as disagreement in the main analysis. Here the complexes with
+    any missing arm pose are counted and then dropped, and the AUROCs recomputed.
+
+    Args:
+        per_complex (pd.DataFrame): Output of `collect`, with `d_<arm>` columns.
+
+    Returns:
+        pd.DataFrame: One row per engine: complexes with a missing pose, and the AUROC of
+            preparation agreement and of the docking score on all complexes and on the rest.
+    """
+    rows = []
+    for e, g in per_complex.groupby("engine", sort=False):
+        missing = g[[f"d_{a}" for a in PRIMARY_ARMS]].isna().any(axis=1)
+        complete = g[~missing]
+        rows.append({
+            "engine": e,
+            "n": len(g),
+            "with_missing_pose": int(missing.sum()),
+            "missing_success_rate": g.loc[missing, "success"].mean() if missing.any() else np.nan,
+            "prep_auroc_all": auroc(g["prep_agree"], g["success"]),
+            "score_auroc_all": auroc(-g["score"], g["success"]),
+            "prep_auroc_complete": auroc(complete["prep_agree"], complete["success"]),
+            "score_auroc_complete": auroc(-complete["score"], complete["success"]),
+        })  # fmt: skip
+    return pd.DataFrame(rows)
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     """
     Run the full agreement analysis, write its tables as CSV and, optionally, its figure.
@@ -411,10 +658,17 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("results", type=Path, help="root with <engine>/<arm>/ runs")
     parser.add_argument("out", type=Path, help="directory for the CSV tables")
     parser.add_argument("--figures", type=Path, help="directory for the agreement figure")
+    parser.add_argument(
+        "--reuse",
+        action="store_true",
+        help="read agreement_per_complex.csv from OUT instead of recomputing pose RMSDs",
+    )
     args = parser.parse_args(argv)
     RDLogger.DisableLog("rdApp.*")
     args.out.mkdir(parents=True, exist_ok=True)
-    per_complex = collect(args.results)
+    cached = args.out / "agreement_per_complex.csv"
+    per_complex = pd.read_csv(cached) if args.reuse and cached.is_file() else collect(args.results)
+    validation, calibration = validation_table(per_complex)
     tables = {
         "agreement_per_complex": per_complex,
         "agreement_signals": signal_table(per_complex),
@@ -422,6 +676,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         "agreement_subsets": subset_table(per_complex),
         "agreement_consensus": consensus_table(per_complex),
         "agreement_oracle": oracle_table(args.results),
+        "agreement_validation": validation,
+        "agreement_calibration": calibration,
+        "agreement_missing": missing_table(per_complex),
     }
     for name, table in tables.items():
         table.to_csv(args.out / f"{name}.csv", index=False)

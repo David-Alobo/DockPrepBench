@@ -67,6 +67,33 @@
     return [Math.max(0, centre - half), Math.min(1, centre + half)];
   }
 
+  /**
+   * Interval for a paired difference in success, rate(arm) - rate(baseline): Newcombe's
+   * hybrid score interval (matches analysis.stats.paired_difference_interval).
+   * @param {number} both Complexes both runs solve.
+   * @param {number} onlyBase Complexes only the baseline solves (lost).
+   * @param {number} onlyArm Complexes only the arm solves (gained).
+   * @param {number} n Complexes compared.
+   * @param {number} [z] Normal quantile; default gives a 95% interval.
+   * @returns {[number, number]} Lower and upper bounds, as fractions.
+   */
+  function pairedDiff(both, onlyBase, onlyArm, n, z = Z_95) {
+    const neither = n - both - onlyBase - onlyArm;
+    if (!(n > 0) || Math.min(both, onlyBase, onlyArm, neither) < 0) {
+      throw new RangeError(`Inconsistent counts: both=${both}, onlyBase=${onlyBase}, onlyArm=${onlyArm}, n=${n}`);
+    }
+    const pA = (both + onlyBase) / n;
+    const pB = (both + onlyArm) / n;
+    const [lA, uA] = wilson(both + onlyBase, n, z);
+    const [lB, uB] = wilson(both + onlyArm, n, z);
+    const margins = (both + onlyBase) * (onlyArm + neither) * (both + onlyArm) * (onlyBase + neither);
+    const phi = margins ? (both * neither - onlyBase * onlyArm) / Math.sqrt(margins) : 0;
+    const d = pB - pA;
+    const lo = d - Math.sqrt(Math.max((pB - lB) ** 2 - 2 * phi * (pB - lB) * (uA - pA) + (uA - pA) ** 2, 0));
+    const hi = d + Math.sqrt(Math.max((uB - pB) ** 2 - 2 * phi * (uB - pB) * (pA - lA) + (pA - lA) ** 2, 0));
+    return [Math.max(-1, lo), Math.min(1, hi)];
+  }
+
   /** Natural log of the binomial coefficient C(n, k). */
   function logChoose(n, k) {
     let s = 0;
@@ -146,7 +173,8 @@
    * Filter and sort complexes for the table.
    * @param {Array} complexes
    * @param {object} f Filters: search, cofactorOnly, klass (arm class), baseClass,
-   *   changedOnly, arm, metric, sort {key, dir}.
+   *   changedOnly, agree (number of arms agreeing, as a string; "" for any), arm, metric,
+   *   sort {key, dir}.
    * @returns {Array} A new, sorted array.
    */
   function filterComplexes(complexes, f, base = BASE) {
@@ -156,6 +184,7 @@
       if (f.cofactorOnly && !c.cofactors.length) return false;
       if (f.klass && classify(c.arms[f.arm]) !== f.klass) return false;
       if (f.baseClass && classify(c.arms[base]) !== f.baseClass) return false;
+      if (f.agree !== undefined && f.agree !== "" && c.agree !== Number(f.agree)) return false;
       if (f.changedOnly) return succeeds(c.arms[base], f.metric) !== succeeds(c.arms[f.arm], f.metric);
       return true;
     });
@@ -199,6 +228,7 @@
     classify,
     succeeds,
     wilson,
+    pairedDiff,
     mcnemar,
     rate,
     discordance,

@@ -111,8 +111,8 @@ def arm_table(summary: pd.DataFrame, comparisons: pd.DataFrame, metric: str) -> 
     comp = comparisons[comparisons["metric"] == metric].set_index(["engine", "arm"])
     lines = [
         r"\toprule",
-        rf"Engine & Arm & {METRIC_LABELS[metric].capitalize()} (\%) [95\% CI] & $\Delta$ (pts) "
-        r"& Gained & Lost & Holm $p$ \\",
+        rf"Engine & Arm & {METRIC_LABELS[metric].capitalize()} (\%) [95\% CI] "
+        r"& $\Delta$ (pts) [95\% CI] & Gained & Lost & Holm $p$ \\",
         r"\midrule",
     ]
     for i, engine in enumerate(_engines(summary)):
@@ -128,7 +128,8 @@ def arm_table(summary: pd.DataFrame, comparisons: pd.DataFrame, metric: str) -> 
                 continue
             c = comp.loc[(engine, arm)]
             lines.append(
-                rf"{name} & {_arm(arm)} & {cell} & {_signed(c['delta_pts'])} & {int(c['gained'])} "
+                rf"{name} & {_arm(arm)} & {cell} & {_signed(c['delta_pts'])} "
+                rf"[{_signed(c['delta_low'])}, {_signed(c['delta_high'])}] & {int(c['gained'])} "
                 rf"& {int(c['lost'])} & {_p(c['p_holm'])} \\"
             )
     lines.append(r"\bottomrule")

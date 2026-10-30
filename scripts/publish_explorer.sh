@@ -25,6 +25,10 @@ source_commit=$(git rev-parse --short HEAD)
 
 if (( build )); then
     uv run python explorer/build_data.py "${args[@]}"
+    # The independent Astex check, if its results are present (results/server/astex/).
+    if [[ -d results/server/astex ]]; then
+        uv run python explorer/build_data.py --dataset astex "${args[@]}"
+    fi
 fi
 [[ -f explorer/data.js && -d explorer/poses ]] || { echo "No explorer data; build it first." >&2; exit 1; }
 
@@ -32,6 +36,9 @@ site=$(mktemp -d)
 trap 'rm -rf "$site"' EXIT
 cp explorer/index.html explorer/app.js explorer/lib.js explorer/data.js "$site/"
 cp -r explorer/poses "$site/"
+if [[ -f explorer/data_astex.js && -d explorer/poses_astex ]]; then
+    cp explorer/data_astex.js "$site/" && cp -r explorer/poses_astex "$site/"
+fi
 touch "$site/.nojekyll"  # serve files as they are, without a Jekyll build
 
 git -C "$site" init -q -b gh-pages

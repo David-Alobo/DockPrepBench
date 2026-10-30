@@ -29,7 +29,7 @@ def test_arm_table_lists_baseline_then_arms_with_their_comparisons(results, tmp_
     assert rows[0].startswith("Vina & Baseline")
     assert "& -- & -- & -- & --" in rows[0]
     box2 = next(r for r in rows if "Box padding 2" in r)
-    assert "+50.0 & 3 & 0" in box2  # 33.3% -> 83.3%; 3 gained, none lost
+    assert "+50.0 [+5.3, +73.3] & 3 & 0" in box2  # 33.3% -> 83.3%; 3 gained, none lost
 
 
 def test_write_latex_wraps_whole_environments(results, tmp_path):  # noqa: F811

@@ -27,9 +27,16 @@ from rdkit.Chem.Draw import rdMolDraw2D
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+from dockprepbench.analysis.agreement import collect as collect_agreement  # noqa: E402
 from dockprepbench.analysis.sensitivity import ADDITIVES  # noqa: E402
 from dockprepbench.analysis.stats import load_run  # noqa: E402
-from dockprepbench.datasets.posebusters import SET_NAME, download, load_complexes  # noqa: E402
+from dockprepbench.datasets.posebusters import SET_NAME, SETS, download, load_complexes  # noqa: E402
+
+# Dataset key -> (label shown on the page, folder in the PoseBusters archive, file suffix).
+DATASETS = {
+    "posebusters": ("PoseBusters Benchmark set", SET_NAME, ""),
+    "astex": ("Astex Diverse Set", SETS["astex"], "_astex"),
+}
 
 ARMS = {
     "baseline": ("Baseline", "4 Å padding, supplied ligand"),
@@ -303,16 +310,30 @@ def main() -> None:
     )
     parser.add_argument("--out", type=Path, default=REPO / "explorer", help="Explorer directory")
     parser.add_argument("--share-url", default=None, help="Base URL for 'Copy link'")
+    parser.add_argument(
+        "--dataset",
+        choices=sorted(DATASETS),
+        default="posebusters",
+        help="Complex set; astex writes data_astex.js and poses_astex/ next to the default",
+    )
     args = parser.parse_args()
+    label, set_name, suffix = DATASETS[args.dataset]
 
-    results = args.results or default_results()
+    results = args.results or (
+        default_results() if args.dataset == "posebusters" else default_results().parent / "astex"
+    )
     engines = find_engines(results, args.engine)
     arms = {e: find_arms(results / e) for e in engines}
     runs = {
         e: {arm: load_run(results / e / arm / "results.csv") for arm in arms[e]} for e in engines
     }
 
-    pose_dir = args.out / "poses"
+    # Agreement of each baseline top pose with the primary arms (paper section on agreement).
+    print("Computing pose agreement across arms...")
+    agreement = collect_agreement(results, engines)
+    agree = {(r.engine, r.id): int(r.prep_agree) for r in agreement.itertuples()}
+
+    pose_dir = args.out / f"poses{suffix}"
     shutil.rmtree(pose_dir, ignore_errors=True)
     pose_dir.mkdir(parents=True)
 
@@ -322,7 +343,7 @@ def main() -> None:
         dataset = download(REPO / "data/raw")
 
     rows = []
-    for c in load_complexes(dataset):
+    for c in load_complexes(dataset, set_name):
         lig = next(Chem.SDMolSupplier(str(c.crystal_ligand)))
         records = c.protein.read_text().splitlines()
         hets = {ln[17:20].strip() for ln in records if ln.startswith("HETATM")}
@@ -349,6 +370,7 @@ def main() -> None:
                     }
                     for e in engines
                 },
+                "agreeByEngine": {e: agree[(e, c.id)] for e in engines if (e, c.id) in agree},
             }
         )
         payload = {
@@ -370,7 +392,8 @@ def main() -> None:
     data = {
         "demo": False,
         "shareUrl": args.share_url,
-        "dataset": "PoseBusters Benchmark set",
+        "dataset": label,
+        "datasetKey": args.dataset,
         "engines": [
             {
                 "key": e,
@@ -384,15 +407,16 @@ def main() -> None:
         ],
         "complexes": rows,
         "real": {},
-        "poseDir": "poses",
+        "poseDir": f"poses{suffix}",
     }
-    (args.out / "data.js").write_text(
+    (args.out / f"data{suffix}.js").write_text(
         "window.EXPLORER_DATA = " + json.dumps(data, separators=(",", ":")) + ";\n",
         encoding="utf-8",
     )
     size = sum(f.stat().st_size for f in pose_dir.iterdir()) / 2**20
     print(
-        f"{len(rows)} complexes; data.js {(args.out / 'data.js').stat().st_size / 2**10:.0f} KB, "
+        f"{len(rows)} complexes; data{suffix}.js "
+        f"{(args.out / f'data{suffix}.js').stat().st_size / 2**10:.0f} KB, "
         f"poses {size:.0f} MB"
     )
     for e in engines:

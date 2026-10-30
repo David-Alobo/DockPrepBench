@@ -18,7 +18,11 @@ function useEngine(key) {
   const engine = ENGINES.find((e) => e.key === key) || ENGINES[0];
   ARMS = engine.arms;
   DATA.engine = engine.label;
-  for (const c of DATA.complexes) c.arms = c.byEngine[engine.key];
+  for (const c of DATA.complexes) {
+    c.arms = c.byEngine[engine.key];
+    // Primary arms whose top pose lies within 2 Å of the baseline pose (0-5); null if not computed.
+    c.agree = c.agreeByEngine ? c.agreeByEngine[engine.key] ?? null : null;
+  }
   return engine.key;
 }
 
@@ -33,6 +37,7 @@ const state = {
   baseClass: "",
   changedOnly: false,
   cofactorOnly: false,
+  agree: "",
   sort: { key: "id", dir: 1 },
   page: 1,
   selected: DATA.complexes.some((c) => c.id === "5S8I_2LY") ? "5S8I_2LY" : DATA.complexes[0].id,
@@ -79,7 +84,11 @@ function drawTiles() {
   $("t-base-ci").textContent = `95% CI ${L.pct(base.lo)}–${L.pct(base.hi)} · ${base.k}/${base.n}`;
   $("t-arm-k").textContent = `${armLabel(state.arm)} success`;
   $("t-arm").textContent = L.pct(arm.value);
-  $("t-arm-ci").textContent = `${L.signed(100 * (arm.value - base.value))} pts vs baseline · CI ${L.pct(arm.lo)}–${L.pct(arm.hi)}`;
+  const [dLo, dHi] = L.pairedDiff(base.k - loss, loss, gain, base.n);
+  $("t-arm-ci").textContent =
+    `${L.signed(100 * (arm.value - base.value))} pts vs baseline [${L.signed(100 * dLo)}, ${L.signed(100 * dHi)}] · ` +
+    `CI ${L.pct(arm.lo)}–${L.pct(arm.hi)}`;
+  $("t-arm-ci").title = "Change from baseline with its 95% paired interval (Newcombe); then the arm's own 95% Wilson interval";
   $("t-changed").textContent = `${gain + loss}`;
   $("t-changed-s").innerHTML = `<span class="delta up">↑ ${gain} gained</span> · <span class="delta down">↓ ${loss} lost</span>`;
   $("t-p").textContent = p.startsWith("<") ? `p ${p}` : `p = ${p}`;
@@ -198,7 +207,7 @@ function drawTable() {
   const { page, pages, start, end } = L.paginate(rows.length, state.page);
   state.page = page;
   const shown = rows.slice(start, end);
-  const filler = Array.from({ length: PAGE_SIZE - shown.length }, () => `<tr aria-hidden="true"><td colspan="6"></td></tr>`);
+  const filler = Array.from({ length: PAGE_SIZE - shown.length }, () => `<tr aria-hidden="true"><td colspan="7"></td></tr>`);
   $("rows").innerHTML = shown.length
     ? shown
         .map((c) => {
@@ -209,12 +218,13 @@ function drawTable() {
           return (
             `<tr tabindex="0" data-id="${c.id}" aria-selected="${c.id === state.selected}">` +
             `<td class="mono">${c.id}${DATA.real[c.id] ? " ◆" : ""}</td><td class="num">${c.heavy}</td><td class="num">${c.rotb}</td>` +
-            `<td>${strip(c)}</td><td>${chip(L.classify(c.arms[state.arm]))}</td><td>${change}</td></tr>`
+            `<td>${strip(c)}</td><td class="num">${c.agree === null ? "–" : `${c.agree}/5`}</td>` +
+            `<td>${chip(L.classify(c.arms[state.arm]))}</td><td>${change}</td></tr>`
           );
         })
         .concat(filler)
         .join("")
-    : `<tr><td colspan="6" class="empty-row">No complexes match these filters.</td></tr>` + filler.slice(1).join("");
+    : `<tr><td colspan="7" class="empty-row">No complexes match these filters.</td></tr>` + filler.slice(1).join("");
 
   const total = DATA.complexes.length;
   $("count").textContent = rows.length
@@ -507,6 +517,11 @@ function showMeta() {
   $("meta").textContent = `${DATA.dataset} · ${DATA.complexes.length} complexes · ${DATA.engine}`;
 }
 
+/** "dataset=astex&" when showing a non-default dataset, so links and reloads keep it. */
+function datasetParam() {
+  return DATA.datasetKey && DATA.datasetKey !== "posebusters" ? `dataset=${DATA.datasetKey}&` : "";
+}
+
 function setEngine(key) {
   state.engine = useEngine(key);
   if (!ARMS.some((a) => a.key === state.arm)) state.arm = defaultArm(ARMS);
@@ -514,7 +529,7 @@ function setEngine(key) {
   fillArmSelect();
   showMeta();
   try {
-    history.replaceState(null, "", `?engine=${state.engine}${location.hash}`);
+    history.replaceState(null, "", `?${datasetParam()}engine=${state.engine}${location.hash}`);
   } catch {
     /* sandboxed frames may refuse */
   }
@@ -553,6 +568,15 @@ function renderAll() {
 
 function init() {
   showMeta();
+  // The dataset menu reloads the page with the other data file; older data has no datasetKey.
+  $("dataset-field").hidden = !DATA.datasetKey;
+  if (DATA.datasetKey) {
+    $("dataset-select").value = DATA.datasetKey;
+    $("dataset-select").addEventListener("change", (e) => {
+      const ds = e.target.value === "posebusters" ? "" : `dataset=${e.target.value}&`;
+      location.search = `?${ds}engine=${state.engine}`;
+    });
+  }
   $("engine-field").hidden = !ENGINES;
   if (ENGINES) {
     $("engine-select").innerHTML = ENGINES.map((e) => `<option value="${e.key}">${e.label}</option>`).join("");
@@ -576,6 +600,9 @@ function init() {
   $("class-filter").addEventListener("change", (e) => { state.klass = e.target.value; refilter(); });
   $("changed-only").addEventListener("change", (e) => { state.changedOnly = e.target.checked; refilter(); });
   $("cofactor-only").addEventListener("change", (e) => { state.cofactorOnly = e.target.checked; refilter(); });
+  $("agree-filter").addEventListener("change", (e) => { state.agree = e.target.value; refilter(); });
+  const hasAgreement = DATA.complexes.some((c) => c.agree !== null);
+  $("agree-field").hidden = !hasAgreement;
   document.querySelectorAll(".list th button[data-sort]").forEach((b) =>
     b.addEventListener("click", () => {
       const key = b.dataset.sort;
