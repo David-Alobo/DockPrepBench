@@ -616,6 +616,31 @@ def validation_table(
     return pd.DataFrame(rows), pd.DataFrame(calibration)
 
 
+def pose_change_table(per_complex: pd.DataFrame) -> pd.DataFrame:
+    """
+    How often a change of preparation, or of seed, moves the top-1 pose by 2 Å or more.
+
+    A missing pose counts as a change, as in the agreement count.
+
+    Args:
+        per_complex (pd.DataFrame): Output of `collect`.
+
+    Returns:
+        pd.DataFrame: One row per engine: share of (complex, arm) comparisons whose pose moved,
+            and the same for seed replicates where they exist.
+    """
+    rows = []
+    for e, g in per_complex.groupby("engine", sort=False):
+        row = {"engine": e, "arms_moved": float((len(PRIMARY_ARMS) - g["prep_agree"]).sum()
+                                                / (len(PRIMARY_ARMS) * len(g)))}  # fmt: skip
+        seeds = g["seed_agree"].dropna()
+        if len(seeds):
+            n_seeds = 3  # replicates besides the baseline
+            row["seeds_moved"] = float((n_seeds - seeds).sum() / (n_seeds * len(seeds)))
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def missing_table(per_complex: pd.DataFrame) -> pd.DataFrame:
     """
     Whether missing poses drive the agreement signal: AUROCs with and without such complexes.
@@ -679,6 +704,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "agreement_validation": validation,
         "agreement_calibration": calibration,
         "agreement_missing": missing_table(per_complex),
+        "agreement_pose_change": pose_change_table(per_complex),
     }
     for name, table in tables.items():
         table.to_csv(args.out / f"{name}.csv", index=False)

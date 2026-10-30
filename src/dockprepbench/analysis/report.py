@@ -234,6 +234,7 @@ def noise_table(runs: dict[str, EngineRuns]) -> pd.DataFrame:
             "always_succeed": always,
             "always_fail": never,
             "seed_sensitive": len(table) - always - never,
+            "seed_stable": always + never,
         })  # fmt: skip
     return pd.DataFrame(rows)
 
@@ -295,6 +296,69 @@ def transition_table(runs: dict[str, EngineRuns], site_shift: float = SITE_SHIFT
     return pd.DataFrame(rows)
 
 
+def engine_table(runs: dict[str, EngineRuns]) -> pd.DataFrame:
+    """
+    Paired comparison of every pair of engines at the baseline protocol.
+
+    Each pair is compared on all complexes (preparation failures count as failures) and on the
+    complexes both engines docked, so a gap cannot come from one engine's failures alone.
+
+    Args:
+        runs (dict[str, EngineRuns]): Output of `discover`.
+
+    Returns:
+        pd.DataFrame: One row per (engine_a, engine_b, complex set).
+    """
+    rows = []
+    for a, b in itertools.combinations(runs.values(), 2):
+        ok = a.baseline.index[a.baseline["error"] == ""].intersection(
+            b.baseline.index[b.baseline["error"] == ""]
+        )
+        for name, ids in (("all", a.baseline.index.intersection(b.baseline.index)), ("shared", ok)):
+            ha, hb = successes(a.baseline).loc[ids], successes(b.baseline).loc[ids]
+            c = compare(ha, hb)
+            rows.append({
+                "engine_a": a.engine,
+                "engine_b": b.engine,
+                "set": name,
+                "n": c.n,
+                "rate_a": ha.mean(),
+                "rate_b": hb.mean(),
+                "diff_pts": 100 * (hb.mean() - ha.mean()),
+                "only_b": len(c.only_b),
+                "only_a": len(c.only_a),
+                "p": c.p_value,
+            })  # fmt: skip
+    return pd.DataFrame(rows)
+
+
+def sampling_table(runs: dict[str, EngineRuns]) -> pd.DataFrame:
+    """
+    Per run: complexes with a correct top pose, with any correct pose, and failures.
+
+    Args:
+        runs (dict[str, EngineRuns]): Output of `discover`.
+
+    Returns:
+        pd.DataFrame: One row per (engine, run): n, top1, any_pose (best RMSD below 2 Å),
+            top1_miss and failed.
+    """
+    rows = []
+    for e in runs.values():
+        for name, run in {BASELINE: e.baseline, **e.arms}.items():
+            top = int(successes(run).sum())
+            rows.append({
+                "engine": e.engine,
+                "run": name,
+                "n": len(run),
+                "top1": top,
+                "any_pose": int((run["best_rmsd"] < 2).sum()),
+                "top1_miss": len(run) - top,
+                "failed": int((run["error"] != "").sum()),
+            })  # fmt: skip
+    return pd.DataFrame(rows)
+
+
 def write_report(
     results: str | Path,
     out: str | Path,
@@ -331,6 +395,8 @@ def write_report(
         "noise": noise,
         "flips": flips_table(runs, noise),
         "transitions": transition_table(runs),
+        "engines": engine_table(runs),
+        "sampling": sampling_table(runs),
     }
     if dataset is not None:
         # Imported here: the sensitivity module builds on this one.
