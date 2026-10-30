@@ -33,6 +33,13 @@ and does not show that 2 Å is optimal for prospective docking.*
   drawn box around a known site costs accuracy. It does *not* show that 2 Å is optimal for
   prospective docking, cross-docking or screening. We note that a tight box can cut off the
   binding mode, as our ligand-scaled box did (Section 3.9).
+- **The independent Astex check (Section 3.11) supports the reviewer's caution.** The 2 Å gain
+  recurred only for rDock (+17.6 points [8.2, 26.4]). For Vina, Smina and Gnina there was no
+  detectable effect, and for Vina the interval (+1.2 [−2.9, 5.2]) excludes the benchmark-set
+  gain. The geometric pattern did recur: the tight box removed wrong-site poses and larger
+  boxes added them. But the Astex baselines rarely produced wrong-site poses for the Vina
+  family, so there was little to fix. The abstract, discussion and conclusions now say the
+  benefit depends on the engine and the dataset.
 - **Cross-docking** remains future work and is named as such in the Limitations.
 
 ## Major comment 3: receptor preparation and cofactors
@@ -79,7 +86,17 @@ the evidence.*
   - 85 complexes, no PDB entry in common with the benchmark set.
   - Four hypotheses, their tests and decision rules were committed to the repository
     (`docs/astex_validation_plan.md`) before any run.
-  - **[Results to be added when the runs finish.]**
+  - **Agreement replicated for three of four engines.** It beat the docking score for Vina
+    (AUROC 0.82 vs 0.66; difference 0.16 [0.04, 0.29]), Smina (0.80 vs 0.62) and rDock
+    (0.93 vs 0.78). For Gnina the difference was similar in size but its interval included
+    zero (0.14 [−0.01, 0.28]; only 17 incorrect poses), and agreement did not beat Gnina's
+    CNN score.
+  - **The pair chosen on the benchmark set** also beat the score out of sample for Vina,
+    Smina and rDock, not for Gnina.
+  - **Calibration held for all four engines.** When all five arms agreed, the pose was correct
+    for 87–91% of complexes, against 81–93% on the benchmark set.
+  - We report these results whatever their direction, as the plan required, including the
+    box result below, which did not replicate.
 - **Shared systematic errors.** We agree that the arms share receptor, scoring and much of
   the search, so agreement can reflect shared errors. The seed control (0.67) shows the
   signal is not mere run-to-run noise. Shared errors are why we describe the signal as

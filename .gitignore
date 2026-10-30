@@ -35,6 +35,8 @@ Thumbs.db
 # Generated explorer data
 explorer/data.js
 explorer/poses/
+explorer/data_astex.js
+explorer/poses_astex/
 
 # Node (explorer tests)
 node_modules/

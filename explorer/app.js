@@ -517,6 +517,11 @@ function showMeta() {
   $("meta").textContent = `${DATA.dataset} · ${DATA.complexes.length} complexes · ${DATA.engine}`;
 }
 
+/** "dataset=astex&" when showing a non-default dataset, so links and reloads keep it. */
+function datasetParam() {
+  return DATA.datasetKey && DATA.datasetKey !== "posebusters" ? `dataset=${DATA.datasetKey}&` : "";
+}
+
 function setEngine(key) {
   state.engine = useEngine(key);
   if (!ARMS.some((a) => a.key === state.arm)) state.arm = defaultArm(ARMS);
@@ -524,7 +529,7 @@ function setEngine(key) {
   fillArmSelect();
   showMeta();
   try {
-    history.replaceState(null, "", `?engine=${state.engine}${location.hash}`);
+    history.replaceState(null, "", `?${datasetParam()}engine=${state.engine}${location.hash}`);
   } catch {
     /* sandboxed frames may refuse */
   }
@@ -563,6 +568,15 @@ function renderAll() {
 
 function init() {
   showMeta();
+  // The dataset menu reloads the page with the other data file; older data has no datasetKey.
+  $("dataset-field").hidden = !DATA.datasetKey;
+  if (DATA.datasetKey) {
+    $("dataset-select").value = DATA.datasetKey;
+    $("dataset-select").addEventListener("change", (e) => {
+      const ds = e.target.value === "posebusters" ? "" : `dataset=${e.target.value}&`;
+      location.search = `?${ds}engine=${state.engine}`;
+    });
+  }
   $("engine-field").hidden = !ENGINES;
   if (ENGINES) {
     $("engine-select").innerHTML = ENGINES.map((e) => `<option value="${e.key}">${e.label}</option>`).join("");
