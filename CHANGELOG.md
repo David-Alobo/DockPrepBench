@@ -7,7 +7,7 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- Results numbers taken from the data: 124 numbers in `results.tex` are `al{}` references to values generated from the result tables (`paper/tables/numbers.tex`, spec `paper/numbers.toml`, generated with numcheck); the compiled text is unchanged.
+- Results numbers taken from the data: 124 numbers in `results.tex` are `al{}` references to values generated from the result tables (`paper/tables/numbers.tex`, spec `paper/numbers.toml`, generated with provenum); the compiled text is unchanged.
 - `analysis.agreement`: pose agreement across preparation arms, engines and seeds as a confidence signal (AUROC with paired bootstrap intervals), the consensus pose, and the per-complex oracle; `analysis.figures.plot_agreement_levels`; how many arms the signal needs (`subset_table`); paper section 3.9 and Figure 3.
 - Package layout (`dockprepbench`) with `datasets`, `preparation`, `engines`, `evaluation` and `analysis` subpackages.
 - `dockprepbench` command-line entry point.
