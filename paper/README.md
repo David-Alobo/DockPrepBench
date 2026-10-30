@@ -65,3 +65,17 @@ candidates not yet checked here rather than in `references.bib`.
 To verify before citing:
 
 - None at present.
+
+## Numbers from the data (`\val{}`)
+
+Numbers in the text that come from result tables are written as `\val{<table>/<keys>/<column>}`,
+e.g. `\val{comparisons/vina/top1/box_padding_2/delta_pts}`. Their values are defined in
+`tables/numbers.tex`, generated from the CSV tables by [numcheck](../../numcheck) with the spec in
+`numbers.toml`:
+
+```bash
+numcheck values paper/numbers.toml --tables paper/tables --out paper/tables/numbers.tex
+```
+
+Regenerate it whenever the tables change. An undefined path prints a bold `??` and a LaTeX warning.
+`numcheck lint paper/sections/*.tex` lists numbers still written by hand.
