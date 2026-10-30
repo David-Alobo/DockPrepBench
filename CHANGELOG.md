@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Independent check on the Astex Diverse Set (85 complexes; plan in `docs/astex_validation_plan.md`, `analysis.astex`): agreement beat the docking score for Vina, Smina and rDock with calibration held for all four engines; the 2 Å box gain recurred only for rDock. Paper section 3.11, Table 10; abstract, discussion, conclusions and response letter updated.
 - `analysis.agreement`: pose agreement across preparation arms, engines and seeds as a confidence signal (AUROC with paired bootstrap intervals), the consensus pose, and the per-complex oracle; `analysis.figures.plot_agreement_levels`; how many arms the signal needs (`subset_table`); paper section 3.9 and Figure 3.
 - Package layout (`dockprepbench`) with `datasets`, `preparation`, `engines`, `evaluation` and `analysis` subpackages.
 - `dockprepbench` command-line entry point.

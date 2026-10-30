@@ -498,6 +498,64 @@ although the confidence signal keeps most of its value with three.
 \subsection{Independent check on the Astex Diverse Set}
 \label{sec:astex}
 
-\result{Astex validation: H1 (2 \AA{} box), H2 (agreement over five arms vs score), H3 (the
-pre-selected pair vs score) and H4 (success when all five arms agree), as specified in
-docs/astex\_validation\_plan.md before the runs. To be filled in when the runs finish.}
+The six protocols were run with all four engines on the 85 complexes of the Astex Diverse Set,
+which shares no PDB entry with the benchmark set, testing four hypotheses fixed in writing
+before the runs (Methods). Preparation failures counted as failures, as before: Meeko could not
+convert the receptor of 3 complexes for Vina (4 at 6 and \SI{8}{\angstrom}), and one Gnina run
+returned no pose; five rDock runs stopped by the memory limit were docked again with more
+memory. Baseline top-1 success was 62.4\% [51.7, 71.9] for Vina, 67.1\% [56.5, 76.1] for
+Smina, 80.0\% [70.3, 87.1] for Gnina and 37.6\% [28.1, 48.3] for rDock, higher than on the
+benchmark set for every engine.
+
+The tight box (H1) raised success only for rDock: by 17.6 points [8.2, 26.4] (17 gained, 2
+lost; Holm $p = 0.003$ over the four engines). For Vina, Smina and Gnina the changes were
+$+1.2$ [$-2.9$, 5.2], $-1.2$ [$-7.3$, 5.0] and $+1.2$ [$-5.3$, 7.7] points, with no detectable
+effect; for Vina the interval excludes the 6.8-point gain seen on the benchmark set. The
+geometric pattern did recur: the \SI{2}{\angstrom} box left no wrong-site top poses for Vina,
+Smina or Gnina and 2 for rDock, against 3, 2, 1 and 17 at baseline, and the
+\SI{8}{\angstrom} box raised them for every engine (to 6, 6, 4 and 41). On this set the
+baseline box rarely sent a Vina-family pose to the wrong site, so the tight box had little to
+correct; rDock, whose cavity grows with the box, had many such poses and gained.
+
+Agreement across the five arms (H2) identified correct baseline poses better than the docking
+score for Vina (AUROC 0.818 against 0.659; difference 0.159 [0.042, 0.289]), Smina (0.804
+against 0.620; 0.184 [0.054, 0.317]) and rDock (0.927 against 0.777; 0.151 [0.060, 0.251]). For
+Gnina the difference was similar in size but not established (0.771 against 0.636; 0.135
+[$-0.005$, 0.276]), and agreement was no better than Gnina's CNN score (0.781). With only 17
+incorrect Gnina baseline poses, its intervals are wide. The pair of arms chosen on the
+benchmark set before these runs (H3), the \SI{2}{\angstrom} box with the RDKit conformer, also
+beat the score for Vina, Smina and rDock (differences 0.155, 0.227 and 0.129, all intervals
+excluding zero) but not for Gnina. When all five arms agreed (H4), the baseline pose was correct
+for 87.2\% [74.8, 94.0] of 47 complexes with Vina, 89.4\% [77.4, 95.4] of 47 with Smina,
+91.4\% [81.4, 96.3] of 58 with Gnina and 88.9\% [67.2, 96.9] of 18 with rDock, consistent
+with the benchmark set for every engine (Table~\ref{tab:astex}).
+
+\begin{table}[h]
+  \centering
+  \caption{Independent check on the Astex Diverse Set (85 complexes), as specified before the
+    runs. H1: change in top-1 success with the \SI{2}{\angstrom} box, with 95\% paired
+    interval and Holm-adjusted $p$ over four engines. H2 and H3: AUROC of agreement across the
+    five arms and across the pre-selected pair, against the docking score, with the 95\%
+    bootstrap interval of the difference. H4: success when all five arms agree, with Wilson
+    interval (benchmark set in brackets).}
+  \label{tab:astex}
+  \small
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{lllll}
+    \toprule
+     & Vina & Smina & Gnina & rDock \\
+    \midrule
+    H1 box, pts & +1.2 [$-2.9$, 5.2] & $-1.2$ [$-7.3$, 5.0] & +1.2 [$-5.3$, 7.7] & +17.6 [8.2, 26.4] \\
+    \quad Holm $p$ & 1 & 1 & 1 & 0.003 \\
+    H2 arms vs score & 0.82 vs 0.66 & 0.80 vs 0.62 & 0.77 vs 0.64 & 0.93 vs 0.78 \\
+    \quad difference & 0.16 [0.04, 0.29] & 0.18 [0.05, 0.32] & 0.14 [$-0.01$, 0.28] & 0.15 [0.06, 0.25] \\
+    H3 pair vs score & 0.16 [0.03, 0.29] & 0.23 [0.10, 0.37] & 0.08 [$-0.08$, 0.24] & 0.13 [0.04, 0.23] \\
+    H4 all agree & 87\% (84\%) & 89\% (81\%) & 91\% (93\%) & 89\% (91\%) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+In short, the confidence signal replicated on an independent set for three of the four engines
+and its calibration held for all four, while the gain from a tight box replicated only for
+rDock: for the Vina family it depends on how often a dataset's baseline box admits wrong-site
+poses.

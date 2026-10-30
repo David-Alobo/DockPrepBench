@@ -56,8 +56,11 @@ These results suggest four practices for docking benchmarks and applications. Fi
 report the search space exactly (centre, size and how it was derived), since it is the
 preparation choice with the largest and most consistent effect. In redocking, with the box
 drawn around the crystal ligand, a tight box (\SI{2}{\angstrom} padding here) raised success
-for all four engines, significantly for Vina, Smina and rDock. This shows that a box drawn
-generously around a known site costs accuracy; it does not show that \SI{2}{\angstrom} is
+for all four engines, significantly for Vina, Smina and rDock. On the independent Astex set
+the gain recurred only for rDock (Section~\ref{sec:astex}): a tight box helps where the
+generous box lets poses reach wrong sites, which on that set was common only for rDock. A
+box drawn generously around a known site can therefore cost accuracy, by an amount that
+depends on the engine and the dataset; the results do not show that \SI{2}{\angstrom} is
 optimal for prospective docking, cross-docking or virtual screening, where the site and the
 ligand's extent are less certain and a tight box risks cutting off the binding mode, as the
 ligand-scaled box did here (Section~\ref{sec:interaction}). Second, repeat runs with several seeds and report the spread: a single run cannot
@@ -74,7 +77,10 @@ docking score for all four engines, better than Gnina's CNN score, and about as 
 agreement across engines, while needing only one engine. Rerunning with new seeds did not
 reproduce this, so the signal comes from perturbing the input, not from repeating the
 search; the idea parallels test-time augmentation in machine learning. The signal held under cross-validation and added to the docking score rather than
-restating it. If it holds beyond redocking, re-docking a candidate with a few preparation
+restating it, and on the independent Astex set, tested as specified in advance, it again beat
+the docking score for Vina, Smina and rDock (though not detectably for Gnina) with success
+rates at full agreement close to those of the benchmark set. If it holds beyond redocking,
+re-docking a candidate with a few preparation
 variants would be a cheap way to decide which poses to trust before inspecting or rescoring
 them; for now it is a candidate confidence signal, not a validated, calibrated measure, and
 its success rates at each agreement level are those of this dataset. There is also room to choose better: had the
