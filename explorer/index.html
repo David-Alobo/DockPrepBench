@@ -255,6 +255,12 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
 
   <nav class="controls" aria-label="Comparison settings">
     <div class="control-fields">
+      <label class="field" for="dataset-select" id="dataset-field">Dataset
+        <select id="dataset-select">
+          <option value="posebusters">PoseBusters (428)</option>
+          <option value="astex">Astex, independent check (85)</option>
+        </select>
+      </label>
       <label class="field" for="engine-select" id="engine-field">Engine <select id="engine-select"></select></label>
       <label class="field" for="arm-select">Compare baseline with <select id="arm-select"></select></label>
       <label class="field" for="metric-select">Success means
@@ -426,7 +432,13 @@ footer { color: var(--faint); font-size: 12px; max-width: 920px; }
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
-<script src="data.js"></script>
+<script>
+  // ?dataset=astex shows the Astex Diverse Set (data_astex.js); anything else the benchmark set.
+  (function () {
+    var astex = new URLSearchParams(location.search).get("dataset") === "astex";
+    document.write('<script src="' + (astex ? "data_astex.js" : "data.js") + '"><\/script>');
+  })();
+</script>
 <script src="lib.js"></script>
 <script src="app.js"></script>
 </body>
