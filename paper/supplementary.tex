@@ -48,6 +48,18 @@ each engine and metric.
 
 \section{Outcome changes against seed-to-seed variation}
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.95\textwidth]{flips.pdf}
+  \caption{Complexes each primary arm gained (right) and lost (left) against its engine's
+    baseline, top-1 success on all 428 complexes. A net change in success is the difference
+    of two counts that are often much larger. For scale, the dashed lines in the Vina panel
+    mark $\pm 8.75$, half of the 17.5 complexes that change on average between two seeds of
+    the baseline. Drawn by
+    \texttt{dockprepbench report --figures}.}
+  \label{fig:si-flips}
+\end{figure}
+
 \begin{table}[h]
   \centering
   \caption{Complexes whose top-1 outcome differs between each arm and its baseline. For

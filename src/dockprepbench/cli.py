@@ -390,10 +390,16 @@ def report_command(args: argparse.Namespace) -> int:
     if args.figures:
         import pandas as pd
 
-        from dockprepbench.analysis.figures import plot_engine_arms
+        from dockprepbench.analysis.figures import plot_engine_arms, plot_flips
 
         summary = pd.read_csv(args.out / "summary.csv")
         for path in plot_engine_arms(summary, args.figures / "engine_arms"):
+            print(path)
+        noise = pd.read_csv(args.out / "noise.csv")
+        seed = noise.loc[noise["engine"] == "vina", "flips_mean"]
+        comparisons = pd.read_csv(args.out / "comparisons.csv")
+        seed_flips = float(seed.iloc[0]) if len(seed) else None
+        for path in plot_flips(comparisons, args.figures / "flips", seed_flips):
             print(path)
     return 0
 

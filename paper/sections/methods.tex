@@ -175,6 +175,8 @@ its RMSD is below \SI{2}{\angstrom}, and a \emph{\pbvalid{} success} if it also 
 PoseBusters \citep{buttenschoen2024posebusters} redocking check other than its own RMSD
 check. Contacts are checked against the original protein file, with cofactors, as in the
 PoseBusters protocol. A complex whose preparation or docking fails counts as a failure.
+Throughout the paper, ``success'' without qualification means top-1 success; \pbvalid{}
+success is always named as such.
 
 To explain differences between arms, each top pose is assigned one failure class: valid
 success; correct but not \pbvalid{}; scoring failure (a pose below \SI{2}{\angstrom} exists

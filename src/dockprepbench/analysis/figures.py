@@ -244,6 +244,59 @@ def _spread(values: list[float], min_gap: float) -> list[tuple[float, float]]:
     return list(zip(values, result, strict=True))
 
 
+def plot_flips(
+    comparisons: pd.DataFrame, path_stem: Path, seed_flips: float | None = None
+) -> list[Path]:
+    """
+    Draw, per engine and arm, the complexes the arm gained and lost against the baseline.
+
+    Diverging bars make the paired design visible: a net change is the difference of two
+    often much larger counts. One panel per engine, arms in the order of `ARM_LABELS`.
+
+    Args:
+        comparisons (pd.DataFrame): The report's comparisons table (top-1 rows are used).
+        path_stem (Path): Output path without extension; one file per format is written.
+        seed_flips (float | None): Mean complexes changed between two Vina seeds, drawn as a
+            reference in the Vina panel.
+
+    Returns:
+        list[Path]: Files written.
+    """
+    top = comparisons[comparisons["metric"] == "top1"]
+    engines = [e for e in ENGINE_LABELS if e in set(top["engine"])]
+    arms = [a for a in ARM_LABELS if a != "baseline" and a in set(top["arm"])]
+    limit = 5 * np.ceil(max(top["gained"].max(), top["lost"].max()) / 5 + 1)
+    gained_colour, lost_colour = SERIES[0], SERIES[1]
+
+    fig = Figure(figsize=(7.2, 1.15 * len(engines) + 1.2), facecolor=SURFACE)
+    axes = fig.subplots(len(engines), 1, sharex=True, squeeze=False)[:, 0]
+    rows = np.arange(len(arms))[::-1]
+    for ax, engine in zip(axes, engines, strict=True):
+        _style_axes(ax)
+        t = top[top["engine"] == engine].set_index("arm")
+        gained = [t.at[a, "gained"] if a in t.index else 0 for a in arms]
+        lost = [t.at[a, "lost"] if a in t.index else 0 for a in arms]
+        ax.barh(rows, gained, height=0.62, color=gained_colour, zorder=2)
+        ax.barh(rows, [-v for v in lost], height=0.62, color=lost_colour, zorder=2)
+        for y, g, lo in zip(rows, gained, lost, strict=True):
+            ax.text(g + 1.5, y, f"{int(g)}", va="center", fontsize=7, color=INK_SECONDARY)
+            ax.text(
+                -lo - 1.5, y, f"{int(lo)}", va="center", ha="right", fontsize=7, color=INK_SECONDARY
+            )
+        ax.axvline(0, color=BASELINE, lw=0.8, zorder=1)
+        if engine == "vina" and seed_flips:
+            for x in (-seed_flips / 2, seed_flips / 2):
+                ax.axvline(x, color=INK_MUTED, lw=0.8, ls=(0, (3, 3)), zorder=1)
+        ax.set_yticks(rows, [ARM_LABELS[a] for a in arms], fontsize=7.5)
+        ax.set_xlim(-limit, limit)
+        ax.set_title(ENGINE_LABELS[engine], loc="left", fontsize=8.5, color=INK, pad=3)
+    axes[-1].set_xlabel("Complexes lost (left) and gained (right) against the baseline, top-1",
+                        color=INK_SECONDARY)  # fmt: skip
+    axes[-1].xaxis.set_major_formatter(lambda x, _: f"{abs(int(x))}")
+    fig.subplots_adjust(hspace=0.45)
+    return _save(fig, path_stem)
+
+
 def plot_agreement_levels(levels: pd.DataFrame, path_stem: Path) -> list[Path]:
     """
     Draw baseline top-1 success against the number of preparation arms agreeing with its pose.

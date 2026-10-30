@@ -145,14 +145,19 @@ def test_write_report_writes_every_table(results, tmp_path):
 
     assert sorted(p.name for p in written) == [
         "comparisons.csv",
+        "engines.csv",
         "flips.csv",
         "flips_table.tex",
         "noise.csv",
         "pb_valid_table.tex",
+        "sampling.csv",
         "summary.csv",
         "top1_table.tex",
         "transitions.csv",
     ]  # fmt: skip (no dataset given, so no sensitivity tables)
+    sampling = pd.read_csv(tmp_path / "tables" / "sampling.csv")
+    assert (sampling["any_pose"] >= sampling["top1"]).all()  # a correct top pose is a correct pose
+    assert pd.read_csv(tmp_path / "tables" / "noise.csv")["seed_stable"][0] >= 0
     assert not math.isnan(pd.read_csv(tmp_path / "tables" / "noise.csv")["flips_mean"][0])
 
 

@@ -149,14 +149,18 @@ the evidence.*
    best-to-worst range, not the effect of one choice.
 2. **33.2 points.** Now described as a difference between complete tested pipelines, not
    between neural-network and classical methods.
-3. **Top-1 vs PB-valid.** Each is defined in Methods 2.6 and labelled where reported.
-   \[Check remaining instances.\]
+3. **Top-1 vs PB-valid.** Each is defined in Methods 2.6, which now also states that
+   "success" without qualification always means top-1 success. We checked every use in
+   Results, Discussion, Abstract and Conclusions: PB-valid success is always named as such.
 4. **Missing poses in the agreement analysis.** Their handling is stated in Methods and the
    analysis is repeated without them (see comment 4).
 5. **Selection optimism of the best pair.** Choosing the pair inside each training fold gives
    held-out AUROC 0.79–0.87, about 0.02 below the in-sample values. The pre-selected pair is
    tested out of sample on Astex (H3).
-6. **Zenodo DOI.** \[To be added on release.\]
-7. **Authors and acknowledgements.** \[To be completed.\]
-8. **Paired nature in the figures.** \[Planned: an SI figure of gained and lost complexes
-   per arm and engine.\]
+6. **Reproducibility of the numbers.** 312 of the 369 decimal numbers in Results are now generated directly from the analysis output tables (`\val{}` references, regenerated with the tables), so the text cannot drift from the data. The rest are settings (pH, versions), simple derived ranges and ratios, or a few one-off statistics. Every follow-up analysis that was previously computed ad hoc (protonation x box, ligand-sized box, engine comparisons, sampling counts, comparison with the published PoseBusters run) now has its own module and table.
+7. **Zenodo DOI.** \[To be added on release.\]
+8. **Authors and acknowledgements.** \[To be completed.\]
+9. **Paired nature in the figures.** New SI Figure (gained and lost complexes per arm and
+   engine) shows each net change as the difference of two often much larger counts, with the
+   seed-to-seed level marked for Vina. The explorer also shows, for every arm, which
+   complexes were gained and lost.
